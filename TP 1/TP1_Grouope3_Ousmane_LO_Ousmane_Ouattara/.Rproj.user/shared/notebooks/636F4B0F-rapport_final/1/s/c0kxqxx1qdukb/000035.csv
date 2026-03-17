@@ -1,0 +1,5 @@
+"0","#| echo: false"
+"0","#| fig-height: 5"
+"0","#| warning: false"
+"0","load(""../output/figures/pyramide_age.RDATA"")"
+"0","pyramide_plot"

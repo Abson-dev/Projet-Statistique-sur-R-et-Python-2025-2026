@@ -1,0 +1,257 @@
+######################################################
+####
+### 2. Analyse uni-variée de l'âge des membre du ménage ####
+###
+#######################################################
+library(rstatix)
+library(ggplot2)
+library(apyramid)
+library(e1071) # pour l'asymétrie
+# Histogramme des âges!
+histogramme_age <- ggplot( donnees_propres ,aes(x= s1q4))+
+       geom_histogram(binwidth=5 , fill = "steelblue" , color = "white")+
+        labs(title= "Distribution des âges au Nigeria (vague4)",
+             subtitle= "Analyse de la variable s1q4 (âge)" ,
+              x = "âge (années)", y = "Effectif" , caption= "Source : GHS Panel Survey")+
+        theme_minimal() +
+  theme(
+    panel.grid.major= element_blank(), 
+    panel.grid.minor=element_blank(),
+    legend.position= "bottom"
+  )
+  
+histogramme_age
+# boxplot ou boite à moustaches 
+
+boxplot_age <- ggplot( donnees_propres ,aes(y= s1q4))+
+  geom_boxplot( fill = "steelblue" , color = "orange" , outlier.color= "red")+
+  labs(title= "Dispersion des âges au Nigeria (vague4)",
+       subtitle= "Identification des quartiles et valeurs extrêmes" ,
+       y = "âge (années)" , caption= "Source : GHS Panel Survey")+
+  theme_minimal()+
+  theme(
+    legend.position= "bottom"
+  )
+
+boxplot_age
+
+## enregistrement des graphiques dans output/figures
+save (histogramme_age , file = "output/figures/histogramme_age.RDATA")
+save(boxplot_age, file = "output/figures/boxplot_age.RDATA")
+
+# calcul des statistiques descripitives 
+stats_ages = donnees_propres |> 
+  summarise(
+    Effectif = n() , 
+    Moyenne = mean(s1q4 ), 
+    Mediane = median(s1q4 ) ,
+    Q1 = quantile(s1q4 , probs = 0.25 ), 
+    Q3 = quantile (s1q4 ,probs =0.75) ,
+    Coeff_Variation = (sd(s1q4 )/mean(s1q4))*100, 
+    Asymetrie = skewness(s1q4)
+  )
+stats_ages
+
+# enregistrement des données dans output/tables/dispersion_parameters.RDATA
+save(stats_ages , file = "output/tables/dispersion_parameters.RDATA" )
+# TESTE DE NORMALITE A FAIRE AVANT §§§§§§§§§§§§§§§§§
+######################################################
+####
+### 3. Pyramide des âges par sexe pour la vague 4 et commentaire ####
+###
+#######################################################
+
+# Préparation des tranches d'âges 
+donnees_pyramide <- donnees_propres |>
+  mutate(tranche_age = cut(s1q4 , 
+                           breaks = seq(0,100 , by =5) , 
+                           right = FALSE),
+        # sexe_label = factor(as.vector(unclass(s1q2)), levels = c(1,2) ,labels = c("Homme","Femme"))
+                          
+         )
+
+
+
+# Création de la pyramide des âges 
+pyramide_plot  <- age_pyramid(
+  data = donnees_pyramide,
+  age_group= "tranche_age" , 
+  split_by = "sexe", na.rm=TRUE,
+  pal  = c("steelblue", "#4B0082")
+  # proportions = FALSE
+) + 
+  labs (
+    title = "Pyramide des âges - Nigéria" , 
+    x = "Tranches d'âge ",
+    y = "Effectif",
+    fill = "Sexe"
+  )+
+  theme_minimal()+
+theme(
+  plot.title = element_text(face = "bold", size = 14, hjust = 0.5 ),
+  legend.position = "bottom",
+  panel.grid.minor = element_blank(),
+  panel.grid.major= element_blank(),
+  axis.line.y = element_line(color = "black", size = 0.5)
+
+)
+pyramide_plot
+# enregistrement du graphique 
+save(pyramide_plot , file = "output/figures/pyramide_age.RDATA")
+
+
+######################################################
+####
+### 4. Fréquence du lien de parenté ####
+###
+#####################################################
+
+# on va ici créer les effectifs des différentes modalités et leurs pourcentages
+# les valeurs manquantes potentiels sont supprimées
+donnees_parente <- donnees_propres |>
+  filter(!is.na(lien_parente)) |>
+  count(lien_parente) |>
+  mutate(pourcentage = (n/sum(n)*100))
+# représentation graphique
+
+lien_plot =ggplot(donnees_parente, aes(x = reorder(lien_parente,pourcentage) , y= pourcentage))+
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = paste0(round(pourcentage,1) ,"%")),
+            hjust = -0.1 , size = 3.5 
+            )+
+  coord_flip()+
+  labs(
+    title = "Composition des ménages par lien de parenté", 
+    subtitle = "Nigéria - Structure familiale" , 
+    x= "Lien avec le chef de ménage",
+    y = "Fréquence (%)" , 
+    caption = "Source : GHS Panel Survey"
+  )+ theme_minimal()+
+  theme(
+    panel.grid.major= element_blank(),
+    panel.grid.minor= element_blank()
+  )
+lien_plot
+save(lien_plot, file = "output/figures/diagrame_baton_lien.RDATA")
+ 
+## Calcul des proportion avec un intervalle de confiance de 95%
+
+## intervalle de confiance 
+donnees_parente <- donnees_parente |>
+  mutate(
+    total = sum(n) ,
+    # on calcul l'intervalle de confiance avec binome.test
+    ic_inf = map2_dbl(n,total ,~ binom.test(.x , .y)$conf.int[1])*100,
+    ic_sup = map2_dbl(n,total ,~ binom.test(.x , .y)$conf.int[2])*100
+                                        
+  )
+donnees_parente
+
+save(donnees_parente , file = "output/tables/lien_parente_et_IC.RDATA")
+
+## representation et barres d'erreur IC à 95%
+
+lien_plot_IC =ggplot(donnees_parente, aes(x = reorder(lien_parente,pourcentage) , y= pourcentage))+
+  geom_col(fill = "#5D6D7E") +
+  geom_errorbar(aes(ymin = ic_inf , ymax = ic_sup) , width = 0.5 , color = "darkred"
+  )+
+  coord_flip()+
+  labs(
+    title = "Composition des ménages par lien de parenté", 
+    subtitle = "Proportions avec IC à 95% " , 
+    x= "Lien avec le chef de ménage",
+    y = "Fréquence (%)" , 
+    caption = "Source : GHS Panel Survey"
+  )+ theme_minimal()
+lien_plot_IC
+save(lien_plot_IC, file = "output/figures/diagrame_et_IC.RDATA")
+
+
+######################################################
+####
+### 5. (SUITE) / TAILLE MOYENNE DES MENAGES ENTRE ZONE RURAL ET URBAIN 
+###
+#####################################################
+
+boxplot_secteur <- ggplot(menage_secteur, aes(x = secteur, y = taille, fill = secteur)) +
+  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 1) +
+  # On ajoute la moyenne (point blanc) car le boxplot montre la médiane
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "white") +
+  scale_fill_manual(values = c("Urbain" = "#3498DB", "Rural" = "#27AE60")) +
+  labs(
+    title = "Distribution de la taille des ménages par zone",
+    subtitle = "Les boîtes montrent la médiane, les points blancs la moyenne",
+    x = "Zone de résidence",
+    y = "Nombre de membres par ménage",
+    caption= "Source : GHS Panel Survey"
+    
+  ) +
+  theme_minimal()
+save (boxplot_secteur , file = "output/figures/boxplot_secteur.RDATA")
+boxplot_secteur
+## Le Test de Wilcoxon-Mann-Whitney
+
+resultat_wilcox <- menage_secteur |> 
+  wilcox_test(taille ~ secteur) |>
+  add_significance()
+
+# Calcul de la taille d'effet (r de rang)
+effet_r <- menage_secteur |> 
+  wilcox_effsize(taille ~ secteur)
+effet_r
+save(resultat_wilcox , file = "output/tables/resultat_wilcox.RDATA")
+
+# INTERPRETATION : La taille des ménagess semblent plus élevée dans les zones du nord,notamment Est et OUest.
+# Toute la dispersion est plus marquante dans le sud sud .
+
+## ################################ QUESTION 6 ##################
+
+
+
+# On prépare la base complète (une ligne par individu)
+base_bilan <- sect1_w4 |>
+  # 1. On lie la zone et la taille calculée précédemment
+  inner_join(menage_secteur, by = "hhid") |>
+  # 2. On sélectionne uniquement les variables du tableau
+  select(age = s1q4, sexe = s1q2, taille, secteur) |>
+  # 3. On s'assure que les labels sont propres
+  mutate(
+    sexe = as_factor(sexe),
+    secteur = as_factor(secteur)
+  )
+head(base_bilan)
+
+
+##############
+
+tableau_recap <- base_bilan |>
+  select(age, sexe, taille, secteur) |> # On ne garde que ce qui va dans le tableau
+  tbl_summary(
+    by = secteur,
+    statistic = list(
+      age ~ "{mean} ({sd})",
+      taille ~ "{mean} ({sd})",
+      sexe ~ "{n} ({p}%)"
+    ),
+    label = list(
+      age ~ "Âge (années)",
+      sexe ~ "Sexe",
+      taille ~ "Taille du ménage"
+    ),
+    missing = "no"
+  ) |>
+  add_p() |>       # Tests statistiques (p-values)
+  add_overall() |> # Colonne total
+  bold_labels()
+
+tableau_recap
+save(tableau_recap, file = "output/tables/tableau_racapitulatif.RDATA")
+
+
+
+
+
+
+
+
+

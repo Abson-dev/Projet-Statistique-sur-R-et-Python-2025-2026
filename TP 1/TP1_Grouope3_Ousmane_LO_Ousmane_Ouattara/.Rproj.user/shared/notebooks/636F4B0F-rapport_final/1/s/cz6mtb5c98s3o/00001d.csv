@@ -1,0 +1,4 @@
+"0","#|echo: false"
+"0","#|message: false"
+"0","load(""../output/figures/diagrame_baton_lien.RDATA"")"
+"0","lien_plot"
