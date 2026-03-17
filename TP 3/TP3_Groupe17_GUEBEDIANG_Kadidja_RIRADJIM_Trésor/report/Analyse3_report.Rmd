@@ -1,0 +1,294 @@
+---
+title: "Analyse 3 — Accès aux services de santé et chocs sanitaires des ménages"
+author: "RIRADJIM NGARMOUNDOU TRESOR ET GUEBEDIANG A NKEN KADIDJA"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    latex_engine: xelatex
+fontsize: 11pt
+geometry: margin=2.5cm
+lang: fr
+header-includes:
+  - '\usepackage{booktabs}'
+  - '\usepackage{longtable}'
+  - '\usepackage{array}'
+  - '\usepackage{float}'
+  - '\usepackage{caption}'
+  - '\usepackage{setspace}'
+  - '\captionsetup{font=small}'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "95%"
+)
+
+library(readr)
+library(dplyr)
+library(knitr)
+library(scales)
+
+path_fig <- "../output/figures"
+path_tab <- "../output/tables"
+path_clean <- "../output/data_clean"
+
+safe_read_csv <- function(path) {
+  if (file.exists(path)) {
+    readr::read_csv(path, show_col_types = FALSE)
+  } else {
+    NULL
+  }
+}
+
+safe_include_graphics <- function(path) {
+  if (file.exists(path)) {
+    knitr::include_graphics(path)
+  } else {
+    cat(paste("Figure introuvable :", path))
+  }
+}
+
+fmt_n <- scales::label_number(big.mark = " ", decimal.mark = ",")
+fmt_pct <- scales::label_percent(accuracy = 0.1, decimal.mark = ",")
+
+# Tables produites par le script d'analyse
+tab_morbidite   <- safe_read_csv(file.path(path_tab, "table_morbidite_sexe_age.csv"))
+tab_top10       <- safe_read_csv(file.path(path_tab, "table_top10_maladies.csv"))
+tab_prest       <- safe_read_csv(file.path(path_tab, "table_prestataires.csv"))
+tab_deciles     <- safe_read_csv(file.path(path_tab, "table_deciles_depenses_sante.csv"))
+tab_tests       <- safe_read_csv(file.path(path_tab, "table_tests_consultation_quintile.csv"))
+tab_wilcox      <- safe_read_csv(file.path(path_tab, "table_wilcoxon_urbain_rural.csv"))
+tab_missing     <- safe_read_csv(file.path(path_tab, "table_missing_summary.csv"))
+tab_effectifs   <- safe_read_csv(file.path(path_tab, "table_effectifs_par_analyse.csv"))
+tab_contingence <- safe_read_csv(file.path(path_tab, "table_contingence_consultation_quintile.csv"))
+tab_outliers    <- safe_read_csv(file.path(path_tab, "table_outliers_depenses_sante.csv"))
+
+# Indicateurs synthétiques utilisés dans le texte
+analysis_n <- if (!is.null(tab_effectifs) && any(tab_effectifs$analyse == "Base totale")) {
+  tab_effectifs %>% filter(analyse == "Base totale") %>% pull(n_utilisable) %>% .[1]
+} else { NA }
+
+n_morbidite <- if (!is.null(tab_effectifs) && any(tab_effectifs$analyse == "Morbidité (malade + sexe + âge_groupe)")) {
+  tab_effectifs %>% filter(analyse == "Morbidité (malade + sexe + âge_groupe)") %>% pull(n_utilisable) %>% .[1]
+} else { NA }
+
+n_maladies <- if (!is.null(tab_effectifs) && any(tab_effectifs$analyse == "Types de maladies")) {
+  tab_effectifs %>% filter(analyse == "Types de maladies") %>% pull(n_utilisable) %>% .[1]
+} else { NA }
+
+n_prest <- if (!is.null(tab_effectifs) && any(tab_effectifs$analyse == "Prestataires consultés")) {
+  tab_effectifs %>% filter(analyse == "Prestataires consultés") %>% pull(n_utilisable) %>% .[1]
+} else { NA }
+
+n_dep <- if (!is.null(tab_effectifs) && any(tab_effectifs$analyse == "Dépenses de santé")) {
+  tab_effectifs %>% filter(analyse == "Dépenses de santé") %>% pull(n_utilisable) %>% .[1]
+} else { NA }
+
+n_quint <- if (!is.null(tab_effectifs) && any(tab_effectifs$analyse == "Consultation x quintile")) {
+  tab_effectifs %>% filter(analyse == "Consultation x quintile") %>% pull(n_utilisable) %>% .[1]
+} else { NA }
+
+# Variables extraites des tableaux
+top_maladie_nom <- if (!is.null(tab_top10) && nrow(tab_top10) > 0) tab_top10$maladie[1] else NA
+top_maladie_n   <- if (!is.null(tab_top10) && nrow(tab_top10) > 0) tab_top10$n[1] else NA
+
+top_prest_nom <- if (!is.null(tab_prest) && nrow(tab_prest) > 0) tab_prest$prestataire[1] else NA
+top_prest_n   <- if (!is.null(tab_prest) && nrow(tab_prest) > 0) tab_prest$n[1] else NA
+
+median_dep <- if (!is.null(tab_deciles) && "d5" %in% names(tab_deciles)) tab_deciles$d5[1] else NA
+p90_dep    <- if (!is.null(tab_deciles) && "d9" %in% names(tab_deciles)) tab_deciles$d9[1] else NA
+
+p_wilcox <- if (!is.null(tab_wilcox) && "p_value" %in% names(tab_wilcox)) tab_wilcox$p_value[1] else NA
+
+chi_p <- if (!is.null(tab_tests)) {
+  out <- tab_tests %>% filter(test == "Chi-deux") %>% pull(p_value)
+  if (length(out) > 0) out[1] else NA
+} else { NA }
+
+cramer_v <- if (!is.null(tab_tests)) {
+  out <- tab_tests %>% filter(test == "V de Cramér") %>% pull(statistic)
+  if (length(out) > 0) out[1] else NA
+} else { NA }
+```
+
+# Introduction
+
+L’accès aux services de santé constitue une dimension centrale du bien-être des ménages. Dans les contextes où la couverture sanitaire reste incomplète, les épisodes de maladie peuvent entraîner à la fois des difficultés d’accès aux soins et des charges financières importantes.
+
+Cette étude analyse l’accès aux soins des ménages nigérians à partir de la vague 4 du **Nigeria GHS Panel**. L’objectif est de décrire la morbidité déclarée, les types de prestataires consultés, les dépenses de santé supportées par les ménages, puis d’examiner les inégalités selon le sexe, l’âge, le milieu de résidence et le niveau de consommation.
+
+# Données mobilisées
+
+L’analyse repose sur les fichiers suivants :
+
+- `sect1_harvestw4.dta` pour les caractéristiques individuelles ;
+- `sect4a_harvestw4.dta` pour les variables de santé, de recours aux soins et de dépenses ;
+- `totcons_final.dta` pour la mesure du niveau de consommation et la construction des quintiles.
+
+Une exploration préalable des fichiers a montré que, dans les données effectivement disponibles, les variables de santé pertinentes sont stockées dans `sect4a_harvestw4.dta`. L’analyse a donc été conduite à partir des fichiers réellement cohérents avec le contenu attendu, même si l’énoncé mentionnait d’autres références.
+
+La base analytique finale contient **`r ifelse(is.na(analysis_n), 'NA', fmt_n(analysis_n))`** observations.
+
+# Méthodologie et traitement des valeurs manquantes
+
+Les valeurs manquantes n’ont pas conduit à une suppression globale de la base. Une exclusion ciblée a été appliquée selon les besoins propres à chaque analyse. Ainsi :
+
+- l’analyse de la morbidité utilise seulement les observations avec `malade`, `sexe` et `age_groupe` renseignés ;
+- l’analyse des maladies déclarées repose sur les individus ayant au moins un type de maladie renseigné ;
+- l’analyse des prestataires conserve les observations avec `prestataire_1` non manquant ;
+- les graphiques de dépenses en échelle logarithmique utilisent uniquement les dépenses strictement positives ;
+- le test recours aux soins × quintile utilise seulement les observations pour lesquelles `consulte` et `quintile_conso` sont renseignés.
+
+```{r}
+if (!is.null(tab_effectifs)) {
+  kable(tab_effectifs, caption = "Effectifs utilisables selon l'analyse", booktabs = TRUE)
+}
+```
+
+```{r}
+if (!is.null(tab_missing)) {
+  kable(head(tab_missing, 10), caption = "Variables les plus touchées par les valeurs manquantes", booktabs = TRUE)
+}
+```
+
+# Morbidité par sexe et groupe d'âge
+
+L’analyse de la morbidité a été réalisée sur **`r ifelse(is.na(n_morbidite), 'NA', fmt_n(n_morbidite))`** observations exploitables. Les résultats montrent que la probabilité de déclarer une maladie ou une blessure augmente avec l’âge. Le niveau le plus élevé est observé chez les personnes âgées de 65 ans et plus.
+
+Les différences entre femmes et hommes restent modérées dans les premiers groupes d’âge, mais deviennent plus visibles à l’âge adulte et aux âges avancés. Dans plusieurs classes d’âge, les femmes déclarent une morbidité plus forte que les hommes.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_morbidite_sexe_age.png"))
+```
+
+Cette structure suggère un **gradient croissant de morbidité avec l’âge**, particulièrement marqué chez les personnes âgées.
+
+```{r}
+if (!is.null(tab_morbidite)) {
+  kable(tab_morbidite, caption = "Morbidité selon le sexe et le groupe d'âge", booktabs = TRUE)
+}
+```
+
+# Types de maladies déclarées
+
+L’analyse des types de maladies porte sur **`r ifelse(is.na(n_maladies), 'NA', fmt_n(n_maladies))`** observations exploitables. La maladie la plus fréquemment déclarée est **`r ifelse(is.na(top_maladie_nom), 'NA', top_maladie_nom)`**, avec environ **`r ifelse(is.na(top_maladie_n), 'NA', fmt_n(top_maladie_n))`** cas.
+
+Les premières positions du classement sont dominées par le paludisme, les douleurs corporelles, les maux de tête et plusieurs affections respiratoires. Dans l’ensemble, les maladies infectieuses occupent une place centrale, ce qui est cohérent avec le contexte épidémiologique étudié.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_top10_maladies.png"))
+```
+
+La structure observée reflète donc un profil sanitaire dominé par les **affections infectieuses et les troubles fréquents du quotidien**.
+
+```{r}
+if (!is.null(tab_top10)) {
+  kable(tab_top10, caption = "Top 10 des maladies déclarées", booktabs = TRUE)
+}
+```
+
+# Prestataires consultés
+
+L’analyse du recours aux prestataires repose sur **`r ifelse(is.na(n_prest), 'NA', fmt_n(n_prest))`** observations exploitables. Le principal prestataire observé est **`r ifelse(is.na(top_prest_nom), 'NA', top_prest_nom)`**, avec **`r ifelse(is.na(top_prest_n), 'NA', fmt_n(top_prest_n))`** consultations.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_prestataires.png"))
+```
+
+Les pharmacies et dépôts de médicaments occupent une place centrale dans le recours aux soins. Les médecins arrivent ensuite, tandis qu’une part non négligeable des individus ne consulte aucun prestataire. Cette structure suggère un système de recours aux soins dans lequel les points de soins de proximité jouent un rôle majeur.
+
+# Distribution des dépenses de santé
+
+L’analyse des dépenses de santé repose sur **`r ifelse(is.na(n_dep), 'NA', fmt_n(n_dep))`** observations avec dépenses positives. La distribution est fortement asymétrique. La médiane est d’environ **`r ifelse(is.na(median_dep), 'NA', fmt_n(median_dep))`** nairas, tandis que le neuvième décile atteint environ **`r ifelse(is.na(p90_dep), 'NA', fmt_n(p90_dep))`** nairas.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_hist_depenses_log.png"))
+```
+
+L’histogramme en échelle logarithmique confirme que la majorité des dépenses se concentre à des niveaux relativement faibles, mais qu’un petit nombre d’observations présente des montants très élevés.
+
+```{r}
+if (!is.null(tab_deciles)) {
+  kable(tab_deciles, caption = "Déciles des dépenses de santé", booktabs = TRUE)
+}
+```
+
+# Dépenses selon le type de prestataire
+
+Les dépenses diffèrent selon le prestataire consulté. Les consultations associées aux médecins présentent des dépenses médianes plus élevées que celles observées pour les pharmacies et vendeurs de médicaments. Les prestataires informels apparaissent également dans des zones de dépenses plus faibles, bien que les dispersions restent importantes.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_boxplot_depenses_prestataire.png"))
+```
+
+Le graphique montre aussi l’existence de valeurs extrêmes dans plusieurs catégories, ce qui confirme la forte hétérogénéité des dépenses.
+
+# Recours aux soins selon le quintile de consommation
+
+Le test de dépendance entre recours aux soins et quintile de consommation a été réalisé sur **`r ifelse(is.na(n_quint), 'NA', fmt_n(n_quint))`** observations exploitables. Le barplot empilé à 100 % montre une progression nette du recours aux soins lorsque l’on passe des quintiles les plus pauvres aux quintiles les plus riches.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_barplot100_consultation_quintile.png"))
+```
+
+Dans les quintiles faibles, la part des individus ayant consulté reste limitée. Elle augmente progressivement et atteint son niveau le plus élevé dans le quintile supérieur. Cela suggère que les contraintes économiques influencent le recours effectif aux services de santé.
+
+```{r}
+if (!is.null(tab_contingence)) {
+  kable(tab_contingence, caption = "Tableau de contingence : consultation × quintile de consommation", booktabs = TRUE)
+}
+```
+
+```{r}
+if (!is.null(tab_tests)) {
+  kable(tab_tests, caption = "Résultats des tests d'indépendance", booktabs = TRUE)
+}
+```
+
+Le test du chi-deux met en évidence une association statistiquement significative entre le recours aux soins et le quintile de consommation (**p-value = `r ifelse(is.na(chi_p), 'NA', format(chi_p, scientific = TRUE))`**). La valeur du **V de Cramér** (**`r ifelse(is.na(cramer_v), 'NA', round(cramer_v, 3))`**) indique une association d’intensité modérée.
+
+# Dépenses de santé selon le quintile de consommation
+
+Le violin plot des dépenses selon le quintile de consommation montre que la distribution des dépenses se déplace progressivement vers le haut lorsque le niveau de consommation augmente. Les quintiles supérieurs présentent également une dispersion plus forte.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_violin_depenses_quintile.png"))
+```
+
+Ces résultats suggèrent que les ménages les plus aisés sont non seulement plus susceptibles de consulter, mais aussi capables de supporter des dépenses de santé plus élevées.
+
+# Dépenses de santé en milieu rural et urbain
+
+La comparaison des dépenses entre zones rurales et urbaines ne met pas en évidence de différence médiane statistiquement significative. Les distributions restent proches, même si la dispersion semble légèrement plus forte en zone urbaine.
+
+```{r}
+safe_include_graphics(file.path(path_fig, "fig_violin_depenses_urbain_rural.png"))
+```
+
+```{r}
+if (!is.null(tab_wilcox)) {
+  kable(tab_wilcox, caption = "Test de Wilcoxon : dépenses rurales vs urbaines", booktabs = TRUE)
+}
+```
+
+Le test de Wilcoxon conduit à une p-value de **`r ifelse(is.na(p_wilcox), 'NA', signif(p_wilcox, 4))`**, ce qui ne permet pas de conclure à une différence statistiquement significative entre les deux milieux.
+
+# Discussion générale
+
+L’ensemble des résultats met en évidence plusieurs faits stylisés. D’abord, la morbidité augmente avec l’âge, avec une vulnérabilité particulièrement marquée chez les personnes âgées. Ensuite, les maladies infectieuses, et surtout le paludisme, dominent largement la structure des affections déclarées.
+
+Par ailleurs, les pharmacies et dépôts de médicaments constituent le principal point de recours aux soins. Cette réalité souligne le rôle central des soins de proximité dans un contexte où l’accès au système médical formel peut rester contraint.
+
+Enfin, les résultats montrent des **inégalités économiques nettes** dans l’accès aux soins. Les ménages des quintiles supérieurs consultent davantage et supportent des dépenses plus élevées. Le niveau de consommation apparaît donc comme un déterminant important du recours aux services de santé.
+
+# Conclusion
+
+Cette analyse confirme que l’accès aux soins au Nigeria dépend à la fois du profil sanitaire des individus et de leur position économique. La morbidité augmente avec l’âge, les maladies infectieuses dominent, et les pharmacies jouent un rôle majeur dans le système de recours. Les dépenses de santé sont très dispersées, avec une forte asymétrie et des valeurs extrêmes.
+
+L’un des résultats les plus importants est l’existence d’un **gradient social d’accès aux soins** : plus le niveau de consommation augmente, plus la probabilité de consulter et le niveau de dépense tendent à augmenter. Ces résultats plaident en faveur d’une attention particulière aux barrières économiques d’accès aux soins dans les politiques publiques de santé.

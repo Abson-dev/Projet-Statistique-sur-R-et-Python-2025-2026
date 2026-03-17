@@ -1,0 +1,7 @@
+dataset,path
+indiv_w4,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/sect1_harvestw4.dta
+indiv_w1,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2010_GHSP-W1_v03_M_STATA/Post Harvest Wave 1/Household/sect1_harvestw1.dta
+health_w4,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/sect4a_harvestw4.dta
+health_w1,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2010_GHSP-W1_v03_M_STATA/Post Harvest Wave 1/Household/sect4a_harvestw1.dta
+cons_w4,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/totcons_final.dta
+cons_w1,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2010_GHSP-W1_v03_M_STATA/cons_agg_wave1_visit2.dta
