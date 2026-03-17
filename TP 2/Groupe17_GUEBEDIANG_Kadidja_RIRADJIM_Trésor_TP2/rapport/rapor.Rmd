@@ -1,0 +1,400 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    number_sections: true
+    fig_caption: true
+    keep_tex: false
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+fontsize: 8pt
+geometry: margin=2cm
+header-includes:
+  - \usepackage{setspace}
+  - \onehalfspacing
+  - \usepackage{graphicx}
+  - \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(haven)
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+library(gtsummary)
+library(viridis)
+library(patchwork)
+library(DescTools)
+library(openxlsx)
+library(knitr)
+library(kableExtra)
+
+```
+
+
+```{r page_de_garde, echo=FALSE, results='asis'}
+cat("
+\\begin{titlepage}
+\\centering
+
+\\includegraphics[width=0.2\\textwidth]{logo1.png}\\hfill
+\\includegraphics[width=0.2\\textwidth]{logo2.jpeg}
+
+\\vspace{1cm}
+
+{\\Large \\textbf{RÉPUBLIQUE DU SÉNÉGAL}}\\\\
+\\vspace{0.3cm}
+{\\large Ecole nationale de la Statistique et de l'Analyse Économique Pierre Ndiaye}
+
+\\vspace{2cm}
+
+{\\Huge \\textbf{Analyse des déterminants de l'éducation au Nigeria}}
+
+\\vspace{1.5cm}
+
+\\textbf{Auteurs :}\\\\
+Kadidja GUEBEDIANG A NKEN \\\\
+Tresor RIRADJIM NGARMOUNDOU
+
+\\vspace{1cm}
+
+\\textbf{Classe :} ISE1-CL
+
+\\vspace{1cm}
+
+\\textbf{Encadrant :}\\\\
+Aboubacar HEMA \\\\
+Research Scientist
+
+\\vfill
+
+\\textbf{Année académique : 2025-2026}
+
+\\end{titlepage}
+")
+```
+
+# Introduction
+
+L'éducation est reconnue comme un levier essentiel du développement humain et économique. Au Nigeria, pays le plus peuplé d'Afrique avec plus de 200 millions d'habitants, les défis éducatifs sont immenses : environ 10,5 millions d'enfants non scolarisés (UNICEF, 2022), de fortes disparités régionales et de genre, et un système scolaire sous pression démographique. Ce rapport mobilise les données de la quatrième vague de l'enquête Nigeria General Household Survey (2018-2019) pour :
+
+  * décrire la structure éducative de la population ;
+
+  * mesurer l'effet du sexe sur le niveau d'instruction ;
+
+  * analyser les écarts entre générations ;
+
+  * évaluer la scolarisation des enfants selon la zone de résidence ;
+
+  * identifier les États les plus touchés par l'analphabétisme.
+
+L'objectif est de fournir des éléments factuels pour orienter les politiques publiques vers une réduction des inégalités éducatives.
+
+# Préparation des données
+
+```{r}
+data_raw <- "data/raw/"
+output_fig <- "output/figures/"
+output_tab <- "output/tables/"
+
+dir.create(data_raw, recursive = TRUE, showWarnings = FALSE)
+dir.create(output_fig, recursive = TRUE, showWarnings = FALSE)
+dir.create(output_tab, recursive = TRUE, showWarnings = FALSE)
+
+sect2b_w4 <- read_dta(paste0(data_raw, "sect2_harvestw4.dta"))
+sect1_w4  <- read_dta(paste0(data_raw, "sect1_harvestw4.dta"))
+
+data_w4 <- sect2b_w4 %>%
+  left_join(sect1_w4, by = c("hhid", "indiv"))
+
+data_w4 <- data_w4 %>%
+  mutate(
+    niveau_educ = case_when(
+      s2aq6 == 2 ~ "Aucun",
+      s2aq9 %in% 11:16 ~ "Primaire",
+      s2aq9 %in% c(21,22,23,24,25,26,27,28,321) ~ "Secondaire",
+      s2aq9 %in% c(31,33,34,35,41,43,322,411,412,421,422,423,424) ~ "Tertiaire",
+      s2aq9 %in% c(51,52) ~ "Religieux",
+      s2aq9 == 61 ~ "Education adulte",
+      TRUE ~ NA_character_
+    ),
+    age = 2019 - s1q6_year,
+    age_group = case_when(
+      age >= 18 & age <= 30 ~ "18-30",
+      age >= 31 & age <= 45 ~ "31-45",
+      age >= 46 & age <= 60 ~ "46-60",
+      age > 60 ~ "60+",
+      TRUE ~ NA_character_
+    )
+  )
+
+data_adult <- data_w4 %>% filter(age >= 18)
+data_child <- data_w4 %>% filter(age >= 6 & age <= 17)
+```
+
+# Distribution du niveau d'éducation
+
+```{r}
+freq_educ <- data_w4 %>%
+  filter(!is.na(niveau_educ)) %>%
+  count(niveau_educ) %>%
+  mutate(
+    prop = n / sum(n),
+    prop_label = scales::percent(prop, accuracy = 0.1))
+  
+# Tableau stylisé
+freq_educ %>%
+  kable(
+    col.names = c("Niveau d'éducation", "Effectif", "Proportion", ""),
+    caption = "**Tableau 1 : Distribution du niveau d'éducation**",
+    digits = 4
+  ) %>%
+  kable_styling(full_width = FALSE, position = "center") %>%
+  column_spec(3, background = ifelse(freq_educ$prop > 0.2, "lightgray", "white"))
+
+# Graphique
+ggplot(freq_educ, aes(x = reorder(niveau_educ, prop), y = prop, fill = niveau_educ)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Figure 1 : Distribution du niveau d'éducation",
+    x = NULL, y = "Proportion",
+    fill = "Niveau"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Interprétation :
+  
+La population se concentre majoritairement dans les niveaux "Aucun" (20,8 %) et "Primaire" (26,6 %). Le secondaire concerne un quart des individus (25,4 %), tandis que le tertiaire reste faible (7,9 %). On note également 13,7 % de valeurs manquantes, ce qui peut refléter des difficultés de collecte ou une hésitation des répondants à déclarer leur niveau. Cette structure est typique d'un pays en développement où l'accès à l'éducation de base s'est élargi, mais où les niveaux supérieurs restent un privilège. La forte proportion de personnes sans éducation est un frein majeur à la productivité et à la réduction de la pauvreté.
+
+#  Inégalités de genre dans l'éducation
+
+```{r}
+# Tableau croisé avec proportions en ligne
+tab_sexe <- table(data_adult$s1q2, data_adult$niveau_educ)
+prop_sexe <- prop.table(tab_sexe, margin = 1)
+
+# Mise en forme
+tab_sexe_df <- as.data.frame.matrix(tab_sexe)
+tab_sexe_df$Sexe <- rownames(tab_sexe_df)
+tab_sexe_df <- tab_sexe_df[, c("Sexe", colnames(tab_sexe_df)[1:6])]
+
+kable(tab_sexe_df, caption = "**Tableau 2 : Effectifs par sexe et niveau d'éducation**") %>%
+  kable_styling(full_width = FALSE)
+
+# Test du Chi²
+chi_sexe <- chisq.test(tab_sexe)
+cramer_sexe <- CramerV(tab_sexe)
+
+# Graphique en barres empilées
+ggplot(data_adult, aes(x = s1q2, fill = niveau_educ)) +
+  geom_bar(position = "fill") +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Figure 2 : Répartition du niveau d'éducation par sexe",
+    x = NULL, y = "Proportion",
+    fill = "Niveau"
+  ) +
+  theme_minimal()
+```
+
+Résultats statistiques
+
+* Chi² de Pearson : r round(chi_sexe$statistic, 2), ddl = r chi_sexe$parameter, p‑value = r format(chi_sexe$p.value, scientific = TRUE)
+
+* V de Cramer : r round(cramer_sexe, 3)} (association modérée)
+
+Interprétation :
+  
+La différence est très significative : le niveau d'éducation dépend du sexe. Les femmes sont surreprésentées dans les catégories "Aucun" (26 % contre 16 % chez les hommes) et sous-représentées dans le secondaire et le tertiaire. Ce déséquilibre reflète des normes culturelles, des mariages précoces et des charges domestiques qui limitent la scolarisation des filles, surtout après le primaire. Le V de Cramer indique que le genre explique une part non négligeable des écarts, mais d'autres facteurs (région, richesse) interviennent également.
+
+# Effet de l'âge sur le niveau d'éducation
+
+```{r}
+# Niveau éducatif numérique pour les tests
+data_adult <- data_adult %>%
+  mutate(educ_num = recode(niveau_educ,
+                           "Aucun" = 0,
+                           "Primaire" = 1,
+                           "Secondaire" = 2,
+                           "Tertiaire" = 3,
+                           .default = NA_real_))
+
+# Boxplot par groupe d'âge
+ggplot(data_adult, aes(x = age_group, y = educ_num, fill = age_group)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Figure 3 : Distribution du niveau d'éducation (numérique) par âge",
+    x = "Groupe d'âge", y = "Niveau éducatif (0=Aucun, 3=Tertiaire)",
+    fill = "Âge"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Test de Kruskal-Wallis
+kruskal_educ <- kruskal_test(data_adult, educ_num ~ age_group)
+
+# Test post-hoc de Dunn
+dunn_educ <- dunn_test(data_adult, educ_num ~ age_group, p.adjust.method = "bonferroni")
+
+# Affichage des résultats
+kruskal_educ %>%
+  kable(caption = "**Tableau 3 : Test de Kruskal-Wallis (âge vs éducation)**") %>%
+  kable_styling(full_width = FALSE)
+
+dunn_educ %>%
+  select(-.y., -n1, -n2, -statistic, -p, -p.adj.signif) %>%
+  kable(caption = "**Tableau 4 : Comparaisons par paires (test de Dunn)**") %>%
+  kable_styling(full_width = FALSE)
+```
+
+Résultats :
+
+Le test de Kruskal-Wallis rejette l'égalité des distributions (p < 10^-258). Toutes les comparaisons deux à deux sont significatives (p.adj < 0,001). Les jeunes (18-30 ans) ont un niveau médian plus élevé que les 31-45 ans, eux-mêmes plus éduqués que les 46-60 ans, et ainsi de suite.
+
+Interprétation :
+
+On observe une nette amélioration intergénérationnelle de l'éducation. Cela traduit les efforts du Nigeria pour étendre l'accès à l'école depuis l'indépendance et surtout à partir des années 2000 (programme UBE – Universal Basic Education). Les générations nées après 1990 bénéficient d'une offre scolaire plus dense et de politiques de scolarisation obligatoire. Toutefois, le niveau reste faible en valeur absolue, avec une médiane toujours proche du primaire chez les moins de 30 ans
+
+# Scolarisation des enfants (6-17 ans) selon la zone
+
+```{r}
+# Tableau de contingence
+tab_zone <- table(data_child$zone.x, data_child$niveau_educ)
+
+# Test du Chi²
+chi_zone <- chisq.test(tab_zone)
+
+# Graphique en barres côte à côte (effectifs)
+ggplot(data_child, aes(x = zone.x, fill = niveau_educ)) +
+  geom_bar(position = "dodge") +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Figure 4 : Effectifs des enfants par zone et niveau d'éducation",
+    x = NULL, y = "Nombre d'enfants",
+    fill = "Niveau"
+  ) +
+  theme_minimal()
+
+# Proportions par zone
+prop_zone <- prop.table(tab_zone, margin = 1)
+prop_zone_df <- as.data.frame.matrix(prop_zone)
+prop_zone_df$Zone <- rownames(prop_zone_df)
+prop_zone_df <- prop_zone_df <- cbind(Zone = rownames(prop_zone_df), prop_zone_df)
+
+kable(prop_zone_df, digits = 3, caption = "**Tableau 5 : Proportions par zone**") %>%
+  kable_styling(full_width = FALSE)
+```
+
+Résultats :
+  
+Le test du Chi² est très significatif (p = r format(chi_zone$p.value, scientific = TRUE)). Les écarts sont frappants : en zone rurale, 45 % des enfants sont sans éducation ou seulement au primaire, contre 30 % en ville. À l'inverse, la part du secondaire est de 50 % en urbain contre 35 % en rural. Le tertiaire est quasiment absent chez les enfants (trop jeunes).
+
+Interprétation :
+
+Ces disparités territoriales illustrent la fracture éducative entre villes et campagnes. Les zones rurales souffrent d'un manque d'infrastructures (éloignement des écoles, classes surchargées), d'une pauvreté plus élevée qui pousse au travail des enfants, et d'une offre éducative souvent limitée au primaire. Les politiques de construction d'écoles et de cantines scolaires doivent cibler en priorité ces zones.
+
+# Disparités régionales : l'analphabétisme par État
+
+```{r}
+taux_etat <- data_adult %>%
+  group_by(state.x) %>%
+  summarise(
+    taux_aucun = mean(niveau_educ == "Aucun", na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(taux_aucun)) %>%
+  mutate(etat = as.character(state.x))
+
+# Top 10 des États avec le plus d'analphabètes
+taux_etat %>%
+  slice_head(n = 10) %>%
+  kable(
+    col.names = c("Code État", "Taux sans éducation", "État"),
+    caption = "**Tableau 6 : États les plus touchés par l'absence d'éducation**",
+    digits = 3
+  ) %>%
+  kable_styling(full_width = FALSE)
+
+# Graphique en barres horizontales
+ggplot(taux_etat, aes(x = reorder(etat, taux_aucun), y = taux_aucun)) +
+  geom_col(fill = viridis(1)) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Figure 5 : Taux de personnes sans éducation par État",
+    x = NULL, y = "Proportion sans éducation"
+  ) +
+  theme_minimal()
+```
+
+Interprétation
+Cinq États dépassent les 30 % de personnes sans éducation : Bauchi (46 %), Adamawa (34 %), Borno (31 %), Yobe (29 %), Gombe (28 %). Ces régions du Nord-Est sont confrontées à l'insécurité (Boko Haram), à une pauvreté extrême et à un faible taux de scolarisation, surtout des filles. À l'opposé, les États du Sud (Abia, Bayelsa, Anambra, Lagos) ont des taux inférieurs à 10 %, bénéficiant d'une meilleure infrastructure et d'une tradition éducative plus ancienne. Ces contrastes appellent une régionalisation des politiques éducatives, avec des investissements accrus dans les zones les plus défavorisées.
+
+# Synthèse des tests statistiques
+
+```{r}
+# Tableau récapitulatif
+tests <- data.frame(
+  Relation = c("Sexe ~ Éducation", "Âge ~ Éducation", "Zone ~ Éducation (enfants)"),
+  Test = c("Chi²", "Kruskal-Wallis", "Chi²"),
+  Statistique = c(round(chi_sexe$statistic, 2), 
+                  round(kruskal_educ$statistic, 2), 
+                  round(chi_zone$statistic, 2)),
+  ddl = c(chi_sexe$parameter, kruskal_educ$df, chi_zone$parameter),
+  `p-value` = c(format(chi_sexe$p.value, scientific = TRUE),
+                format(kruskal_educ$p, scientific = TRUE),
+                format(chi_zone$p.value, scientific = TRUE))
+)
+
+kable(tests, caption = "**Tableau 7 : Récapitulatif des tests d'indépendance**") %>%
+  kable_styling(full_width = FALSE) %>%
+  column_spec(5, background = "green")
+```
+
+# Discussion et limites
+
+Les résultats confirment l'existence de fortes inégalités éducatives au Nigeria, structurées par le genre, l'âge et le lieu de résidence. L'effet générationnel est encourageant, mais il masque des disparités géographiques profondes. Plusieurs limites doivent être soulignées :
+
+  * Données manquantes : 13,7 % de valeurs non renseignées pour l'éducation peuvent biaiser les estimations.
+
+  * Variable d'éducation auto-déclarée : possible biais de déclaration (surestimation).
+
+  * Absence de données sur la qualité : le niveau atteint ne dit rien sur les acquis réels.
+
+  * Coupe transversale : impossible d'établir des relations causales.
+
+Malgré ces réserves, l'analyse fournit un diagnostic robuste des déséquilibres actuels.
+
+# Conclusion et recommandations
+
+Cette analyse confirme :
+
+* Des inégalités éducatives persistantes
+* Un effet du genre
+* Une amélioration générationnelle
+* Des disparités territoriales
+
+Recommandations
+
+* Renforcer l'offre scolaire en milieu rural
+* Promouvoir la scolarisation des filles
+* Investir dans les infrastructures éducatives
+* Mettre en place des programmes d'alphabétisation
+
