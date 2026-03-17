@@ -1,0 +1,498 @@
+---
+title: "Analyse 1 - Profil demographique des menages nigerians"
+author: "Crespo Eugene SAAH YEMELI & DAVID FRANK"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+subtitle: "General Household Survey-Panel - Wave 4 (2018/2019)"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    fig_height: 4
+    fig_width: 7
+    latex_engine: pdflatex
+geometry: "margin=2.5cm"
+fontsize: 11pt
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead[L]{GHSP Nigeria - Wave 4}
+  - \fancyhead[R]{\thepage}
+  - \fancyfoot[C]{National Bureau of Statistics Nigeria}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.align = "center",
+  fig.pos   = "H",
+  fig.width  = 6,
+  fig.height = 4
+)
+```
+
+```{r libraries, include=FALSE}
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(gtsummary)
+library(moments)
+library(knitr)
+library(kableExtra)
+library(gridExtra)
+```
+
+```{r chargement-donnees, include=FALSE}
+chemin <- "C:/Users/CRESPO/Desktop/ISE_1_MATHS/SEMESTRE 2/STATISTIQUES/PROJET_STATISTIQUE_R&PYTHON/TP/TP0/TP_R_Python_HEMA/data/raw/NGA_2018_GHSP-W4_v03_M_Stata12/"
+
+sect1 <- read_dta(paste0(chemin, "sect1_harvestw4.dta"))
+
+taille_menage <- sect1 %>%
+  group_by(hhid) %>%
+  summarise(taille_menage = n(), .groups = "drop")
+
+data_clean <- sect1 %>%
+  left_join(taille_menage, by = "hhid") %>%
+  filter(!is.na(sector)) %>%
+  mutate(
+    secteur = factor(as.numeric(sector),
+                     levels = c(1, 2),
+                     labels = c("Urbain", "Rural")),
+    age  = as.numeric(s1q4),
+    sexe = factor(as.numeric(s1q2),
+                  levels = c(1, 2),
+                  labels = c("Masculin", "Feminin")),
+    lien = case_when(
+      as.numeric(s1q3) == 1             ~ "Chef de menage",
+      as.numeric(s1q3) == 2             ~ "Conjoint(e)",
+      as.numeric(s1q3) %in% c(3, 4, 5) ~ "Enfant",
+      !is.na(s1q3)                      ~ "Autre"
+    )
+  )
+```
+
+\newpage
+
+# Introduction
+
+## Contexte et source des donnees
+
+La **General Household Survey-Panel (GHSP)** est une enquete longitudinale conduite au Nigeria par le **National Bureau of Statistics (NBS)** en partenariat avec la Banque Mondiale (programme LSMS-ISA). Elle vise a mesurer les conditions de vie, les activites economiques et la securite alimentaire des menages nigerians.
+
+La **Vague 4 (Wave 4)**, collectee lors de la visite post-recolte de **janvier a fevrier 2019**, constitue la source de donnees de ce rapport. Le fichier analyse -- sect1 harvestw4.dta -- correspond a la **Section 1 : Household Roster**, qui recense l'ensemble des membres de chaque menage enquete.
+
+## Objectifs du rapport
+
+Ce rapport poursuit trois objectifs analytiques :
+
+1. Decrire la **structure par age et par sexe** de la population enquetee a travers une pyramide des ages annotee
+2. Comparer les **caracteristiques demographiques** (age, sexe, taille du menage) entre zones urbaines et rurales
+3. Analyser la **composition des menages** par lien de parente
+
+## Description du fichier
+
+```{r apercu-donnees}
+data.frame(
+  Indicateur = c("Nombre d'observations", "Nombre de variables",
+                 "Nombre de menages", "Periode de collecte"),
+  Valeur = c(
+    scales::comma(nrow(sect1)),
+    ncol(sect1),
+    scales::comma(n_distinct(sect1$hhid)),
+    "Janvier - Fevrier 2019"
+  )
+) %>%
+  kable(booktabs = TRUE,
+        col.names = c("Indicateur", "Valeur"),
+        caption = "Description du fichier sect1 harvestw4") %>%
+  kable_styling(latex_options = c("hold_position", "striped"),
+                full_width = FALSE,
+                position = "center")
+```
+
+
+# Qualite des donnees
+
+## Valeurs manquantes
+
+Avant toute analyse, une verification systematique de la qualite des donnees a ete conduite sur les variables cles utilisees dans ce rapport.
+
+```{r valeurs-manquantes}
+data.frame(
+  Variable = c("Age (s1q4)", "Sexe (s1q2)",
+               "Secteur (sector)", "Taille menage",
+               "Lien parente (s1q3)"),
+  N_manquants = c(
+    sum(is.na(data_clean$age)),
+    sum(is.na(data_clean$sexe)),
+    sum(is.na(data_clean$secteur)),
+    0,
+    sum(is.na(data_clean$lien))
+  ),
+  Pct_manquants = c(
+    round(mean(is.na(data_clean$age))  * 100, 1),
+    round(mean(is.na(data_clean$sexe)) * 100, 1),
+    0, 0,
+    round(mean(is.na(data_clean$lien)) * 100, 1)
+  )
+) %>%
+  mutate(Pct_manquants = paste0(Pct_manquants, "%")) %>%
+  kable(booktabs = TRUE,
+        col.names = c("Variable", "N manquants", "Pct manquants"),
+        caption = "Valeurs manquantes sur les variables cles") %>%
+  kable_styling(latex_options = c("hold_position", "striped"),
+                full_width = FALSE,
+                position = "center")
+```
+
+Les valeurs manquantes sur l'age et le sexe (environ 12\%) correspondent aux membres du menage qui ne sont plus residents au moment de la visite post-recolte (modalite "NO" a la question s1q4a). Ces observations sont exclues des analyses correspondantes.
+
+## Doublons
+
+```{r doublons}
+nb_doublons <- sect1 %>%
+  group_by(hhid, indiv) %>%
+  filter(n() > 1) %>%
+  nrow()
+
+if (nb_doublons == 0) {
+  cat("Aucun doublon n'a ete detecte sur la cle composite hhid + indiv.",
+      "L'unicite des observations est garantie.")
+} else {
+  cat(nb_doublons, "lignes dupliquees ont ete detectees et devront etre traitees.")
+}
+```
+
+
+# Analyse de l'age
+
+## Statistiques descriptives
+
+```{r stats-age}
+age_vec <- data_clean$age[!is.na(data_clean$age)]
+
+data.frame(
+  Statistique = c("N observations", "Minimum",
+                  "Q1 (25e percentile)", "Mediane", "Moyenne",
+                  "Q3 (75e percentile)", "Maximum",
+                  "Ecart-type", "CV (%)", "Asymetrie"),
+  Valeur = c(
+    scales::comma(length(age_vec)),
+    min(age_vec),
+    quantile(age_vec, 0.25),
+    median(age_vec),
+    round(mean(age_vec), 1),
+    quantile(age_vec, 0.75),
+    max(age_vec),
+    round(sd(age_vec), 1),
+    round(sd(age_vec) / mean(age_vec) * 100, 1),
+    round(skewness(age_vec), 3)
+  )
+) %>%
+  kable(booktabs = TRUE,
+        col.names = c("Statistique", "Valeur"),
+        caption = "Statistiques descriptives de l'age (s1q4)") %>%
+  kable_styling(latex_options = c("hold_position", "striped"),
+                full_width = FALSE,
+                position = "center")
+```
+
+La distribution de l'age presente une **asymetrie positive** (queue vers les ages eleves), confirmee par une moyenne superieure a la mediane. Le coefficient de variation eleve traduit une grande heterogeneite d'age au sein de la population, attendue dans un roster menage couvrant tous les membres de 0 a 95 ans.
+
+## Distributions
+
+```{r histo-boxplot, fig.height=3.5, fig.width=7, fig.cap="Distribution de l'age : histogramme et boite a moustaches"}
+age_df <- data_clean %>% filter(!is.na(age))
+moy    <- mean(age_df$age)
+med    <- median(age_df$age)
+
+p1 <- ggplot(age_df, aes(x = age)) +
+  geom_histogram(binwidth = 5, fill = "#2C7BB6",
+                 color = "white", alpha = 0.85) +
+  geom_vline(xintercept = moy, color = "#D7191C",
+             linetype = "dashed", linewidth = 0.8) +
+  geom_vline(xintercept = med, color = "darkgreen",
+             linetype = "dotted", linewidth = 0.8) +
+  annotate("text", x = moy + 5, y = Inf, vjust = 2,
+           label = paste0("Moy. = ", round(moy, 0)),
+           color = "#D7191C", size = 3) +
+  annotate("text", x = med - 5, y = Inf, vjust = 2,
+           label = paste0("Med. = ", round(med, 0)),
+           color = "darkgreen", size = 3) +
+  labs(x = "Age (annees)", y = "Effectif",
+       title = paste0("n = ", scales::comma(nrow(age_df)),
+                      " | Binwidth = 5 ans | CV = ",
+                      round(sd(age_df$age)/mean(age_df$age)*100, 1), "%")) +
+  theme_minimal(base_size = 9)
+
+p2 <- ggplot(age_df, aes(x = "", y = age)) +
+  geom_boxplot(fill = "#2C7BB6", color = "navy",
+               alpha = 0.7, outlier.color = "#D7191C",
+               outlier.size = 0.8) +
+  annotate("point", x = 1, y = moy,
+           shape = 18, size = 3, color = "#D7191C") +
+  annotate("text", x = 1.35, y = moy,
+           label = paste0("Moy = ", round(moy, 0)),
+           color = "#D7191C", size = 2.8) +
+  labs(x = "", y = "Age (annees)",
+       title = paste0("Q1=", quantile(age_df$age, 0.25),
+                      " | Med.=", median(age_df$age),
+                      " | Q3=", quantile(age_df$age, 0.75),
+                      " | IQR=",
+                      quantile(age_df$age,0.75)-quantile(age_df$age,0.25))) +
+  theme_minimal(base_size = 9) +
+  theme(axis.text.x = element_blank())
+
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+
+La distribution de l'age des **`r scales::comma(length(age_vec))`** membres de menage du Nigeria GHS-Panel 2018 est fortement asymetrique a droite, avec une mediane de **`r median(age_vec)` ans** nettement inferieure a la moyenne de **`r round(mean(age_vec),1)` ans**, refletant la structure demographique tres jeune du Nigeria caracterisee par un taux de fecondite eleve -- visible par le pic massif d'effectifs chez les 0-5 ans. L'IQR de **`r quantile(age_vec, 0.75) - quantile(age_vec, 0.25)` ans** (Q1=`r quantile(age_vec, 0.25)`, Q3=`r quantile(age_vec, 0.75)`) traduit une grande heterogeneite des ages au sein des menages, tandis que le coefficient de variation de **`r round(sd(age_vec)/mean(age_vec)*100, 1)`\%** confirme cette dispersion extreme. Le boxplot revele une asymetrie interne de la boite (distance Q1-Mediane de 10 ans vs Mediane-Q3 de 18 ans) ainsi qu'une valeur aberrante depassant 100 ans, possiblement liee a une erreur de saisie.
+
+## Test de normalite (Shapiro-Wilk)
+
+```{r shapiro}
+set.seed(123)
+x_sample <- sample(age_vec, min(5000, length(age_vec)))
+sw <- shapiro.test(x_sample)
+cat("W =", round(sw$statistic, 4), "\n")
+cat("p =", format(sw$p.value, scientific = TRUE, digits = 3), "\n")
+cat("Conclusion : Rejet de H0 (p < 0.05)",
+    "=> La distribution de l'age n'est PAS normale\n")
+```
+
+Le test de Shapiro-Wilk (applique sur un echantillon de `r min(5000, length(age_vec))` observations, limite technique de R) donne W = `r round(sw$statistic, 4)` avec p = `r format(sw$p.value, scientific = TRUE, digits = 3)`. La distribution de l'age **ne suit pas une loi normale** (p < 0.05), donc le QQ-plot et le test de Shapiro-Wilk (W = 0,903, p = 1,42x10-48) confirment sans ambiguite le rejet de la normalite de cette distribution, avec des queues qui s'ecartent significativement de la droite theorique, ce qui justifie le recours a des tests non parametriques pour toute analyse comparative impliquant l'age.
+
+
+# Pyramide des ages
+
+```{r pyramide, fig.height=6, fig.width=7, fig.cap="Pyramide des ages par sexe - GHSP Nigeria Wave 4 (2018/19)"}
+pyramide <- data_clean %>%
+  filter(!is.na(age), !is.na(sexe)) %>%
+  mutate(
+    groupe_age = cut(age,
+                     breaks = seq(0, 100, by = 5),
+                     right  = FALSE,
+                     labels = paste0(seq(0,95,5), "-", seq(4,99,5)))
+  ) %>%
+  filter(!is.na(groupe_age))
+
+data_pyr <- pyramide %>%
+  group_by(groupe_age, sexe) %>%
+  summarise(effectif = n(), .groups = "drop") %>%
+  mutate(effectif_plot = ifelse(sexe == "Masculin", -effectif, effectif))
+
+max_e     <- max(data_pyr$effectif)
+pct_0_14  <- round(mean(pyramide$age < 15) * 100, 1)
+pct_15_64 <- round(mean(pyramide$age >= 15 & pyramide$age < 65) * 100, 1)
+pct_65p   <- round(mean(pyramide$age >= 65) * 100, 1)
+age_med   <- median(pyramide$age)
+
+ggplot(data_pyr, aes(x = groupe_age, y = effectif_plot, fill = sexe)) +
+  geom_bar(stat = "identity", width = 0.88, alpha = 0.9) +
+  scale_y_continuous(
+    limits = c(-max_e * 1.15, max_e * 1.15),
+    breaks = pretty(c(-max_e, max_e), n = 8),
+    labels = function(x) scales::comma(abs(x))
+  ) +
+  geom_hline(yintercept = 0, linewidth = 0.5) +
+  scale_fill_manual(values = c("Masculin" = "#2C7BB6",
+                                "Feminin"  = "#D7191C")) +
+  coord_flip() +
+  annotate("text",
+           x = nlevels(data_pyr$groupe_age) + 1.2,
+           y = -max_e * 0.55,
+           label = paste0("<< Hommes\nn = ",
+                          scales::comma(sum(pyramide$sexe == "Masculin"))),
+           color = "#2C7BB6", fontface = "bold",
+           size = 3, hjust = 0.5) +
+  annotate("text",
+           x = nlevels(data_pyr$groupe_age) + 1.2,
+           y = max_e * 0.55,
+           label = paste0("Femmes >>\nn = ",
+                          scales::comma(sum(pyramide$sexe == "Feminin"))),
+           color = "#D7191C", fontface = "bold",
+           size = 3, hjust = 0.5) +
+  annotate("rect",
+           xmin = 1, xmax = 7,
+           ymin = max_e * 0.52, ymax = max_e * 1.1,
+           fill = "white", color = "grey70", alpha = 0.9) +
+  annotate("text", x = 4, y = max_e * 0.81,
+           label = paste0("Structure par age\n",
+                          "0-14 ans  : ", pct_0_14,  "%\n",
+                          "15-64 ans : ", pct_15_64, "%\n",
+                          "65+ ans   : ", pct_65p,   "%\n",
+                          "Age med.  : ", age_med,   " ans"),
+           size = 2.8, color = "grey20",
+           hjust = 0.5, fontface = "italic") +
+  labs(title    = "Pyramide des ages - GHSP Nigeria Wave 4 (2018/19)",
+       subtitle = paste0("n = ", scales::comma(nrow(pyramide)),
+                         " individus | Groupes quinquennaux | Post-Harvest Visit"),
+       x        = "Groupe d'age (annees)",
+       y        = "Effectif",
+       caption  = "Source : National Bureau of Statistics Nigeria, GHSP-Panel Wave 4 (2018/19)") +
+  theme_minimal(base_size = 9) +
+  theme(legend.position  = "none",
+        panel.grid.minor = element_blank(),
+        axis.text.y      = element_text(size = 6),
+        plot.title       = element_text(face = "bold"))
+```
+
+La pyramide des ages de l'echantillon du Nigeria GHS-Panel 2018 (n = **`r scales::comma(nrow(pyramide))`** individus) presente une forme triangulaire elargie a la base, caracteristique des pays a forte fecondite et mortalite encore elevee, typique des pays d'Afrique subsaharienne en phase de transition demographique. La base est tres large avec les groupes 0-4 ans et 5-9 ans qui constituent les effectifs les plus importants -- depassant 2 000 individus de chaque cote -- traduisant un taux de natalite eleve au Nigeria, l'un des plus forts au monde. Les effectifs decroissent ensuite de facon reguliere et progressive avec l'age, refletant a la fois la mortalite naturelle et possiblement une sous-representation des personnes agees dans l'enquete. On note une legere asymetrie en faveur des femmes dans les groupes d'age jeunes (0-14 ans) et adultes (20-39 ans), ces dernieres etant plus nombreuses, ce qui pourrait s'expliquer par une migration masculine plus importante vers les zones urbaines ou l'etranger. A partir de 60 ans, les effectifs des deux sexes convergent et deviennent tres faibles, avec des groupes quasi inexistants au-dela de 85 ans. Enfin, la presence d'individus declares a 100-134 ans constitue tres probablement des erreurs de declaration d'age, phenomene courant dans les enquetes menages en Afrique subsaharienne ou l'etat civil est insuffisamment developpe.
+
+
+# Composition des menages
+
+## Lien de parente
+
+```{r parente, fig.height=3.5, fig.width=6.5, fig.cap="Repartition par lien de parente avec IC a 95%"}
+parente_df <- data_clean %>% filter(!is.na(lien))
+N_par      <- nrow(parente_df)
+
+freq_par <- parente_df %>%
+  count(lien) %>%
+  arrange(desc(n)) %>%
+  rowwise() %>%
+  mutate(
+    bt      = list(binom.test(n, N_par)),
+    prop    = bt$estimate,
+    ic_bas  = bt$conf.int[1],
+    ic_haut = bt$conf.int[2]
+  ) %>%
+  ungroup() %>%
+  mutate(lien = factor(lien, levels = lien[order(prop)]))
+
+ggplot(freq_par, aes(x = lien, y = prop)) +
+  geom_bar(stat = "identity", fill = "#2C7BB6",
+           alpha = 0.85, width = 0.6) +
+  geom_errorbar(aes(ymin = ic_bas, ymax = ic_haut),
+                width = 0.2, color = "#D7191C", linewidth = 0.8) +
+  geom_text(aes(label = paste0(round(prop * 100, 1), "%",
+                               "\n(n=", scales::comma(n), ")")),
+            hjust = -0.1, size = 3, color = "grey20") +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(0, max(freq_par$ic_haut) * 1.4)) +
+  coord_flip() +
+  labs(title    = "Lien de parente avec le chef de menage",
+       subtitle = paste0("n = ", scales::comma(N_par),
+                         " individus | Barres d'erreur = IC a 95%"),
+       x        = NULL,
+       y        = "Proportion (%)",
+       caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") +
+  theme_minimal(base_size = 10) +
+  theme(panel.grid.major.y = element_blank(),
+        plot.title         = element_text(face = "bold"))
+```
+
+La distribution du lien de parente avec le chef de menage au sein de l'echantillon du Nigeria GHS-Panel 2018 (n = 26 557) revele une structure familiale dominee par les enfants du chef de menage, qui representent 56,2\% des membres (n = 14 916), soit plus d'un individu sur deux. Ce resultat est coherent avec la pyramide des ages observee precedemment -- base tres large chez les jeunes -- et confirme la taille importante des menages nigerians avec un nombre eleve d'enfants par foyer. Les chefs de menage eux-memes constituent 18,8\% de l'echantillon (n = 4 980), ce qui correspond au nombre de menages enquetes et valide la coherence interne des donnees. Les conjoints representent 16,1\% (n = 4 273), un chiffre legerement inferieur a celui des chefs de menage, ce qui s'explique par la presence de menages monoparentaux ou de chefs de menage celibataires, veufs ou divorces. Enfin, la categorie Autre (grands-parents, neveux, domestiques, etc.) regroupe 9\% des individus (n = 2 388), refletant la prevalence des menages elargis en Afrique subsaharienne ou la cohabitation intergenerationnelle et la prise en charge de membres de la famille etendue sont courantes. Les intervalles de confiance a 95\%, tres resserres sur toutes les barres, attestent de la robustesse statistique de ces estimations.
+
+## Taille des menages
+
+```{r boxplot-taille, fig.height=4, fig.width=6.5, fig.cap="Taille des menages selon le secteur - Test de Wilcoxon-Mann-Whitney"}
+urbain_v <- data_clean %>%
+  filter(secteur == "Urbain") %>%
+  pull(taille_menage)
+rural_v  <- data_clean %>%
+  filter(secteur == "Rural") %>%
+  pull(taille_menage)
+
+wt     <- wilcox.test(urbain_v, rural_v, conf.int = TRUE)
+N_tot  <- length(urbain_v) + length(rural_v)
+Z_val  <- qnorm(wt$p.value / 2)
+r_rang <- round(abs(Z_val) / sqrt(N_tot), 3)
+effet  <- ifelse(r_rang < 0.1, "Negligeable",
+          ifelse(r_rang < 0.3, "Petit",
+          ifelse(r_rang < 0.5, "Moyen", "Grand")))
+
+moys <- data_clean %>%
+  filter(!is.na(secteur)) %>%
+  group_by(secteur) %>%
+  summarise(m = mean(taille_menage), .groups = "drop")
+
+ggplot(data_clean %>% filter(!is.na(secteur)),
+       aes(x = secteur, y = taille_menage, fill = secteur)) +
+  geom_boxplot(alpha = 0.75, outlier.alpha = 0.3,
+               outlier.size = 0.8, width = 0.5) +
+  geom_jitter(width = 0.15, alpha = 0.05, size = 0.5) +
+  annotate("point", x = c(1, 2), y = moys$m,
+           shape = 18, size = 4, color = "#D7191C") +
+  annotate("text",
+           x     = 1.5,
+           y     = max(data_clean$taille_menage, na.rm = TRUE) * 0.93,
+           label = paste0("Wilcoxon W = ", round(wt$statistic, 0),
+                          "\np = ",
+                          format(wt$p.value, scientific = TRUE, digits = 3),
+                          "\nr = ", r_rang, " (", effet, ")"),
+           size = 3.2, color = "grey20", fontface = "italic") +
+  scale_fill_manual(values = c("Urbain" = "#2C7BB6",
+                                "Rural"  = "#D7191C")) +
+  scale_y_continuous(breaks = seq(0, 35, 5)) +
+  labs(title    = "Taille des menages selon le secteur (Urbain vs Rural)",
+       subtitle = paste0("n = ",
+                         scales::comma(n_distinct(data_clean$hhid)),
+                         " menages | Pt rouge = Moyenne",
+                         " | Test de Wilcoxon-Mann-Whitney"),
+       x        = NULL,
+       y        = "Taille du menage (nombre de membres)",
+       caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") +
+  theme_minimal(base_size = 10) +
+  theme(legend.position    = "none",
+        panel.grid.major.x = element_blank(),
+        plot.title         = element_text(face = "bold"))
+```
+
+La comparaison de la taille des menages entre zones rurales et urbaines au Nigeria (n = 4 980 menages) revele une difference statistiquement significative confirmee par le test de Wilcoxon-Mann-Whitney (W = `r round(wt$statistic, 0)`, p = `r format(wt$p.value, scientific = TRUE, digits = 3)`). Les menages ruraux sont en moyenne plus grands (`r round(mean(rural_v), 1)` membres) que les menages urbains (`r round(mean(urbain_v), 1)` membres), soit un ecart d'environ 1 membre par menage. Cette difference, bien que hautement significative sur le plan statistique, reste d'effet faible (r = `r r_rang`), suggerant que d'autres facteurs que le seul milieu de residence expliquent la variabilite de la taille des menages. Les boxplots revelent des distributions similaires dans leur forme -- medianes proches des moyennes, boites relativement symetriques -- mais les menages ruraux presentent une dispersion plus importante, avec des points extremes atteignant plus de 30 membres, contre environ 27 en urbain. Le nuage de points superpose (jitter) montre une concentration dense autour de 4 a 8 membres dans les deux milieux, avec une longue queue vers les grandes tailles de menages. Ce resultat est coherent avec les dynamiques demographiques nigerianes : les zones rurales, a forte vocation agricole, tendent a maintenir des menages plus larges pour repondre aux besoins de main-d'oeuvre agricole, tandis que l'urbanisation s'accompagne generalement d'une reduction de la taille des menages liee aux contraintes economiques et au cout de la vie en ville.
+
+## Tableau recapitulatif
+
+```{r tableau-recapitulatif}
+data_clean %>%
+  select(secteur, age, sexe, taille_menage) %>%
+  rename(
+    Secteur       = secteur,
+    Age           = age,
+    Sexe          = sexe,
+    Taille.menage = taille_menage
+  ) %>%
+  tbl_summary(
+    by = Secteur,
+    statistic = list(
+      all_continuous()  ~ "{mean} ({sd}) Med. {median} [{p25};{p75}]",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing      = "ifany",
+    missing_text = "Valeurs manquantes"
+  ) %>%
+  add_overall() %>%
+  add_p() %>%
+  bold_labels() %>%
+  modify_caption("Caracteristiques demographiques par secteur - GHSP Nigeria Wave 4") %>%
+  as_kable_extra(booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down", "striped"),
+                full_width    = TRUE,
+                position      = "center",
+                font_size     = 9)
+```
+
+L'age moyen de l'echantillon total est de 24,0 ans (ecart-type : 19,7) avec une mediane de 18 ans et un IQR de [8 ; 36], confirmant la structure demographique tres jeune. Les urbains sont legerement plus ages (moyenne 25,0 ans, mediane 19 ans) que les ruraux (moyenne 23,6 ans, mediane 17 ans). La difference est statistiquement significative (p < 0,001), bien que faible en valeur absolue. On note 3 780 valeurs manquantes sur l'age. La repartition par sexe est quasi parfaitement equilibree dans l'ensemble : 49,7\% d'hommes et 50,3\% de femmes. La p-valeur de 0,455 indique qu'il n'y a aucune difference significative de repartition par sexe entre zones urbaines et rurales, ce qui valide la representativite de l'echantillon. La taille moyenne des menages est de 8,3 membres (mediane 7) au niveau national. Les menages ruraux sont significativement plus grands (moyenne 8,6, mediane 8, IQR [6;11]) que les menages urbains (moyenne 7,4, mediane 7, IQR [5;9]), confirmant les resultats du boxplot analyse precedemment. La difference est hautement significative (p < 0,001), refletant les dynamiques demographiques et economiques differentes entre les deux milieux.
+
+\newpage
+
+# Conclusion
+
+Cette analyse des donnees du Nigeria GHS-Panel 2018 portant sur **`r scales::comma(nrow(data_clean))`** individus et **`r scales::comma(n_distinct(data_clean$hhid))`** menages revele une population extremement jeune (age median **`r median(age_vec)` ans**, `r pct_0_14`\% de moins de 15 ans) aux menages de grande taille, avec des inegalites urbain-rural significatives : les menages ruraux comptent **`r round(mean(rural_v), 1)` membres** contre **`r round(mean(urbain_v), 1)`** en ville (p = `r format(wt$p.value, scientific = TRUE, digits = 3)`). La repartition par sexe est quasi equilibree (49,7\% hommes / 50,3\% femmes, p = 0,455), validant la representativite de l'echantillon. La structure familiale est dominee par les enfants (**56,2\%**) et les menages elargis (**9\%** autres membres), refletant les dynamiques demographiques et sociales typiques de l'Afrique subsaharienne. Les analyses presentees sont descriptives et ne permettent pas d'etablir de relations causales. La presence de valeurs manquantes (~12\% sur l'age et le sexe) constitue une limite a prendre en compte dans l'interpretation des resultats.
+
+\newpage
+
+# References
+
+- National Bureau of Statistics (NBS) Nigeria (2019). *General Household Survey-Panel, Wave 4 (2018/19) -- Post-Harvest Visit*. Abuja : NBS.
+- World Bank LSMS-ISA (2021). *Nigeria General Household Survey-Panel Wave 4, 2018-2019*. Washington DC : The World Bank.
+- Cohen, J. (1992). A power primer. *Psychological Bulletin*, 112(1), 155-159.
+- R Core Team (2024). *R: A Language and Environment for Statistical Computing*. Vienna : R Foundation.
+- Sjoberg D.D. et al. (2021). Reproducible Summary Tables with the gtsummary Package. *The R Journal*, 13(1), 570-580.
