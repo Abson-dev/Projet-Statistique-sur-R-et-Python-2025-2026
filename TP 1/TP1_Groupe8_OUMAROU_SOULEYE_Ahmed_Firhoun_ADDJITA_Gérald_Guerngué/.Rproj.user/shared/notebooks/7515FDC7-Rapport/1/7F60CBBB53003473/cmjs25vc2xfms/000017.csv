@@ -1,0 +1,3 @@
+"0","processed_w4 %>%"
+"0","  select(harvest_s1q4) %>%"
+"0","  mutate(moyenne=mean(harvest_s1q4))"

@@ -1,0 +1,208 @@
+# ============================================================== #
+#   ANALYSE SIMPLE — ÉDUCATION ET ALPHABÉTISATION               #
+#   Nigeria GHS Panel — Wave 4 (2018)                            #
+# ============================================================== #
+
+# ── 0. PACKAGES ────────────────────────────────────────────────
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(gtsummary)
+library(tidyr)
+
+# ── Dossiers output ───────────────────────────────────────────
+dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
+dir.create("output/tables", recursive = TRUE, showWarnings = FALSE)
+
+# ══════════════════════════════════════════════════════════════ #
+#  1. CHARGEMENT DES DONNÉES                                     #
+# ══════════════════════════════════════════════════════════════ #
+
+# Chargement des fichiers
+sect2 <- read_dta("data/raw/sect2_harvestw4.dta")
+sect1 <- read_dta("data/raw/sect1_harvestw4.dta")
+
+# Sélection des variables de sect1
+sect1_reduit <- sect1 %>%
+  select(
+    hhid, indiv,
+    sexe = s1q2,
+    age = s1q4,
+    zone = sector
+  )
+
+# Jointure
+data <- sect2 %>%
+  left_join(sect1_reduit, by = c("hhid", "indiv"))
+
+# ══════════════════════════════════════════════════════════════ #
+#  2. CRÉATION DES VARIABLES                                     #
+# ══════════════════════════════════════════════════════════════ #
+
+data <- data %>%
+  mutate(
+    # Niveau d'éducation
+    educ = case_when(
+      s2aq9 %in% c(0,1,2,3,51,52,61) ~ "Aucun",
+      s2aq9 %in% c(11,12,13,14,15,16) ~ "Primaire",
+      s2aq9 %in% c(21,22,23) ~ "Secondaire 1er cycle",
+      s2aq9 %in% c(24,25,26,27,28,321) ~ "Secondaire 2e cycle",
+      s2aq9 %in% c(31,33,34,35,41,43,322,411,412,421,422,423,424) ~ "Tertiaire",
+      TRUE ~ NA_character_
+    ),
+    educ = factor(educ, levels = c("Aucun", "Primaire", "Secondaire 1er cycle",
+                                   "Secondaire 2e cycle", "Tertiaire")),
+    
+    # Sexe
+    sexe = factor(sexe, levels = c(1,2), labels = c("Homme", "Femme")),
+    
+    # Zone
+    zone = factor(sector, levels = c(1,2), labels = c("Rural", "Urbain")),
+    
+    # Scolarisation
+    scolarise = factor(s2aq13a, levels = c(1,2), labels = c("Oui", "Non")),
+    
+    # Groupe d'âge
+    groupe_age = cut(age, 
+                     breaks = c(0,5,15,25,35,45,55,65, Inf),
+                     labels = c("0-4","5-14","15-24","25-34","35-44","45-54","55-64","65+"))
+  )
+
+# ══════════════════════════════════════════════════════════════ #
+#  3. ANALYSES DESCRIPTIVES SIMPLES                              #
+# ══════════════════════════════════════════════════════════════ #
+
+# Distribution du niveau d'éducation
+tab_educ <- data %>%
+  filter(!is.na(educ)) %>%
+  count(educ) %>%
+  mutate(
+    prop = n / sum(n),
+    prop_pct = paste0(round(prop * 100, 1), "%")
+  )
+
+tab_educ
+write.csv(tab_educ, "output/tables/distribution_education.csv", row.names = FALSE)
+
+# Graphique
+ggplot(tab_educ, aes(x = reorder(educ, -prop), y = prop)) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = prop_pct), vjust = -0.5) +
+  labs(x = "Niveau d'éducation", y = "Proportion", 
+       title = "Distribution du niveau d'éducation") +
+  theme_minimal()
+ggsave("output/figures/education_distribution.png", width = 10, height = 6)
+
+# ══════════════════════════════════════════════════════════════ #
+#  4. ÉDUCATION PAR SEXE                                         #
+# ══════════════════════════════════════════════════════════════ #
+
+# Adultes uniquement (18+)
+adultes <- data %>% filter(age >= 18, !is.na(educ), !is.na(sexe))
+
+# Tableau croisé
+tab_sexe_educ <- table(adultes$sexe, adultes$educ)
+tab_sexe_educ
+write.csv(as.matrix(tab_sexe_educ), "output/tables/education_par_sexe.csv")
+
+# Test du Chi-deux
+chi2 <- chisq.test(tab_sexe_educ)
+print(chi2)
+
+# Graphique
+adultes %>%
+  count(sexe, educ) %>%
+  group_by(sexe) %>%
+  mutate(prop = n / sum(n)) %>%
+  ggplot(aes(x = sexe, y = prop, fill = educ)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Sexe", y = "Proportion", fill = "Niveau d'éducation",
+       title = "Niveau d'éducation par sexe (adultes 18+)") +
+  theme_minimal()
+ggsave("output/figures/education_par_sexe.png", width = 8, height = 6)
+
+# ══════════════════════════════════════════════════════════════ #
+#  5. ÉDUCATION PAR ÂGE                                          #
+# ══════════════════════════════════════════════════════════════ #
+
+# Conversion en numérique pour les statistiques
+adultes <- adultes %>%
+  mutate(educ_num = as.numeric(educ))
+
+# Statistiques par groupe d'âge
+adultes %>%
+  mutate(groupe_age = cut(age, breaks = c(18,30,45,60,Inf),
+                          labels = c("18-30","31-45","46-60","60+"))) %>%
+  group_by(groupe_age) %>%
+  summarise(
+    n = n(),
+    moyenne = mean(educ_num, na.rm = TRUE),
+    mediane = median(educ_num, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  write.csv("output/tables/education_par_age.csv", row.names = FALSE)
+
+# Boxplot
+ggplot(adultes, aes(x = cut(age, breaks = c(18,30,45,60,Inf),
+                            labels = c("18-30","31-45","46-60","60+")),
+                    y = educ_num)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_y_continuous(breaks = 1:5, labels = levels(adultes$educ)) +
+  labs(x = "Groupe d'âge", y = "Niveau d'éducation",
+       title = "Niveau d'éducation par groupe d'âge") +
+  theme_minimal()
+ggsave("output/figures/education_par_age.png", width = 8, height = 6)
+
+# ══════════════════════════════════════════════════════════════ #
+#  6. SCOLARISATION DES ENFANTS (6-17 ANS)                       #
+# ══════════════════════════════════════════════════════════════ #
+
+enfants <- data %>%
+  filter(age >= 6, age <= 17, !is.na(scolarise), !is.na(zone))
+
+# Taux par zone
+taux_scol <- enfants %>%
+  group_by(zone) %>%
+  summarise(
+    n = n(),
+    scolarises = sum(scolarise == "Oui"),
+    taux = scolarises / n,
+    .groups = "drop"
+  )
+
+taux_scol
+write.csv(taux_scol, "output/tables/scolarisation_par_zone.csv", row.names = FALSE)
+
+# Test
+tab_scol <- table(enfants$zone, enfants$scolarise)
+chisq.test(tab_scol)
+
+# Graphique
+ggplot(taux_scol, aes(x = zone, y = taux)) +
+  geom_col(fill = "darkgreen") +
+  geom_text(aes(label = paste0(round(taux*100, 1), "%")), vjust = -0.5) +
+  labs(x = "Zone", y = "Taux de scolarisation",
+       title = "Taux de scolarisation des enfants 6-17 ans par zone") +
+  theme_minimal()
+ggsave("output/figures/scolarisation_par_zone.png", width = 6, height = 6)
+
+# ══════════════════════════════════════════════════════════════ #
+#  7. TABLEAU RÉCAPITULATIF                                       #
+# ══════════════════════════════════════════════════════════════ #
+
+data %>%
+  select(zone, sexe, age, educ) %>%
+  tbl_summary(
+    by = zone,
+    label = list(age ~ "Âge", sexe ~ "Sexe", educ ~ "Niveau d'éducation"),
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} ({p}%)"),
+    missing = "no"
+  ) %>%
+  add_p() %>%
+  add_overall() %>%
+  as_gt() %>%
+  gt::gtsave("output/tables/tableau_recapitulatif.html")
+
