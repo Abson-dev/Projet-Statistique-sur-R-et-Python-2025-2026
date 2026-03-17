@@ -50,6 +50,8 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP1/
 │
 ├── main.R                                       # Point d'entrée — orchestre l'exécution des scripts
 │
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP1.Rproj
+│
 ├── scripts/
 │   ├── 01_import_nettoyage.R                    # Tâche 1-2 : import, recodages, contrôle qualité
 │   └── 02_exploration_visualisation.R           # Tâches 3-6 : statistiques, graphiques, tableau
