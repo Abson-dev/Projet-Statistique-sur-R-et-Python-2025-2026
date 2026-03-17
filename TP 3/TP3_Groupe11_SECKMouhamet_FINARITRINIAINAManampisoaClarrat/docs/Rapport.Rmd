@@ -1,0 +1,298 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    highlight: tango
+    keep_tex: true
+    includes:
+      in_header: header.tex
+      before_body: title.tex
+mainfont: Arial
+fontsize: 11pt
+geometry: margin=2.5cm
+---
+
+```{r setup, include=FALSE, echo=TRUE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "80%",
+  fig.pos = "H"
+)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+
+chemin <- "C:/Users/HP/Desktop/ISE1 CL/Semestre2/Projet statistique avec R ou python/Dossier R/TP/TP3"
+```
+
+\newpage
+
+# Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP3, à partir des données de la Nigeria General Household Survey (GHS) Panel -- vague 2 (2012--2013). L'objectif est d'étudier la morbidité, le recours aux soins, les dépenses de santé, et leurs liens avec les caractéristiques démographiques et le niveau de vie des ménages.
+
+## Justification du choix de la vague 2
+
+Initialement, le TP devait exploiter la vague 4. Cependant, après examen des fichiers disponibles :
+
+- Les fichiers `sect3a_harvestw4` et `sect3b_harvestw4` correspondent en réalité au module **Travail** et non au module santé.
+
+- Le fichier de consommation `cons_agg_wave4_visit2` est absent.
+
+En revanche, pour la vague 2 nous disposons de :
+
+- `sect4a_harvestw2.dta` : module santé complet (morbidité, recours aux soins, dépenses)
+
+- `sect1_harvestw2.dta` : données démographiques (sexe, âge, milieu de résidence)
+
+- `cons_agg_wave2_visit2.dta` : agrégats de consommation (niveau de vie)
+
+Toutes les analyses ont donc été réalisées sur cette vague, garantissant la disponibilité et la cohérence des informations nécessaires.
+
+# Méthodologie
+
+## Données et Variables Clés
+
+Les fichiers suivants ont été utilisés :
+
+- **sect4a\_w2** : 27 363 individus, variables de santé (morbidité, consultations, dépenses).
+
+- **sect1\_w2** : 30 234 individus, variables démographiques (sexe, âge, secteur urbain/rural).
+
+- **cons\_w2** : 4 738 ménages, consommation totale (`totcons`) servant à construire les quintiles de niveau de vie.
+
+Les variables clés retenues sont :
+
+- **Morbidité** : `s4aq3` (1 = maladie, 2 = blessure, 3 = aucun problème).
+
+- **Recours aux soins** : `s4aq6a` (premier prestataire consulté) et `s4aq1` (consultation ou non).
+
+- **Dépenses de santé** : `s4aq9` (coût consultation), `s4aq14` (médicaments OTC), `s4aq17` (hospitalisation), `s4aq19` (autres médicaments).
+
+- **Caractéristiques individuelles** : `s1q2` (sexe), `s1q4` (âge), `sector` (1 = urbain, 2 = rural).
+
+- **Niveau de vie** : `totcons` (consommation totale par équivalent adulte).
+
+## Traitements Effectués
+
+```{r traitements, eval=FALSE, echo=TRUE}
+# Jointure des fichiers santé et démographie
+data <- left_join(sect4a_w2, sect1_w2, by = c("hhid", "indiv"))
+
+# Création de variables
+data <- data %>%
+  mutate(
+    morbidite  = ifelse(s4aq3 %in% c(1, 2), 1, 0),
+    groupe_age = cut(s1q4, breaks = c(0, 14, 30, 45, 60, Inf),
+                     labels = c("<15", "15-30", "31-45", "46-60", "61+")),
+    dep_totale = rowSums(cbind(s4aq9, s4aq14, s4aq17, s4aq19), na.rm = TRUE),
+    consulte   = ifelse(!is.na(s4aq6a), 1, 0)
+  )
+
+# Calculs : taux de morbidité avec intervalles de confiance (méthode binomiale exacte)
+
+# Tests statistiques :
+#   - Chi-deux d'indépendance entre recours aux soins et quintile de consommation
+#   - V de Cramér pour mesurer l'intensité de l'association
+#   - Test de Wilcoxon-Mann-Whitney pour comparer les dépenses rural / urbain
+```
+
+Les traitements réalisés comprennent la jointure des fichiers santé et démographie sur les identifiants ménage (`hhid`) et individu (`indiv`), la création de variables (morbidité binaire, groupes d'âge, dépense totale de santé, indicateur de consultation), ainsi que des calculs de taux de morbidité global et par sous-groupe avec intervalles de confiance (méthode binomiale exacte). Des tests statistiques ont également été effectués : chi-deux d'indépendance entre recours aux soins et quintile de consommation, V de Cramér pour mesurer l'intensité de l'association, et test de Wilcoxon-Mann-Whitney pour comparer les dépenses de santé entre milieux rural et urbain. Des visualisations ont été produites : barplots, histogrammes, boxplots, violin plots, barplots 100 % empilés.
+
+# Résultats
+
+## Qualité des Données et Valeurs Manquantes
+
+L'examen des valeurs manquantes sur nos variables d'intérêt révèle une situation globalement satisfaisante. Dans le fichier `cons_w2`, la variable totcons ainsi que toutes les variables de consommation alimentaire et non alimentaire ne présentent aucune valeur manquante, garantissant l'intégrité des quintiles de niveau de vie construits. Dans `sect1_w2`, les variables clés retenues (`s1q2` (sexe), `s1q4` (âge, 3,55 %) et sector (milieu, 0 %)) sont quasi exhaustives, avec un taux de manquants négligeable pour l'âge. Dans `sect4a_w2`, les variables `s4aq3` (morbidité, 0,87 %), s4aq1 (consultation, 0,72 %) et s4aq6a (prestataire, 88,18 %) présentent des profils attendus : le fort taux de manquants sur `s4aq6a` est structurel, car seuls les individus ayant effectivement consulté devaient renseigner cette variable. Les variables de dépenses (`s4aq9`, `s4aq14`, `s4aq17`, `s4aq19`) affichent de même des taux élevés (65 - 89 %), cohérents avec leur caractère conditionnel à une consultation ou un achat.
+
+
+## Taux de Morbidité
+
+Le taux de morbidité (maladie ou blessure au cours des 4 dernières semaines) est de **12,2 %** (IC 95 % : [11,8 % -- 12,6 %]).
+
+```{r tab_morbidite_global, message=FALSE, warning=FALSE, echo=FALSE}
+global <- read.csv(paste0(chemin, "/outputs/tables/taux_morbidite_global.csv"))
+kable(global, caption = "Taux de morbidité global", digits = 3)
+```
+
+
+### Par Sexe
+
+Les femmes (12,9 %) sont légèrement plus touchées que les hommes (11,5 %), les intervalles de confiance ne se chevauchant pas.
+
+```{r tab_morbidite_sexe, message=FALSE, warning=FALSE, echo=FALSE}
+sexe <- read.csv(paste0(chemin, "/outputs/tables/taux_morbidite_par_sexe.csv"))
+kable(sexe, caption = "Taux de morbidité par sexe", digits = 3)
+```
+
+```{r fig_morbidite_sexe, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/taux_morbidite_par_sexe.png"))
+```
+
+### Par Groupe d'Âge
+
+La morbidité augmente fortement avec l'âge : de 7,2 % chez les 15--30 ans à 30,1 % chez les 61 ans et plus. Les enfants de moins de 15 ans présentent un taux de 11,9 %, proche de la moyenne nationale. Ce profil suit une courbe en U caractéristique : la morbidité est élevée chez les enfants (11,9 %), atteint son minimum chez les jeunes adultes de 15 - 30 ans (7,2 %), groupe généralement en meilleure santé, puis augmente continûment avec l'âge pour culminer à 30,1 % chez les 61 ans et plus, reflétant l'accumulation des maladies chroniques et la détérioration physiologique liée au vieillissement.
+
+```{r tab_morbidite_age, message=FALSE, warning=FALSE, echo=FALSE}
+age <- read.csv(paste0(chemin, "/outputs/tables/taux_morbidite_par_age.csv"))
+kable(age, caption = "Taux de morbidité par groupe d'âge", digits = 3)
+```
+
+```{r fig_morbidite_age, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/taux_morbidite_par_age.png"))
+```
+
+## Types de Problèmes de Santé
+
+Parmi les 3 309 individus ayant déclaré un problème, 94,0 % ont souffert d'une maladie, contre 6,0 % d'une blessure.
+
+```{r tab_types_problemes, message=FALSE, warning=FALSE, echo=FALSE}
+type <- read.csv(paste0(chemin, "/outputs/tables/types_problemes_sante.csv"))
+kable(type, caption = "Répartition maladie vs blessure", digits = 3)
+```
+
+
+## Motifs de Consultation
+
+L'analyse porte sur les 2 865 individus ayant consulté un professionnel de santé. Le motif le plus fréquent est la maladie aiguë (52,4 %), suivi des check-up préventifs (20,5 %) et du suivi de maladie chronique (15,1 %). Les blessures ne représentent que 4,1 % des consultations.
+
+```{r tab_motifs, message=FALSE, warning=FALSE, echo=FALSE}
+motifs <- read.csv(paste0(chemin, "/outputs/tables/motifs_consultation_top10.csv"))
+kable(motifs[, c("motif_lib", "effectif", "proportion")],
+      caption = "Motifs de consultation (4 dernières semaines)", digits = 3)
+```
+
+```{r fig_motifs, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/motifs_consultation_top10.png"))
+```
+
+## Recours aux Soins -- Type de Prestataire
+
+Le premier prestataire consulté est majoritairement un professionnel de santé moderne : 47,8 % des malades ont vu un médecin, infirmier ou sage-femme. Les pharmacies et vendeurs de médicaments sont le second recours (37,4 %), tandis que les tradipraticiens sont consultés par 10,4 % des individus. Seuls 1,7 % déclarent n'avoir consulté personne.
+Le recours massif aux pharmacies en premier lieu (37,4 %) suggère une automédication largement répandue au Nigeria, comportement courant en Afrique subsaharienne qui mérite attention dans une perspective de santé publique.
+
+```{r tab_prestataire, message=FALSE, warning=FALSE, echo=FALSE}
+prest <- read.csv(paste0(chemin, "/outputs/tables/recours_soins_prestataire.csv"))
+kable(prest[, c("prestataire", "n", "prop_label")],
+      caption = "Type de prestataire consulté (premier recours)")
+```
+
+```{r fig_prestataire, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/recours_soins_prestataire.png"))
+```
+
+## Dépenses de Santé
+
+### Distribution Générale
+
+Les dépenses de santé sont très concentrées : la moyenne (8 090 Naira) est bien supérieure à la médiane (2 500 Naira). Le tableau des déciles montre que 10 % des malades n'ont aucune dépense, tandis que 10 % dépensent plus de 15 000 Naira.
+
+```{r tab_stats_depenses, message=FALSE, warning=FALSE, echo=FALSE}
+stats <- read.csv(paste0(chemin, "/outputs/tables/stats_depenses_globales.csv"))
+kable(stats, caption = "Statistiques globales des dépenses de santé", digits = 0)
+```
+
+```{r tab_deciles_depenses, message=FALSE, warning=FALSE, echo=FALSE}
+dec <- read.csv(paste0(chemin, "/outputs/tables/deciles_depenses_sante.csv"))
+kable(dec, caption = "Déciles des dépenses de santé", digits = 0)
+```
+
+```{r fig_hist_depenses, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/hist_depenses_sante_log.png"))
+```
+
+### Dépenses selon le Prestataire
+
+Le boxplot ci-dessous compare les dépenses totales (échelle log) en fonction du premier prestataire consulté. Les individus ayant consulté un médecin ou une pharmacie ont des dépenses médianes plus élevées que ceux ayant eu recours à un tradipraticien. La catégorie « Aucun » a la dépense médiane la plus faible.
+
+```{r fig_boxplot_prestataire, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/boxplot_depenses_par_prestataire.png"))
+```
+
+### Outliers
+
+En appliquant la règle de l'écart interquartile (seuil à Q3 + 3 × IQR), on identifie 240 individus (soit environ 7,3 % des malades) comme des outliers extrêmes, avec des dépenses supérieures à la borne de 21 060 Naira. La borne est calculée comme suit  :
+
+$$\text{borne} = Q_3 + 3 \times IQR = 6\,000 + 3 \times 5\,020 \approx 21\,060 \text{ Naira}$$
+
+Ces cas correspondent à des hospitalisations coûteuses ou à des achats importants de médicaments.
+
+## Recours aux Soins et Niveau de Vie
+
+Le tableau de contingence croise la variable « a consulté » (0/1) avec les quintiles de consommation (1 = plus pauvre, 5 = plus riche).
+
+```{r tab_recours_quintile, message=FALSE, warning=FALSE, echo=FALSE}
+tab <- read.csv(paste0(chemin, "/outputs/tables/recours_par_quintile.csv"), row.names = 1)
+colnames(tab) <- c("Non consulté", "Consulté")
+rownames(tab) <- paste("Quintile", 1:nrow(tab))
+kable(tab, caption = "Recours aux soins selon le quintile de consommation")
+```
+
+Le test du $\chi^2$ est significatif (p = 0,0033), indiquant une dépendance entre le niveau de vie et le recours aux soins. Le V de Cramér (0,069) témoigne toutefois d'une association faible.
+
+Le graphique en barres 100 % empilées montre que, dans tous les quintiles, la très grande majorité des malades consulte (au moins 93 %). On observe une légère baisse de la proportion de consultants chez les plus riches (quintile 5 : 93,2 % contre 96,8 % dans les autres quintiles).
+
+```{r fig_recours_quintile, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/recours_soins_par_quintile.png"))
+```
+
+Ce résultat contre-intuitif (les ménages du quintile 5 consultent moins fréquemment (93,2 %) que ceux des quintiles inférieurs (96,8 %)) peut s'expliquer par une plus grande propension à l'automédication chez les ménages aisés, une sous-déclaration des problèmes bénins, ou le recours à des structures privées non captées par l'enquête.
+
+## Comparaison Rural / Urbain des Dépenses
+
+Les statistiques par milieu de résidence montrent des dépenses moyennes plus élevées en milieu urbain (9 318 Naira) qu'en milieu rural (7 594 Naira). La médiane est également supérieure en ville (2 930 contre 2 325).
+
+```{r tab_rural_urbain, message=FALSE, warning=FALSE, echo=FALSE}
+rur <- read.csv(paste0(chemin, "/outputs/tables/stats_depenses_rural_urbain.csv"))
+kable(rur, caption = "Dépenses de santé selon le milieu de résidence", digits = 0)
+```
+
+Le test de Wilcoxon confirme une différence significative (p = 0,0047). Le violin plot ci-dessous illustre la distribution (échelle log) : les urbains ont tendance à dépenser un peu plus, mais les deux groupes présentent une forte variabilité et de nombreux outliers.
+
+```{r fig_violin_rural_urbain, out.width="100%", fig.align="center", echo=FALSE}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/violin_depenses_rural_urbain.png"))
+```
+
+# Discussion
+
+Les analyses confirment des disparités importantes dans la morbidité et le recours aux soins :
+
+- **Âge** : la morbidité augmente fortement après 60 ans, soulignant la vulnérabilité des personnes âgées.
+
+- **Sexe** : les femmes déclarent légèrement plus de problèmes de santé, ce qui peut refléter à la fois des différences biologiques et une plus grande propension à déclarer.
+
+- **Recours aux soins** : la quasi-totalité des malades consulte, principalement des professionnels de santé modernes. Le rôle des pharmacies et des tradipraticiens reste non négligeable.
+
+- **Dépenses** : très inégalitaires, avec une queue de distribution épaisse (outliers). Les dépenses sont significativement plus élevées en ville, peut-être en raison d'un accès à des soins plus coûteux ou d'une plus grande capacité à payer.
+
+- **Niveau de vie** : le lien avec le recours aux soins est statistiquement significatif mais faible ; les plus riches consultent même un peu moins souvent, ce qui pourrait s'expliquer par une automédication plus fréquente ou une moindre déclaration des problèmes bénins.
+
+Au-delà des disparités quantitatives, ces résultats soulèvent la question de l'équité dans l'accès aux soins de qualité. Si le taux de recours est quasi universel (plus de 93 % dans tous les quintiles), les dépenses médianes restent faibles dans l'ensemble de la population (2 500 Naira), ce qui interroge sur la qualité et la complétude des soins effectivement reçus, indépendamment du niveau de vie.
+
+**Limites :**
+
+- Les données ne permettent pas une classification fine des maladies (seulement maladie vs blessure). Nous avons utilisé les motifs de consultation comme proxy.
+
+- L'analyse des recours multiples (premier et second prestataire) n'a pas été réalisée ; elle pourrait affiner la compréhension des parcours de soins.
+
+- Les dépenses sont déclaratives et sujettes à des erreurs de mémoire.
+
+- Le niveau de vie est mesuré par la consommation totale, mais d'autres indicateurs (patrimoine, éducation) pourraient compléter l'analyse.
+
+# Conclusion
+
+Ce travail a permis de décrire les principaux indicateurs de santé de la population nigériane à partir de la vague 2 du GHS Panel. Il met en évidence des inégalités de morbidité selon l'âge et le sexe, un recours aux soins quasi systématique mais orienté vers différents types de prestataires, et des dépenses de santé très concentrées, plus élevées en milieu urbain. Le lien avec le niveau de vie, bien que significatif, reste modeste.
+
+Ces résultats constituent une base descriptive utile pour de futures analyses plus approfondies (par exemple, sur les déterminants du non-recours ou sur l'impact des dépenses de santé sur le bien-être des ménages).
+
+
+
