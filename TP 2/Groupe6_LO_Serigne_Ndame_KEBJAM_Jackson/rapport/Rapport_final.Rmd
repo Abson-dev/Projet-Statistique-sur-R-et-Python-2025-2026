@@ -1,0 +1,470 @@
+---
+title: "Éducation et Scolarisation au Nigeria"
+author: "Analyse réalisée sous R"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    latex_engine: xelatex
+    keep_tex: false
+  html_document:
+    toc: true
+    toc_depth: '3'
+    df_print: paged
+subtitle: Analyse de l'Enquête Générale sur les Ménages (GHS) — Wave 4
+geometry: margin=2,8cm
+fontsize: 11pt
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{float}
+- \usepackage{caption}
+- \usepackage{fancyhdr}
+- \usepackage{graphicx}
+- \usepackage{hyperref}
+- \usepackage{longtable}
+- \usepackage{array}
+- \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+- \pagestyle{fancy}
+- "\\fancyhead[L]{Education au Nigeria -- GHS Wave 4}"
+- \fancyhead[R]{\thepage}
+- \fancyfoot[C]{}
+- \captionsetup{font=small, labelfont=bf, justification=centering}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,     # Ne pas afficher le code dans le rapport
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = "H",       # Forcer la position des figures
+  out.width = "90%",
+  fig.align = "center"
+)
+
+# ── Chargement des packages ────────────────────────────────────────────────────
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(patchwork)
+library(rstatix)
+library(haven)
+library(scales)
+library(forcats)
+library(gtsummary)
+library(knitr)
+library(kableExtra)
+```
+
+
+
+# Introduction
+
+Le capital humain constitue l'un des leviers les plus déterminants du développement économique et social. Au Nigeria, pays le plus peuplé d'Afrique subsaharienne avec plus de 200 millions d'habitants, les inégalités d'accès à l'éducation persistent à de nombreux niveaux : entre les sexes, entre les zones de résidence (urbaine et rurale), et entre les États de la fédération.
+
+La présente analyse exploite les données de la **quatrième vague de l'Enquête Générale sur les Ménages** (*General Household Survey*, GHS Wave 4), collectée par le Bureau National des Statistiques du Nigeria (NBS) en partenariat avec la Banque Mondiale. Cette enquête à représentativité nationale offre des informations détaillées sur les caractéristiques socio-démographiques des individus et des ménages, notamment leur niveau d'instruction et leur statut scolaire.
+
+L'objectif de ce rapport est de dresser un portrait statistique de la situation éducative au Nigeria à partir de quatre axes d'analyse complémentaires :
+
+1. La **distribution générale du niveau d'instruction** dans la population adulte ;
+2. Les **disparités éducatives entre hommes et femmes** chez les adultes de 18 ans et plus ;
+3. La **relation entre l'âge et le niveau d'instruction**, indicateur des transformations éducatives intergénérationnelles ;
+4. Les **écarts de scolarisation entre zones urbaines et rurales** pour les enfants de 6 à 17 ans ;
+5. La **cartographie de l'analphabétisme** à travers les 36 États et le Territoire Fédéral de la Capitale (FCT).
+
+Chaque section présente les visualisations graphiques correspondantes, accompagnées des tests statistiques appropriés permettant d'évaluer la significativité des écarts observés.
+
+
+
+# Données et Méthodes
+
+## Source des données
+
+Les données utilisées proviennent de la **GHS Wave 4** (*General Household Survey, Panel — Wave 4*), enquête transversale représentative conduite au Nigeria. Elles couvrent les ménages ruraux et urbains répartis sur l'ensemble des États du pays. Trois fichiers principaux ont été mobilisés :
+
+- **`secta_harvestw4.dta`** : informations au niveau ménage (identifiant, zone de résidence, État) ;
+- **`sect1_harvestw4.dta`** : caractéristiques démographiques individuelles (sexe, âge, etc.) ;
+- **`sect2_harwestw4.dta`** : informations relatives à l'éducation et à la scolarisation.
+
+## Traitement et nettoyage des données
+
+Les variables d'intérêt ont été recodées et structurées comme suit :
+
+- **Niveau d'instruction** (`niveau_educ`) : variable catégorielle ordonnée regroupant les modalités *Aucun*, *Primaire*, *Secondaire*, *Supérieur* ;
+- **Sexe** (`s1q2`) : variable binaire recodée en *Homme* / *Femme* après décodage des étiquettes Stata via `haven::zap_labels()` ;
+- **Scolarisation** (`s2aq6`) : variable dichotomique *Oui* / *Non* indiquant si l'enfant est actuellement inscrit à l'école ;
+- **Zone de résidence** (`sector`) : variable binaire *Urbain* / *Rural* issue du fichier ménage.
+
+Les analyses portent sur les adultes de **18 ans et plus** pour les questions relatives au niveau d'instruction, et sur les **enfants de 6 à 17 ans** pour les analyses de scolarisation.
+
+## Méthodes statistiques
+
+Les méthodes statistiques mobilisées sont les suivantes :
+
+- **Statistiques descriptives** : distributions de fréquences, proportions, intervalles de confiance à 95 % ;
+- **Test du Khi-deux** d'indépendance pour les relations entre variables catégorielles ;
+- **V de Cramér** pour mesurer l'intensité de l'association entre deux variables qualitatives ;
+- **Test de Kruskal-Wallis** (alternative non-paramétrique à l'ANOVA) pour comparer la distribution de l'âge entre les groupes éducatifs ;
+- **Visualisations** : barplots, boxplots, graphiques à barres empilées 100 %, graphique à barres avec intervalles de confiance, heatmap par quintile.
+
+Tous les tests sont réalisés au seuil de signification de **5 % (α = 0,05)**.
+
+
+
+# Distribution du Niveau d'Instruction
+
+## Présentation graphique
+
+```{r task8-barplot, fig.cap="Distribution du niveau d'instruction dans la population enquêtée (GHS Nigeria, Wave 4). Les barres représentent le nombre d'individus pour chaque catégorie éducative. La palette de couleurs Mako (viridis) permet une lecture aisée des modalités.", fig.width=8, fig.height=5}
+
+df       <- readRDS("../data/processed/data_ready.rds")
+
+secta_w4 <- read_dta("../data/raw/secta_harvestw4.dta")
+sect1_w4 <- read_dta("../data/raw/sect1_harvestw4.dta")
+sect2_w4 <- read_dta("../data/raw/sect2_harvestw4.dta")  # ← typo corrigé aussi
+
+plot_freq <- df %>%
+  count(niveau_educ) %>%
+  ggplot(aes(x = niveau_educ, y = n, fill = niveau_educ)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_viridis_d(option = "mako") +
+  labs(
+    title = "Distribution du niveau d'éducation au Nigeria",
+    x     = "Niveau d'instruction",
+    y     = "Nombre d'individus",
+    fill  = "Catégorie"
+  ) +
+  theme_minimal(base_size = 12)
+
+print(plot_freq)
+```
+
+## Commentaire
+
+La **Figure 1** présente la répartition des individus de l'échantillon selon leur niveau d'instruction. Plusieurs enseignements peuvent être tirés de cette distribution :
+
+- La catégorie **"Aucun"** (sans instruction) représente la modalité la plus fréquente, témoignant d'une proportion importante d'adultes n'ayant jamais été scolarisés. Ce résultat est cohérent avec les statistiques nationales publiées par l'UNESCO qui place le taux d'analphabétisme des adultes au Nigeria parmi les plus élevés d'Afrique subsaharienne.
+- Le **niveau primaire** constitue le deuxième groupe le plus représenté, indiquant que pour une partie significative de la population, la scolarisation s'est arrêtée avant l'achèvement du cycle primaire.
+- Les niveaux **secondaire** et **supérieur** restent minoritaires, reflétant les goulots d'étranglement qui caractérisent le système éducatif nigérian, particulièrement marqués dans les zones rurales et dans certaines régions du nord du pays.
+
+Cette distribution en forme de pyramide inversée soulève des préoccupations importantes quant à la disponibilité d'une main-d'œuvre qualifiée, facteur essentiel pour la transformation économique du Nigeria.
+
+
+
+# Disparités Éducatives selon le Sexe
+
+## Distribution comparée
+
+```{r task9-sexe, fig.cap="Répartition du niveau d'instruction par sexe chez les adultes de 18 ans et plus (GHS Nigeria, Wave 4). Graphique à barres empilées 100 %. Chaque barre représente la composition éducative de chaque groupe de sexe, permettant une comparaison directe des proportions.", fig.width=8, fig.height=5}
+
+df_adultes <- df %>%
+  filter(s1q4 >= 18) %>%
+  mutate(sexe = ifelse(as.numeric(zap_labels(s1q2)) == 1, "Homme", "Femme"))
+
+plot_sexe <- ggplot(df_adultes, aes(x = sexe, fill = niveau_educ)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Niveau d'éducation par sexe (18 ans et +)",
+    x     = "Sexe",
+    y     = "Proportion",
+    fill  = "Éducation"
+  ) +
+  theme_minimal(base_size = 12)
+
+print(plot_sexe)
+```
+
+## Résultats statistiques
+
+```{r task9-stats}
+# Test du Chi-deux et V de Cramér
+table_contingence <- table(df_adultes$sexe, df_adultes$niveau_educ)
+test_chi2         <- chisq_test(table_contingence)
+v_cramer          <- cramer_v(table_contingence)
+
+# Tableau de synthèse des statistiques
+stats_df <- data.frame(
+  Statistique = c("Khi-deux (χ²)", "Degrés de liberté", "p-valeur", "V de Cramér"),
+  Valeur      = c(
+    round(test_chi2$statistic, 3),
+    test_chi2$df,
+    format.pval(test_chi2$p, digits = 3, eps = 0.001),
+    round(v_cramer, 4)
+  )
+)
+
+kable(stats_df,
+      booktabs = TRUE,
+      align    = c("l", "c"),
+      caption  = "Résultats du test du Khi-deux et V de Cramér pour la relation entre sexe et niveau d'instruction (adultes 18 ans et plus)") %>%
+  kable_styling(latex_options = c("striped", "hold_position"),
+                font_size = 10)
+```
+
+## Commentaire
+
+La **Figure 2** illustre de manière frappante les inégalités éducatives entre hommes et femmes au Nigeria. Les observations majeures sont :
+
+- Les **femmes** présentent une proportion nettement plus élevée dans la catégorie *"Aucun"* (sans instruction), confirmant une discrimination éducative historique à l'égard des filles, particulièrement prononcée dans les régions du nord où des facteurs culturels, religieux et économiques ont longtemps freiné la scolarisation féminine.
+- Les **hommes** sont sur-représentés dans les niveaux secondaire et supérieur, reflétant des stratégies d'investissement scolaire différenciées au sein des ménages qui, en situation de contrainte budgétaire, ont tendance à privilégier la scolarisation des garçons.
+
+Le **Tableau 1** confirme statistiquement ces observations : le test du Khi-deux est hautement significatif (p < 0,001), rejetant l'hypothèse d'indépendance entre sexe et niveau d'instruction. Le **V de Cramér**, compris entre 0,1 et 0,3, indique une association de **force modérée à modeste** — la relation est réelle mais d'autres facteurs (géographiques, socio-économiques) jouent également un rôle important dans la détermination du niveau d'instruction.
+
+
+
+# Relation entre l'Âge et le Niveau d'Instruction
+
+## Boxplot comparatif
+
+```{r task10-boxplot, fig.cap="Distribution de l'âge selon le niveau d'instruction chez les adultes de 18 ans et plus (GHS Nigeria, Wave 4). La boîte représente l'interquartile (Q1–Q3), la ligne médiane indique la médiane, et les moustaches s'étendent jusqu'à 1,5 fois l'écart interquartile. Les points représentent les valeurs extrêmes.", fig.width=10, fig.height=6}
+
+plot_age_educ <- ggplot(df_adultes, aes(x = niveau_educ, y = s1q4, fill = niveau_educ)) +
+  geom_boxplot(alpha = 0.7, outlier.size = 0.8, outlier.alpha = 0.5) +
+  scale_fill_viridis_d(option = "plasma") +
+  labs(
+    title = "Distribution de l'âge par niveau d'éducation",
+    x     = "Niveau d'éducation",
+    y     = "Âge (ans)",
+    fill  = "Niveau"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x  = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+print(plot_age_educ)
+```
+
+## Résultats du test de Kruskal-Wallis
+
+```{r task10-kruskal}
+test_kruskal <- kruskal.test(s1q4 ~ niveau_educ, data = df_adultes)
+
+kruskal_df <- data.frame(
+  Statistique = c("H de Kruskal-Wallis", "Degrés de liberté", "p-valeur"),
+  Valeur = c(
+    round(test_kruskal$statistic, 3),
+    test_kruskal$parameter,
+    format.pval(test_kruskal$p.value, digits = 3, eps = 0.001)
+  )
+)
+
+kable(kruskal_df,
+      booktabs = TRUE,
+      align    = c("l", "c"),
+      caption  = "Résultats du test de Kruskal-Wallis pour la comparaison de l'âge entre les groupes de niveau d'instruction") %>%
+  kable_styling(latex_options = c("striped", "hold_position"),
+                font_size = 10)
+```
+
+## Commentaire
+
+La **Figure 3** révèle une relation inverse entre l'âge médian et le niveau d'instruction, signe d'une transformation éducative intergénérationnelle au Nigeria :
+
+- Les individus classés **"Aucun"** (sans instruction) présentent une médiane d'âge plus élevée, suggérant que le phénomène d'analphabétisme est plus fortement concentré dans les cohortes plus anciennes, nées dans une période où l'accès à l'école était très limité.
+- Les individus ayant atteint le niveau **supérieur** sont en moyenne plus jeunes, traduisant l'expansion progressive du système éducatif nigérian au cours des dernières décennies, notamment sous l'effet de politiques publiques telles que l'*Universal Basic Education (UBE)* lancée en 1999.
+- La dispersion (amplitude des boîtes et longueur des moustaches) est particulièrement large pour la catégorie *"Aucun"*, indiquant une hétérogénéité dans les profils des non-scolarisés.
+
+Le **Tableau 2** confirme statistiquement ces différences : le test de Kruskal-Wallis (retenu car la normalité des distributions d'âge par groupe ne peut être supposée) est hautement significatif (p < 0,001). Ces résultats témoignent d'une **transition éducative** en cours au Nigeria, encore incomplète mais réelle.
+
+
+
+# Scolarisation des 6–17 ans : Urbain vs. Rural
+
+## Taux de scolarisation avec intervalles de confiance
+
+```{r task11-urb-rur, fig.cap="Taux de scolarisation des enfants de 6 à 17 ans selon la zone de résidence (GHS Nigeria, Wave 4). Les barres indiquent la proportion d'enfants actuellement scolarisés. Les intervalles de confiance à 95 % sont représentés par les lignes d'erreur verticales.", fig.width=8, fig.height=5}
+
+
+
+library(here)
+
+df <- readRDS(here("data", "processed", "data_ready.rds"))
+
+df_scolar <- df %>%
+  left_join(secta_w4 %>% select(hhid, sector), by = "hhid") %>%  # ← jointure ajoutée
+  filter(s1q4 >= 6 & s1q4 <= 17) %>%
+  mutate(
+    zone      = as_factor(sector),
+    scolarise = as_factor(s2aq6)
+  )
+
+df_plot <- df_scolar %>%
+  filter(!is.na(scolarise), !is.na(zone)) %>%
+  group_by(zone, scolarise) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(zone) %>%
+  mutate(
+    prop   = n / sum(n),
+    se     = sqrt(prop * (1 - prop) / sum(n)),
+    ic_inf = prop - 1.96 * se,
+    ic_sup = prop + 1.96 * se
+  ) %>%
+  filter(grepl("Yes|Oui|1", scolarise, ignore.case = TRUE))
+
+plot_urb_rur <- ggplot(df_plot, aes(x = zone, y = prop, fill = zone)) +
+  geom_col(width = 0.5, show.legend = FALSE) +
+  geom_errorbar(aes(ymin = ic_inf, ymax = ic_sup), width = 0.1, linewidth = 0.8) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  scale_fill_viridis_d(option = "mako", begin = 0.3, end = 0.7) +
+  labs(
+    title    = "Taux de scolarisation des 6–17 ans par zone",
+    subtitle = "Source : GHS Nigeria Wave 4  |  IC à 95 %",
+    x        = "Zone de résidence",
+    y        = "Taux de scolarisation (%)"
+  ) +
+  theme_minimal(base_size = 12)
+
+print(plot_urb_rur)
+```
+
+## Résultats statistiques
+
+```{r task11-stats}
+chi2_zone <- chisq_test(table(df_scolar$zone, df_scolar$scolarise))
+v_zone    <- cramer_v(table(df_scolar$zone, df_scolar$scolarise))
+
+zone_df <- data.frame(
+  Statistique = c("Khi-deux (χ²)", "Degrés de liberté", "p-valeur", "V de Cramér"),
+  Valeur = c(
+    round(chi2_zone$statistic, 3),
+    chi2_zone$df,
+    format.pval(chi2_zone$p, digits = 3, eps = 0.001),
+    round(v_zone, 4)
+  )
+)
+
+kable(zone_df,
+      booktabs = TRUE,
+      align    = c("l", "c"),
+      caption  = "Résultats du test du Khi-deux et V de Cramér pour la relation entre zone de résidence et statut de scolarisation (enfants 6–17 ans)") %>%
+  kable_styling(latex_options = c("striped", "hold_position"),
+                font_size = 10)
+```
+
+## Commentaire
+
+La **Figure 4** met en évidence un **écart significatif de scolarisation** entre les zones urbaines et rurales chez les enfants de 6 à 17 ans. Les intervalles de confiance à 95 % ne se chevauchent pas, ce qui constitue un premier indicateur visuel de la significativité statistique de cet écart.
+
+- Les enfants résidant en **zone urbaine** présentent un taux de scolarisation notablement plus élevé que leurs homologues ruraux. L'accès plus aisé aux établissements scolaires, la densité plus importante des infrastructures éducatives et les revenus moyens plus élevés des ménages urbains expliquent en grande partie cette supériorité.
+- En **zone rurale**, les freins à la scolarisation sont multiples : distances importantes vers les écoles, travaux agricoles impliquant les enfants, pauvreté des ménages et offre éducative insuffisante (enseignants peu nombreux, classes surpeuplées, manque de matériel pédagogique).
+
+Ces résultats s'inscrivent dans la continuité des rapports de l'UNICEF sur le Nigeria, qui identifient la fracture urbain-rural comme l'une des principales dimensions des inégalités éducatives dans le pays.
+
+Le **Tableau 3** confirme statistiquement l'association entre zone de résidence et scolarisation : le test du Khi-deux est très significatif (p < 0,001). La valeur du **V de Cramér** indique la force de cette association, permettant de quantifier l'ampleur de la disparité observée.
+
+
+
+# Cartographie de l'Analphabétisme par État
+
+## Heatmap des taux sans instruction
+
+```{r task12-heatmap, fig.cap="Proportion d'adultes (18 ans et plus) sans instruction formelle par État du Nigeria (GHS Wave 4). Les États sont classés par taux croissant. La colorisation par quintile (jaune = quintile inférieur, rouge foncé = quintile supérieur) permet d'identifier visuellement les États les plus défavorisés en matière d'éducation.", fig.width=4, fig.height=5}
+
+library(here)
+df <- readRDS(here("data", "processed", "data_ready.rds"))
+
+df_heatmap <- df %>%                                               # ← df_ready → df
+  filter(s1q4 >= 18) %>%
+  left_join(secta_w4 %>% select(hhid, state), by = "hhid") %>%   # ← jointure déjà présente, OK
+  mutate(
+    etat_nom         = as_factor(state),
+    sans_instruction = ifelse(niveau_educ == "Aucun", 1, 0)
+  ) %>%
+  group_by(etat_nom) %>%
+  summarise(part_sans_inst = mean(sans_instruction, na.rm = TRUE) * 100) %>%
+  mutate(quintile = ntile(part_sans_inst, 5))
+
+plot_heatmap <- ggplot(df_heatmap,
+                       aes(x = 1,
+                           y = fct_reorder(etat_nom, part_sans_inst))) +
+  geom_tile(aes(fill = as.factor(quintile)), color = "white", linewidth = 0.4) +
+  geom_text(aes(label = paste0(round(part_sans_inst, 1), "%")),
+            color = "black", size = 2.8) +
+  scale_fill_brewer(palette = "YlOrRd",
+                    name   = "Quintile\n(1 = Bas, 5 = Haut)") +
+  labs(
+    title    = "Part d'adultes sans instruction par État",
+    subtitle = "Coloré par quintile | Rouge foncé = Taux le plus élevé",
+    x        = "",
+    y        = "États du Nigeria"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid   = element_blank(),
+    legend.position = "right"
+  )
+
+print(plot_heatmap)
+```
+
+## Commentaire
+
+La **Figure 5** constitue la visualisation la plus riche de ce rapport en révélant la profonde **hétérogénéité géographique** de l'analphabétisme au Nigeria. Plusieurs constats s'imposent :
+
+- Les États du **quintile 5** (rouge foncé), concentrant les taux d'adultes sans instruction les plus élevés, se situent majoritairement dans la **zone géo-politique du Nord-Ouest et du Nord-Est** du Nigeria (Sokoto, Kebbi, Zamfara, Jigawa, etc.). Ces États partagent des caractéristiques communes : forte ruralité, traditions de mariage précoce freinant la scolarisation des filles, et contexte sécuritaire parfois défavorable à la fréquentation scolaire.
+
+- À l'opposé, les États du **quintile 1** (jaune), affichant les taux d'analphabétisme les plus faibles, correspondent généralement aux États du **Sud-Ouest et du Sud-Est** ainsi qu'aux grandes agglomérations (Lagos, Abuja FCT, Rivers). Ces territoires bénéficient d'une tradition de scolarisation plus ancienne, d'une urbanisation plus avancée et d'un développement économique plus marqué.
+
+- La **dispersion des taux** entre le quintile inférieur et le quintile supérieur traduit non pas un retard uniforme mais bien deux Nigerias éducatifs dont les dynamiques et les défis divergent profondément.
+
+Ces résultats appellent à des politiques publiques ciblées et différenciées plutôt qu'une approche uniforme : si les États du Sud nécessitent des actions de consolidation et d'amélioration qualitative, ceux du Nord requièrent des interventions structurelles massives en matière d'offre scolaire, de lutte contre la pauvreté et de changement des normes sociales.
+
+
+
+# Synthèse et Conclusion
+
+## Bilan des principaux résultats
+
+```{r synthese-tab}
+synthese <- data.frame(
+  Axe = c(
+    "Distribution générale",
+    "Genre (adultes 18+)",
+    "Âge vs. éducation",
+    "Scolarisation 6-17 ans",
+    "Géographie de l'analphabétisme"
+  ),
+  Résultat_principal = c(
+    "Forte prévalence du niveau 'Aucun' ; minorité ayant atteint l'enseignement supérieur",
+    "Inégalité H/F significative (χ² p < 0,001) ; V de Cramér modéré",
+    "Relation inverse âge-éducation (H Kruskal p < 0,001) : transition éducative en cours",
+    "Écart urbain-rural significatif (χ² p < 0,001) ; meilleur accès en zone urbaine",
+    "Gradient Nord-Sud marqué ; concentration de l'analphabétisme dans le Nord-Ouest"
+  ),
+  Implication_politique = c(
+    "Nécessité d'alphabétisation des adultes et de renforcement du primaire",
+    "Politiques de scolarisation ciblant les filles, notamment dans le Nord",
+    "Continuité des réformes : effets positifs visibles dans les jeunes cohortes",
+    "Investissement en infrastructures scolaires rurales prioritaire",
+    "Interventions différenciées par État ; urgence dans les États du Nord"
+  )
+)
+
+kable(synthese,
+      booktabs  = TRUE,
+      longtable = TRUE,
+      col.names = c("Axe d'analyse", "Résultat principal", "Implication de politique"),
+      caption   = "Tableau de synthèse des principaux résultats et implications de politique publique") %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down"),
+                font_size = 9) %>%
+  column_spec(1, width = "3cm") %>%
+  column_spec(2, width = "6cm") %>%
+  column_spec(3, width = "6cm")
+```
+
+## Conclusion générale
+
+Cette analyse des données GHS Wave 4 confirme que la situation éducative au Nigeria, bien qu'en amélioration au fil des générations, reste marquée par des inégalités profondes selon le sexe, le milieu de résidence et la localisation géographique.
+
+Les résultats obtenus s'inscrivent dans une perspective de **transition éducative** : les cohortes les plus jeunes sont en moyenne mieux éduquées que leurs aînées, traduisant les effets cumulés des politiques d'éducation universelle mises en œuvre depuis les années 2000. Toutefois, cette progression est loin d'être homogène, et les disparités structurelles — notamment entre le Nord et le Sud du pays — demeurent préoccupantes.
+
+Pour atteindre les **Objectifs de Développement Durable (ODD 4)** relatifs à l'éducation de qualité, le Nigeria devra intensifier ses efforts sur plusieurs fronts : augmenter le budget de l'éducation (actuellement inférieur aux recommandations internationales de 20

@@ -1,0 +1,569 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+  11pt,
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=2,8cm]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{array}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+\pagestyle{fancy}
+\fancyhead[L]{Education au Nigeria -- GHS Wave 4}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{}
+\captionsetup{font=small, labelfont=bf, justification=centering}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Éducation et Scolarisation au Nigeria},
+  pdfauthor={Analyse réalisée sous R},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Éducation et Scolarisation au Nigeria}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Analyse de l'Enquête Générale sur les Ménages (GHS) --- Wave
+4}
+\author{Analyse réalisée sous R}
+\date{17 mars 2026}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\section{Introduction}\label{introduction}
+
+Le capital humain constitue l'un des leviers les plus déterminants du
+développement économique et social. Au Nigeria, pays le plus peuplé
+d'Afrique subsaharienne avec plus de 200 millions d'habitants, les
+inégalités d'accès à l'éducation persistent à de nombreux niveaux :
+entre les sexes, entre les zones de résidence (urbaine et rurale), et
+entre les États de la fédération.
+
+La présente analyse exploite les données de la \textbf{quatrième vague
+de l'Enquête Générale sur les Ménages} (\emph{General Household Survey},
+GHS Wave 4), collectée par le Bureau National des Statistiques du
+Nigeria (NBS) en partenariat avec la Banque Mondiale. Cette enquête à
+représentativité nationale offre des informations détaillées sur les
+caractéristiques socio-démographiques des individus et des ménages,
+notamment leur niveau d'instruction et leur statut scolaire.
+
+L'objectif de ce rapport est de dresser un portrait statistique de la
+situation éducative au Nigeria à partir de quatre axes d'analyse
+complémentaires :
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  La \textbf{distribution générale du niveau d'instruction} dans la
+  population adulte ;
+\item
+  Les \textbf{disparités éducatives entre hommes et femmes} chez les
+  adultes de 18 ans et plus ;
+\item
+  La \textbf{relation entre l'âge et le niveau d'instruction},
+  indicateur des transformations éducatives intergénérationnelles ;
+\item
+  Les \textbf{écarts de scolarisation entre zones urbaines et rurales}
+  pour les enfants de 6 à 17 ans ;
+\item
+  La \textbf{cartographie de l'analphabétisme} à travers les 36 États et
+  le Territoire Fédéral de la Capitale (FCT).
+\end{enumerate}
+
+Chaque section présente les visualisations graphiques correspondantes,
+accompagnées des tests statistiques appropriés permettant d'évaluer la
+significativité des écarts observés.
+
+\section{Données et Méthodes}\label{donnuxe9es-et-muxe9thodes}
+
+\subsection{Source des données}\label{source-des-donnuxe9es}
+
+Les données utilisées proviennent de la \textbf{GHS Wave 4}
+(\emph{General Household Survey, Panel --- Wave 4}), enquête
+transversale représentative conduite au Nigeria. Elles couvrent les
+ménages ruraux et urbains répartis sur l'ensemble des États du pays.
+Trois fichiers principaux ont été mobilisés :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{\texttt{secta\_harvestw4.dta}} : informations au niveau ménage
+  (identifiant, zone de résidence, État) ;
+\item
+  \textbf{\texttt{sect1\_harvestw4.dta}} : caractéristiques
+  démographiques individuelles (sexe, âge, etc.) ;
+\item
+  \textbf{\texttt{sect2\_harwestw4.dta}} : informations relatives à
+  l'éducation et à la scolarisation.
+\end{itemize}
+
+\subsection{Traitement et nettoyage des
+données}\label{traitement-et-nettoyage-des-donnuxe9es}
+
+Les variables d'intérêt ont été recodées et structurées comme suit :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Niveau d'instruction} (\texttt{niveau\_educ}) : variable
+  catégorielle ordonnée regroupant les modalités \emph{Aucun},
+  \emph{Primaire}, \emph{Secondaire}, \emph{Supérieur} ;
+\item
+  \textbf{Sexe} (\texttt{s1q2}) : variable binaire recodée en
+  \emph{Homme} / \emph{Femme} après décodage des étiquettes Stata via
+  \texttt{haven::zap\_labels()} ;
+\item
+  \textbf{Scolarisation} (\texttt{s2aq6}) : variable dichotomique
+  \emph{Oui} / \emph{Non} indiquant si l'enfant est actuellement inscrit
+  à l'école ;
+\item
+  \textbf{Zone de résidence} (\texttt{sector}) : variable binaire
+  \emph{Urbain} / \emph{Rural} issue du fichier ménage.
+\end{itemize}
+
+Les analyses portent sur les adultes de \textbf{18 ans et plus} pour les
+questions relatives au niveau d'instruction, et sur les \textbf{enfants
+de 6 à 17 ans} pour les analyses de scolarisation.
+
+\subsection{Méthodes statistiques}\label{muxe9thodes-statistiques}
+
+Les méthodes statistiques mobilisées sont les suivantes :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Statistiques descriptives} : distributions de fréquences,
+  proportions, intervalles de confiance à 95 \% ;
+\item
+  \textbf{Test du Khi-deux} d'indépendance pour les relations entre
+  variables catégorielles ;
+\item
+  \textbf{V de Cramér} pour mesurer l'intensité de l'association entre
+  deux variables qualitatives ;
+\item
+  \textbf{Test de Kruskal-Wallis} (alternative non-paramétrique à
+  l'ANOVA) pour comparer la distribution de l'âge entre les groupes
+  éducatifs ;
+\item
+  \textbf{Visualisations} : barplots, boxplots, graphiques à barres
+  empilées 100 \%, graphique à barres avec intervalles de confiance,
+  heatmap par quintile.
+\end{itemize}
+
+Tous les tests sont réalisés au seuil de signification de \textbf{5 \%
+(α = 0,05)}.
+
+\section{Distribution du Niveau
+d'Instruction}\label{distribution-du-niveau-dinstruction}
+
+\subsection{Présentation graphique}\label{pruxe9sentation-graphique}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{Rapport_final_files/figure-latex/task8-barplot-1} 
+
+}
+
+\caption{Distribution du niveau d'instruction dans la population enquêtée (GHS Nigeria, Wave 4). Les barres représentent le nombre d'individus pour chaque catégorie éducative. La palette de couleurs Mako (viridis) permet une lecture aisée des modalités.}\label{fig:task8-barplot}
+\end{figure}
+
+\subsection{Commentaire}\label{commentaire}
+
+La \textbf{Figure 1} présente la répartition des individus de
+l'échantillon selon leur niveau d'instruction. Plusieurs enseignements
+peuvent être tirés de cette distribution :
+
+\begin{itemize}
+\tightlist
+\item
+  La catégorie \textbf{``Aucun''} (sans instruction) représente la
+  modalité la plus fréquente, témoignant d'une proportion importante
+  d'adultes n'ayant jamais été scolarisés. Ce résultat est cohérent avec
+  les statistiques nationales publiées par l'UNESCO qui place le taux
+  d'analphabétisme des adultes au Nigeria parmi les plus élevés
+  d'Afrique subsaharienne.
+\item
+  Le \textbf{niveau primaire} constitue le deuxième groupe le plus
+  représenté, indiquant que pour une partie significative de la
+  population, la scolarisation s'est arrêtée avant l'achèvement du cycle
+  primaire.
+\item
+  Les niveaux \textbf{secondaire} et \textbf{supérieur} restent
+  minoritaires, reflétant les goulots d'étranglement qui caractérisent
+  le système éducatif nigérian, particulièrement marqués dans les zones
+  rurales et dans certaines régions du nord du pays.
+\end{itemize}
+
+Cette distribution en forme de pyramide inversée soulève des
+préoccupations importantes quant à la disponibilité d'une main-d'œuvre
+qualifiée, facteur essentiel pour la transformation économique du
+Nigeria.
+
+\section{Disparités Éducatives selon le
+Sexe}\label{disparituxe9s-uxe9ducatives-selon-le-sexe}
+
+\subsection{Distribution comparée}\label{distribution-comparuxe9e}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{Rapport_final_files/figure-latex/task9-sexe-1} 
+
+}
+
+\caption{Répartition du niveau d'instruction par sexe chez les adultes de 18 ans et plus (GHS Nigeria, Wave 4). Graphique à barres empilées 100 \%. Chaque barre représente la composition éducative de chaque groupe de sexe, permettant une comparaison directe des proportions.}\label{fig:task9-sexe}
+\end{figure}
+
+\subsection{Résultats statistiques}\label{ruxe9sultats-statistiques}
+
+\begingroup\fontsize{10}{12}\selectfont
+
+\begin{longtable}[t]{lc}
+\caption{\label{tab:task9-stats}Résultats du test du Khi-deux et V de Cramér pour la relation entre sexe et niveau d'instruction (adultes 18 ans et plus)}\\
+\toprule
+Statistique & Valeur\\
+\midrule
+\cellcolor{gray!10}{Khi-deux (χ²)} & \cellcolor{gray!10}{81.944}\\
+Degrés de liberté & 4\\
+\cellcolor{gray!10}{p-valeur} & \cellcolor{gray!10}{<0.001}\\
+V de Cramér & 0.0782\\
+\bottomrule
+\end{longtable}
+\endgroup{}
+
+\subsection{Commentaire}\label{commentaire-1}
+
+La \textbf{Figure 2} illustre de manière frappante les inégalités
+éducatives entre hommes et femmes au Nigeria. Les observations majeures
+sont :
+
+\begin{itemize}
+\tightlist
+\item
+  Les \textbf{femmes} présentent une proportion nettement plus élevée
+  dans la catégorie \emph{``Aucun''} (sans instruction), confirmant une
+  discrimination éducative historique à l'égard des filles,
+  particulièrement prononcée dans les régions du nord où des facteurs
+  culturels, religieux et économiques ont longtemps freiné la
+  scolarisation féminine.
+\item
+  Les \textbf{hommes} sont sur-représentés dans les niveaux secondaire
+  et supérieur, reflétant des stratégies d'investissement scolaire
+  différenciées au sein des ménages qui, en situation de contrainte
+  budgétaire, ont tendance à privilégier la scolarisation des garçons.
+\end{itemize}
+
+Le \textbf{Tableau 1} confirme statistiquement ces observations : le
+test du Khi-deux est hautement significatif (p \textless{} 0,001),
+rejetant l'hypothèse d'indépendance entre sexe et niveau d'instruction.
+Le \textbf{V de Cramér}, compris entre 0,1 et 0,3, indique une
+association de \textbf{force modérée à modeste} --- la relation est
+réelle mais d'autres facteurs (géographiques, socio-économiques) jouent
+également un rôle important dans la détermination du niveau
+d'instruction.
+
+\section{Relation entre l'Âge et le Niveau
+d'Instruction}\label{relation-entre-luxe2ge-et-le-niveau-dinstruction}
+
+\subsection{Boxplot comparatif}\label{boxplot-comparatif}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{Rapport_final_files/figure-latex/task10-boxplot-1} 
+
+}
+
+\caption{Distribution de l'âge selon le niveau d'instruction chez les adultes de 18 ans et plus (GHS Nigeria, Wave 4). La boîte représente l'interquartile (Q1–Q3), la ligne médiane indique la médiane, et les moustaches s'étendent jusqu'à 1,5 fois l'écart interquartile. Les points représentent les valeurs extrêmes.}\label{fig:task10-boxplot}
+\end{figure}
+
+\subsection{Résultats du test de
+Kruskal-Wallis}\label{ruxe9sultats-du-test-de-kruskal-wallis}
+
+\begingroup\fontsize{10}{12}\selectfont
+
+\begin{longtable}[t]{llc}
+\caption{\label{tab:task10-kruskal}Résultats du test de Kruskal-Wallis pour la comparaison de l'âge entre les groupes de niveau d'instruction}\\
+\toprule
+ & Statistique & Valeur\\
+\midrule
+\cellcolor{gray!10}{Kruskal-Wallis chi-squared} & \cellcolor{gray!10}{H de Kruskal-Wallis} & \cellcolor{gray!10}{1769.087}\\
+df & Degrés de liberté & 4\\
+\cellcolor{gray!10}{} & \cellcolor{gray!10}{p-valeur} & \cellcolor{gray!10}{<0.001}\\
+\bottomrule
+\end{longtable}
+\endgroup{}
+
+\subsection{Commentaire}\label{commentaire-2}
+
+La \textbf{Figure 3} révèle une relation inverse entre l'âge médian et
+le niveau d'instruction, signe d'une transformation éducative
+intergénérationnelle au Nigeria :
+
+\begin{itemize}
+\tightlist
+\item
+  Les individus classés \textbf{``Aucun''} (sans instruction) présentent
+  une médiane d'âge plus élevée, suggérant que le phénomène
+  d'analphabétisme est plus fortement concentré dans les cohortes plus
+  anciennes, nées dans une période où l'accès à l'école était très
+  limité.
+\item
+  Les individus ayant atteint le niveau \textbf{supérieur} sont en
+  moyenne plus jeunes, traduisant l'expansion progressive du système
+  éducatif nigérian au cours des dernières décennies, notamment sous
+  l'effet de politiques publiques telles que l'\emph{Universal Basic
+  Education (UBE)} lancée en 1999.
+\item
+  La dispersion (amplitude des boîtes et longueur des moustaches) est
+  particulièrement large pour la catégorie \emph{``Aucun''}, indiquant
+  une hétérogénéité dans les profils des non-scolarisés.
+\end{itemize}
+
+Le \textbf{Tableau 2} confirme statistiquement ces différences : le test
+de Kruskal-Wallis (retenu car la normalité des distributions d'âge par
+groupe ne peut être supposée) est hautement significatif (p \textless{}
+0,001). Ces résultats témoignent d'une \textbf{transition éducative} en
+cours au Nigeria, encore incomplète mais réelle.
+
+\section{Scolarisation des 6--17 ans : Urbain
+vs.~Rural}\label{scolarisation-des-617-ans-urbain-vs.-rural}
+
+\subsection{Taux de scolarisation avec intervalles de
+confiance}\label{taux-de-scolarisation-avec-intervalles-de-confiance}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{Rapport_final_files/figure-latex/task11-urb-rur-1} 
+
+}
+
+\caption{Taux de scolarisation des enfants de 6 à 17 ans selon la zone de résidence (GHS Nigeria, Wave 4). Les barres indiquent la proportion d'enfants actuellement scolarisés. Les intervalles de confiance à 95 \% sont représentés par les lignes d'erreur verticales.}\label{fig:task11-urb-rur}
+\end{figure}
+
+\subsection{Résultats statistiques}\label{ruxe9sultats-statistiques-1}
+
+\begingroup\fontsize{10}{12}\selectfont
+
+\begin{longtable}[t]{lc}
+\caption{\label{tab:task11-stats}Résultats du test du Khi-deux et V de Cramér pour la relation entre zone de résidence et statut de scolarisation (enfants 6–17 ans)}\\
+\toprule
+Statistique & Valeur\\
+\midrule
+\cellcolor{gray!10}{Khi-deux (χ²)} & \cellcolor{gray!10}{280.566}\\
+Degrés de liberté & 1\\
+\cellcolor{gray!10}{p-valeur} & \cellcolor{gray!10}{<0.001}\\
+V de Cramér & 0.1752\\
+\bottomrule
+\end{longtable}
+\endgroup{}
+
+\subsection{Commentaire}\label{commentaire-3}
+
+La \textbf{Figure 4} met en évidence un \textbf{écart significatif de
+scolarisation} entre les zones urbaines et rurales chez les enfants de 6
+à 17 ans. Les intervalles de confiance à 95 \% ne se chevauchent pas, ce
+qui constitue un premier indicateur visuel de la significativité
+statistique de cet écart.
+
+\begin{itemize}
+\tightlist
+\item
+  Les enfants résidant en \textbf{zone urbaine} présentent un taux de
+  scolarisation notablement plus élevé que leurs homologues ruraux.
+  L'accès plus aisé aux établissements scolaires, la densité plus
+  importante des infrastructures éducatives et les revenus moyens plus
+  élevés des ménages urbains expliquent en grande partie cette
+  supériorité.
+\item
+  En \textbf{zone rurale}, les freins à la scolarisation sont multiples
+  : distances importantes vers les écoles, travaux agricoles impliquant
+  les enfants, pauvreté des ménages et offre éducative insuffisante
+  (enseignants peu nombreux, classes surpeuplées, manque de matériel
+  pédagogique).
+\end{itemize}
+
+Ces résultats s'inscrivent dans la continuité des rapports de l'UNICEF
+sur le Nigeria, qui identifient la fracture urbain-rural comme l'une des
+principales dimensions des inégalités éducatives dans le pays.
+
+Le \textbf{Tableau 3} confirme statistiquement l'association entre zone
+de résidence et scolarisation : le test du Khi-deux est très
+significatif (p \textless{} 0,001). La valeur du \textbf{V de Cramér}
+indique la force de cette association, permettant de quantifier
+l'ampleur de la disparité observée.
+
+\section{Cartographie de l'Analphabétisme par
+État}\label{cartographie-de-lanalphabuxe9tisme-par-uxe9tat}
+
+\subsection{Heatmap des taux sans
+instruction}\label{heatmap-des-taux-sans-instruction}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{Rapport_final_files/figure-latex/task12-heatmap-1} 
+
+}
+
+\caption{Proportion d'adultes (18 ans et plus) sans instruction formelle par État du Nigeria (GHS Wave 4). Les États sont classés par taux croissant. La colorisation par quintile (jaune = quintile inférieur, rouge foncé = quintile supérieur) permet d'identifier visuellement les États les plus défavorisés en matière d'éducation.}\label{fig:task12-heatmap}
+\end{figure}
+
+\subsection{Commentaire}\label{commentaire-4}
+
+La \textbf{Figure 5} constitue la visualisation la plus riche de ce
+rapport en révélant la profonde \textbf{hétérogénéité géographique} de
+l'analphabétisme au Nigeria. Plusieurs constats s'imposent :
+
+\begin{itemize}
+\item
+  Les États du \textbf{quintile 5} (rouge foncé), concentrant les taux
+  d'adultes sans instruction les plus élevés, se situent majoritairement
+  dans la \textbf{zone géo-politique du Nord-Ouest et du Nord-Est} du
+  Nigeria (Sokoto, Kebbi, Zamfara, Jigawa, etc.). Ces États partagent
+  des caractéristiques communes : forte ruralité, traditions de mariage
+  précoce freinant la scolarisation des filles, et contexte sécuritaire
+  parfois défavorable à la fréquentation scolaire.
+\item
+  À l'opposé, les États du \textbf{quintile 1} (jaune), affichant les
+  taux d'analphabétisme les plus faibles, correspondent généralement aux
+  États du \textbf{Sud-Ouest et du Sud-Est} ainsi qu'aux grandes
+  agglomérations (Lagos, Abuja FCT, Rivers). Ces territoires bénéficient
+  d'une tradition de scolarisation plus ancienne, d'une urbanisation
+  plus avancée et d'un développement économique plus marqué.
+\item
+  La \textbf{dispersion des taux} entre le quintile inférieur et le
+  quintile supérieur traduit non pas un retard uniforme mais bien deux
+  Nigerias éducatifs dont les dynamiques et les défis divergent
+  profondément.
+\end{itemize}
+
+Ces résultats appellent à des politiques publiques ciblées et
+différenciées plutôt qu'une approche uniforme : si les États du Sud
+nécessitent des actions de consolidation et d'amélioration qualitative,
+ceux du Nord requièrent des interventions structurelles massives en
+matière d'offre scolaire, de lutte contre la pauvreté et de changement
+des normes sociales.
+
+\section{Synthèse et Conclusion}\label{synthuxe8se-et-conclusion}
+
+\subsection{Bilan des principaux
+résultats}\label{bilan-des-principaux-ruxe9sultats}
+
+\begingroup\fontsize{9}{11}\selectfont
+
+\begin{longtable}[t]{>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}p{6cm}>{\raggedright\arraybackslash}p{6cm}}
+\caption{\label{tab:synthese-tab}Tableau de synthèse des principaux résultats et implications de politique publique}\\
+\toprule
+Axe d'analyse & Résultat principal & Implication de politique\\
+\midrule
+\cellcolor{gray!10}{Distribution générale} & \cellcolor{gray!10}{Forte prévalence du niveau 'Aucun' ; minorité ayant atteint l'enseignement supérieur} & \cellcolor{gray!10}{Nécessité d'alphabétisation des adultes et de renforcement du primaire}\\
+Genre (adultes 18+) & Inégalité H/F significative (χ² p < 0,001) ; V de Cramér modéré & Politiques de scolarisation ciblant les filles, notamment dans le Nord\\
+\cellcolor{gray!10}{Âge vs. éducation} & \cellcolor{gray!10}{Relation inverse âge-éducation (H Kruskal p < 0,001) : transition éducative en cours} & \cellcolor{gray!10}{Continuité des réformes : effets positifs visibles dans les jeunes cohortes}\\
+Scolarisation 6-17 ans & Écart urbain-rural significatif (χ² p < 0,001) ; meilleur accès en zone urbaine & Investissement en infrastructures scolaires rurales prioritaire\\
+\cellcolor{gray!10}{Géographie de l'analphabétisme} & \cellcolor{gray!10}{Gradient Nord-Sud marqué ; concentration de l'analphabétisme dans le Nord-Ouest} & \cellcolor{gray!10}{Interventions différenciées par État ; urgence dans les États du Nord}\\
+\bottomrule
+\end{longtable}
+\endgroup{}
+
+\subsection{Conclusion générale}\label{conclusion-guxe9nuxe9rale}
+
+Cette analyse des données GHS Wave 4 confirme que la situation éducative
+au Nigeria, bien qu'en amélioration au fil des générations, reste
+marquée par des inégalités profondes selon le sexe, le milieu de
+résidence et la localisation géographique.
+
+Les résultats obtenus s'inscrivent dans une perspective de
+\textbf{transition éducative} : les cohortes les plus jeunes sont en
+moyenne mieux éduquées que leurs aînées, traduisant les effets cumulés
+des politiques d'éducation universelle mises en œuvre depuis les années
+2000. Toutefois, cette progression est loin d'être homogène, et les
+disparités structurelles --- notamment entre le Nord et le Sud du pays
+--- demeurent préoccupantes.
+
+Pour atteindre les \textbf{Objectifs de Développement Durable (ODD 4)}
+relatifs à l'éducation de qualité, le Nigeria devra intensifier ses
+efforts sur plusieurs fronts : augmenter le budget de l'éducation
+(actuellement inférieur aux recommandations internationales de 20
+
+\end{document}
