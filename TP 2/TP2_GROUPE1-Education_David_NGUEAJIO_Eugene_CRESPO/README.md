@@ -18,7 +18,7 @@ et comparer les profils entre sexes, tranches d'âge et zones géographiques sur
 | Fichier | Description |
 |---------|-------------|
 | `00_build_data.R` | Charge, nettoie et harmonise les fichiers .dta des 4 vagues. Exporte les bases de travail dans `../data/processed/` |
-| `01_analyse_education.Rmd` | Rapport d'analyse complet : tâches 7 à 12 |
+| `01_analyse_education.Rmd` | Rapport d'analyse : questions 7 à 12 |
 | `outputs/` | Graphiques (PNG) et tableaux (HTML/CSV) exportés automatiquement |
 
 ---
