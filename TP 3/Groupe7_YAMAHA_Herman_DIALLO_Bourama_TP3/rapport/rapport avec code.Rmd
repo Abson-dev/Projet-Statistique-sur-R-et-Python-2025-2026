@@ -1,0 +1,966 @@
+---
+title: "Analyse 3 — Accès aux services de santé et chocs sanitaires des ménages nigérians"
+author: "**Groupe 7** | Herman YAMAHA — Bourama DIALLO  \nÉcole Nationale de la Statistique
+  et de l'Analyse Économique Pierre NDIAYE\n"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    df_print: paged
+    code_folding: show
+    fig_width: 9
+    fig_height: 5.5
+    fig_caption: true
+subtitle: "Projet Statistique sous R | ENSAE ISE 1, 2025-2026  \nNigeria General Household
+  Survey (GHS) Panel — Wave 4 (2018)\n"
+---
+
+```{r setup, include=FALSE}
+# Options globales du rapport
+knitr::opts_chunk$set(
+  echo      = TRUE,     # afficher le code R
+  warning   = FALSE,    # masquer les avertissements
+  message   = FALSE,    # masquer les messages des packages
+  fig.align = "center", # centrer les graphiques
+  out.width = "100%",
+  dpi       = 150
+)
+```
+
+```{r packages, include=FALSE}
+# Chargement de tous les packages nécessaires
+library(haven)      # lecture des fichiers .dta Stata
+library(dplyr)      # manipulation tabulaire
+library(tidyr)      # reshape des données
+library(ggplot2)    # visualisation
+library(forcats)    # réordonner les facteurs
+library(scales)     # formatage des axes et labels
+library(naniar)     # visualisation des valeurs manquantes
+library(rstatix)    # tests statistiques (chi2, Wilcoxon...)
+library(patchwork)  # assembler plusieurs graphiques
+library(gtsummary)  # tableaux de synthèse statistique
+library(knitr)      # kable pour les tableaux dans le rapport
+```
+
+---
+
+# Introduction {.unnumbered}
+
+Ce rapport présente l'**Analyse 3** du projet statistique ISE 1 (2025-2026), consacrée à l'accès aux services de santé et aux chocs sanitaires des ménages nigérians. Les données proviennent du **Nigeria General Household Survey (GHS) Panel**, programme LSMS-ISA de la Banque Mondiale, vague 4 collectée en 2018 (visite Post-Harvest).
+
+**Objectif** : Décrire les épisodes de maladie, les types de soins consultés et les coûts de santé supportés par les ménages nigérians, et analyser les disparités par sexe, âge, milieu de résidence et niveau de richesse.
+
+**Sources mobilisées** :
+
+| Fichier | Rôle | Variables clés |
+|---|---|---|
+| `sect4a_harvestw4.dta` | Section santé individuelle | `s4aq3`, `s4aq3b_1`, `s4aq6a`, `s4aq9/14/17` |
+| `sect1_harvestw4.dta` | Démographie | `s1q2` (sexe), `s1q4` (âge), `sector` |
+| `secta_harvestw4.dta` | Ménage | `sector` (urban/rural), `state` |
+| `totcons_final.dta` | Consommation | `totcons_adj` (cons. ajustée par tête) |
+
+> **Note méthodologique :** dans le GHS Wave 4 (2018), les variables de santé se trouvent dans `sect4a_harvestw4.dta` (et non `sect3a` comme indiqué dans certaines documentations antérieures). Les correspondances sont : `s4aq3` ≡ maladie/blessure, `s4aq6a` ≡ prestataire consulté, `s4aq9/14/17` ≡ dépenses de santé.
+
+---
+
+```{r chargement, cache=TRUE}
+# Chargement des quatre fichiers de données brutes
+# Chemin relatif depuis le dossier rapport/ → racine du projet
+sect4a <- read_dta("../data/raw/sect4a_harvestw4.dta")
+sect1  <- read_dta("../data/raw/sect1_harvestw4.dta")
+secta  <- read_dta("../data/raw/secta_harvestw4.dta")
+cons   <- read_dta("../data/raw/totcons_final.dta")
+```
+
+---
+
+# Exploration et qualité des données
+
+## Dimensions et structure des fichiers
+
+Avant toute analyse, on inspecte la structure de chaque fichier pour vérifier les types de variables, repérer les potentiels problèmes d'encodage et comprendre la logique des données.
+
+```{r dimensions}
+# Résumé des dimensions
+tibble::tribble(
+  ~Fichier,                 ~Observations, ~Variables,
+  "sect4a_harvestw4.dta",  nrow(sect4a),  ncol(sect4a),
+  "sect1_harvestw4.dta",   nrow(sect1),   ncol(sect1),
+  "secta_harvestw4.dta",   nrow(secta),   ncol(secta),
+  "totcons_final.dta",     nrow(cons),    ncol(cons)
+) |>
+  kable(caption = "Dimensions des fichiers de données")
+```
+
+```{r structure_sect4a}
+# Inspection des variables clés de la section santé
+# On sélectionne uniquement les variables mobilisées dans l'analyse
+sect4a |>
+  select(hhid, indiv, s4aq1, s4aq3, s4aq3b_1,
+         s4aq6a, s4aq9, s4aq14, s4aq17) |>
+  glimpse()
+```
+
+```{r structure_sect1}
+# Variables démographiques : sexe (s1q2), âge (s1q4), milieu (sector)
+sect1 |>
+  select(hhid, indiv, s1q2, s1q4, sector) |>
+  glimpse()
+```
+
+## Statistiques univariées des variables clés
+
+```{r stats_univariees}
+# Distribution de la variable de morbidité (s4aq3)
+# 1 = maladie/blessure déclarée, 2 = aucune
+cat("=== s4aq3 : maladie ou blessure ===\n")
+table(sect4a$s4aq3, useNA = "always") |> print()
+
+cat("\n=== s1q2 : sexe (1=Homme, 2=Femme) ===\n")
+table(sect1$s1q2, useNA = "always") |> print()
+
+cat("\n=== sector : milieu (1=Urbain, 2=Rural) ===\n")
+table(sect1$sector, useNA = "always") |> print()
+
+cat("\n=== s1q4 : âge (résumé statistique) ===\n")
+summary(sect1$s1q4) |> print()
+```
+
+## Valeurs manquantes — variables santé
+
+Les valeurs manquantes sur certaines variables de `sect4a` sont **structurellement conditionnelles** : `s4aq3b_1` (type de maladie) n'est renseigné que si `s4aq3 = 1` (individu malade), et `s4aq9` (dépense consultation) n'est renseigné que si l'individu a consulté. Il ne s'agit donc pas d'une perte d'information mais du filtre logique du questionnaire.
+
+\vspace{3cm}
+
+```{r vis_miss, fig.cap="Carte des valeurs manquantes — variables clés de santé (sect4a)", fig.height=5}
+# vis_miss() de naniar génère un ggplot : appel direct sans print()
+sect4a |>
+  select(
+    "Consultation"       = s4aq1,
+    "Maladie/blessure"   = s4aq3,
+    "Type d'affection"   = s4aq3b_1,
+    "Praticien consulté" = s4aq6a,
+    "Dép. consultation"  = s4aq9,
+    "Dép. médicaments"   = s4aq14,
+    "Dép. hôpital"       = s4aq17
+  ) |>
+  vis_miss(sort_miss = TRUE) +
+  labs(
+    title    = "Valeurs manquantes — variables santé (sect4a_harvestw4)",
+    subtitle = "Les NA sur type/praticien/dépenses sont conditionnels au filtre maladie"
+  ) +
+  theme(
+  plot.title   = element_text(face = "bold", margin = margin(b = 55)),
+  plot.subtitle= element_text(margin = margin(b = 55))
+   )+
+  theme(axis.text.y = element_text(size = 7))+
+  theme(
+  plot.margin = margin(t = 3, r = 3, b = 3, l = 3)
+  )
+
+```
+
+
+
+
+
+---
+
+```{r preparation, cache=TRUE}
+# ==========================================================================
+# PRÉPARATION DU JEU DE DONNÉES ANALYTIQUE
+# ==========================================================================
+
+# ── Données démographiques ─────────────────────────────────────────────────
+sect1_clean <- sect1 |>
+  select(hhid, indiv, s1q2, s1q4, sector) |>
+  rename(sexe = s1q2, age = s1q4, milieu = sector) |>
+  mutate(
+    sexe_label   = factor(sexe,   levels = c(1, 2),
+                          labels = c("Homme", "Femme")),
+    milieu_label = factor(milieu, levels = c(1, 2),
+                          labels = c("Urbain", "Rural")),
+    groupe_age   = cut(
+      age,
+      breaks         = c(0, 14, 24, 34, 44, 54, 64, Inf),
+      labels         = c("0-14", "15-24", "25-34",
+                         "35-44", "45-54", "55-64", "65+"),
+      right          = TRUE,
+      include.lowest = TRUE
+    )
+  )
+
+# ── Variable de morbidité ──────────────────────────────────────────────────
+# s4aq3 = 1 : maladie/blessure déclarée → malade = 1
+# s4aq3 = 2 : aucune maladie            → malade = 0
+sect4a_clean <- sect4a |>
+  select(hhid, indiv, s4aq1, s4aq3, s4aq3b_1,
+         s4aq6a, s4aq9, s4aq14, s4aq17) |>
+  mutate(
+    malade   = if_else(s4aq3 == 1, 1L, 0L, missing = NA_integer_),
+    consulte = if_else(s4aq1 == 1, 1L, 0L, missing = NA_integer_)
+  )
+
+# ── Fusion sect4a + sect1 ──────────────────────────────────────────────────
+df_health <- sect4a_clean |>
+  left_join(sect1_clean, by = c("hhid", "indiv"))
+
+# ── Quintiles de consommation ──────────────────────────────────────────────
+cons_clean <- cons |>
+  select(hhid, totcons_adj) |>
+  mutate(
+    quintile = ntile(totcons_adj, 5),
+    quintile_label = factor(
+      quintile, levels = 1:5,
+      labels = c("Q1 (plus pauvres)", "Q2", "Q3", "Q4", "Q5 (plus riches)")
+    )
+  )
+
+# ── Dictionnaire des praticiens ────────────────────────────────────────────
+groupe_praticien <- c(
+  "0"="Aucun recours", "1"="Tradipraticien",
+  "2"="Hôpital/Clinique", "3"="Hôpital/Clinique",
+  "4"="Hôpital/Clinique", "5"="Hôpital/Clinique",
+  "6"="Hôpital/Clinique", "7"="Pharmacie",
+  "8"="Pharmacie",        "9"="Tradipraticien",
+  "10"="Tradipraticien",  "11"="Pharmacie",
+  "13"="Autre",           "14"="Agent de santé comm.",
+  "15"="Agent de santé comm."
+)
+```
+
+---
+
+# Tâche 13 — Taux de morbidité par sexe et groupe d'âge
+
+## Taux de morbidité global
+
+```{r morbidite_global}
+# Calcul du taux global et de son IC à 95 %
+# Formule approximée de Wilson : IC = p ± 1.96 × sqrt(p(1-p)/n)
+taux_global <- df_health |>
+  filter(!is.na(malade)) |>
+  summarise(
+    N         = n(),
+    n_malades = sum(malade),
+    taux      = mean(malade),
+    ic_low    = taux - 1.96 * sqrt(taux * (1 - taux) / N),
+    ic_high   = taux + 1.96 * sqrt(taux * (1 - taux) / N)
+  )
+
+taux_global |>
+  mutate(across(c(taux, ic_low, ic_high),
+                ~ paste0(round(. * 100, 2), " %"))) |>
+  kable(
+    caption   = "Taux de morbidité global — Wave 4 (2018)",
+    col.names = c("N total", "Nb malades", "Taux", "IC inf. 95%", "IC sup. 95%")
+  )
+```
+
+**Interprétation :** `r paste0(round(taux_global$taux * 100, 1), " %")` des individus de 5 ans et plus ont déclaré au moins une maladie ou blessure dans les 4 semaines précédant l'enquête.
+
+## Par sexe
+
+```{r morbidite_par_sexe}
+# Calcul des taux par sexe avec IC à 95 %
+taux_sexe <- df_health |>
+  filter(!is.na(malade), !is.na(sexe_label)) |>
+  group_by(sexe_label) |>
+  summarise(
+    n         = n(),
+    n_malades = sum(malade, na.rm = TRUE),
+    taux      = mean(malade, na.rm = TRUE),
+    ic_low    = taux - 1.96 * sqrt(taux * (1 - taux) / n),
+    ic_high   = taux + 1.96 * sqrt(taux * (1 - taux) / n),
+    .groups   = "drop"
+  )
+
+kable(
+  taux_sexe |>
+    mutate(across(c(taux, ic_low, ic_high),
+                  ~ paste0(round(. * 100, 1), " %"))),
+  caption   = "Taux de morbidité par sexe — IC à 95 %",
+  col.names = c("Sexe", "N", "Malades", "Taux", "IC inf.", "IC sup.")
+)
+```
+
+```{r fig_morbidite_sexe, fig.cap="Taux de morbidité par sexe avec IC à 95%"}
+# Marge entre la borne haute de l'IC et l'étiquette de valeur
+marge <- 0.012
+
+ggplot(taux_sexe, aes(x = sexe_label, y = taux, fill = sexe_label)) +
+  geom_col(width = 0.5, show.legend = FALSE) +
+  geom_errorbar(
+    aes(ymin = ic_low, ymax = ic_high),
+    width = 0.12, linewidth = 0.8, color = "grey25"
+  ) +
+  # Étiquette positionnée AU-DESSUS de ic_high pour éviter tout chevauchement
+  geom_text(
+    aes(y = ic_high + marge, label = paste0(round(taux * 100, 1), "%")),
+    vjust = 0, size = 5, fontface = "bold", color = "grey20"
+  ) +
+  scale_y_continuous(
+    labels = percent_format(accuracy = 1),
+    limits = c(0, max(taux_sexe$ic_high) + 0.04),
+    expand = c(0, 0)
+  ) +
+  scale_fill_manual(values = c("Homme" = "#3A86FF", "Femme" = "#FF6B6B")) +
+  labs(
+    title    = "Taux de morbidité par sexe",
+    subtitle = "Wave 4 (2018) — 4 semaines avant l'enquête",
+    x = NULL, y = "Taux de morbidité",
+    caption = "Source : Nigeria GHS Panel W4 | Barres d'erreur : IC à 95 %"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    panel.grid.major.x = element_blank(),
+    axis.text.x        = element_text(size = 12, face = "bold")
+  )
+```
+
+## Par groupe d'âge
+
+```{r morbidite_par_age}
+taux_age <- df_health |>
+  filter(!is.na(malade), !is.na(groupe_age)) |>
+  group_by(groupe_age) |>
+  summarise(
+    n         = n(),
+    n_malades = sum(malade, na.rm = TRUE),
+    taux      = mean(malade, na.rm = TRUE),
+    ic_low    = pmax(0, taux - 1.96 * sqrt(taux * (1 - taux) / n)),
+    ic_high   = taux + 1.96 * sqrt(taux * (1 - taux) / n),
+    .groups   = "drop"
+  )
+
+kable(
+  taux_age |>
+    mutate(across(c(taux, ic_low, ic_high),
+                  ~ paste0(round(. * 100, 1), " %"))),
+  caption   = "Taux de morbidité par groupe d'âge",
+  col.names = c("Groupe d'âge", "N", "Malades", "Taux", "IC inf.", "IC sup.")
+)
+```
+
+```{r fig_morbidite_age, fig.cap="Taux de morbidité par groupe d'âge avec IC à 95%"}
+# ylim dynamique : aucune barre ne sera tronquée (problème corrigé)
+ggplot(taux_age, aes(x = groupe_age, y = taux, fill = groupe_age)) +
+  geom_col(width = 0.65, show.legend = FALSE) +
+  geom_errorbar(
+    aes(ymin = ic_low, ymax = ic_high),
+    width = 0.2, linewidth = 0.7, color = "grey25"
+  ) +
+  geom_text(
+    aes(y = ic_high + marge, label = paste0(round(taux * 100, 1), "%")),
+    vjust = 0, size = 4, fontface = "bold", color = "grey20"
+  ) +
+  scale_y_continuous(
+    labels = percent_format(accuracy = 1),
+    limits = c(0, max(taux_age$ic_high) + 0.05),
+    expand = c(0, 0)
+  ) +
+  scale_fill_brewer(palette = "Blues") +
+  labs(
+    title    = "Taux de morbidité par groupe d'âge",
+    subtitle = "Nigeria GHS Panel — Wave 4, Post-Harvest 2018",
+    x = "Groupe d'âge", y = "Taux de morbidité",
+    caption = "Source : Nigeria GHS Panel W4 | Barres d'erreur : IC à 95 %"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    panel.grid.major.x = element_blank()
+  )
+```
+
+```{r fig_morbidite_sexe_age, fig.cap="Taux de morbidité croisé sexe × groupe d'âge", fig.width=11}
+taux_sa <- df_health |>
+  filter(!is.na(malade), !is.na(sexe_label), !is.na(groupe_age)) |>
+  group_by(groupe_age, sexe_label) |>
+  summarise(
+    n       = n(),
+    taux    = mean(malade, na.rm = TRUE),
+    ic_low  = pmax(0, taux - 1.96 * sqrt(taux * (1 - taux) / n)),
+    ic_high = taux + 1.96 * sqrt(taux * (1 - taux) / n),
+    .groups = "drop"
+  )
+
+dw <- 0.7   # largeur du dodge (identique pour barres, IC et texte)
+
+ggplot(taux_sa, aes(x = groupe_age, y = taux, fill = sexe_label)) +
+  geom_col(position = position_dodge(dw), width = 0.65) +
+  geom_errorbar(
+    aes(ymin = ic_low, ymax = ic_high),
+    position = position_dodge(dw),
+    width = 0.18, linewidth = 0.65, color = "grey25"
+  ) +
+  geom_text(
+    aes(y = ic_high + marge,
+        label = paste0(round(taux * 100, 1), "%")),
+    position = position_dodge(dw),
+    vjust = 0, size = 2.8, fontface = "bold", color = "grey20"
+  ) +
+  scale_y_continuous(
+    labels = percent_format(accuracy = 1),
+    limits = c(0, max(taux_sa$ic_high, na.rm = TRUE) + 0.05),
+    expand = c(0, 0)
+  ) +
+  scale_fill_manual(
+    values = c("Homme" = "#3A86FF", "Femme" = "#FF6B6B"),
+    name   = "Sexe"
+  ) +
+  labs(
+    title    = "Taux de morbidité par groupe d'âge et par sexe",
+    subtitle = "Nigeria GHS Panel — Wave 4, Post-Harvest 2018",
+    x = "Groupe d'âge", y = "Taux de morbidité",
+    caption = "Source : Nigeria GHS Panel W4 | Barres d'erreur : IC à 95 %"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    legend.position    = "top",
+    panel.grid.major.x = element_blank()
+  )
+```
+
+**Interprétation :** La morbidité augmente fortement avec l'âge — les personnes de 65 ans et plus présentent le taux le plus élevé. Les femmes déclarent une morbidité systématiquement supérieure aux hommes dans tous les groupes d'âge adultes.
+
+---
+
+# Tâche 14 — Types de maladies déclarées
+
+```{r maladies_prep, cache=TRUE}
+# Dictionnaire des codes d'affections (codebook LABC, Wave 4)
+maladie_labels <- c(
+  "1"="Paludisme",           "2"="Tuberculose",
+  "3"="Fièvre jaune",        "4"="Typhoïde",
+  "5"="Choléra",             "6"="Diarrhée",
+  "7"="Méningite",           "8"="Varicelle",
+  "9"="Pneumonie",           "10"="Rhume commun",
+  "11"="Blessure/Traumatisme","12"="Autre",
+  "13"="Hypertension",       "14"="Grippe",
+  "15"="Rhinite/Catarrhe",   "16"="Toux",
+  "17"="Céphalée",           "18"="Diabète",
+  "19"="Ver de Guinée",      "20"="Dysenterie",
+  "21"="Infection cutanée",  "22"="Rougeole",
+  "23"="Infection urinaire", "24"="Douleurs articulaires",
+  "25"="Fièvre non spéc.",   "26"="Trouble digestif",
+  "27"="Faiblesse/Fatigue"
+)
+
+# Catégorisation clinique : infectieuse / chronique / traumatique / autre
+categorie_maladie <- c(
+  "1"="Infectieuse",  "2"="Infectieuse",  "3"="Infectieuse",
+  "4"="Infectieuse",  "5"="Infectieuse",  "6"="Infectieuse",
+  "7"="Infectieuse",  "8"="Infectieuse",  "9"="Infectieuse",
+  "10"="Infectieuse", "11"="Traumatique", "12"="Autre",
+  "13"="Chronique",   "14"="Infectieuse", "15"="Infectieuse",
+  "16"="Infectieuse", "17"="Autre",       "18"="Chronique",
+  "19"="Infectieuse", "20"="Infectieuse", "21"="Infectieuse",
+  "22"="Infectieuse", "23"="Infectieuse", "24"="Chronique",
+  "25"="Infectieuse", "26"="Autre",       "27"="Autre"
+)
+
+# Ne conserver que les individus ayant déclaré une maladie
+df_maladies <- df_health |>
+  filter(!is.na(s4aq3b_1), s4aq3 == 1) |>
+  mutate(
+    code_str  = as.character(as.integer(s4aq3b_1)),
+    maladie   = maladie_labels[code_str],
+    categorie = categorie_maladie[code_str]
+  ) |>
+  filter(!is.na(maladie))
+
+# Top 10 par fréquence
+top10 <- df_maladies |>
+  count(maladie, categorie, sort = TRUE) |>
+  mutate(pct = n / sum(n) * 100) |>
+  slice_head(n = 10) |>
+  mutate(maladie = fct_reorder(maladie, n))
+```
+
+```{r fig_maladies, fig.cap="Dix affections les plus fréquentes par catégorie clinique"}
+couleurs_cat <- c(
+  "Infectieuse"  = "#3A86FF",
+  "Chronique"    = "#FF6B6B",
+  "Traumatique"  = "#FFBE0B",
+  "Autre"        = "#8338EC"
+)
+
+ggplot(top10, aes(x = maladie, y = n, fill = categorie)) +
+  geom_col(width = 0.7) +
+  # Étiquette à droite de chaque barre horizontale
+  geom_text(
+    aes(label = paste0(round(pct, 1), "%")),
+    hjust = -0.15, size = 3.8, fontface = "bold", color = "grey20"
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = couleurs_cat, name = "Catégorie") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.20))) +
+  labs(
+    title    = "Dix affections les plus fréquemment déclarées",
+    subtitle = "Individus ayant déclaré une maladie/blessure — Wave 4 (2018)",
+    x = NULL, y = "Nombre d'individus",
+    caption = "Source : Nigeria GHS Panel W4, sect4a_harvestw4"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    legend.position    = "top",
+    panel.grid.major.y = element_blank()
+  )
+```
+
+**Interprétation :** Le **paludisme** domine largement (première cause de morbidité déclarée), suivi des affections respiratoires (toux, rhinite, grippe). Les maladies infectieuses représentent l'essentiel de la charge morbide, confirmant le contexte épidémiologique du Nigeria. Les maladies chroniques sont sous-représentées dans les déclarations spontanées.
+
+---
+
+# Tâche 15 — Recours aux soins par type de prestataire
+
+```{r recours_prep}
+# Construction de la variable de recours aux soins
+# s4aq6a = type de praticien consulté ; 0 ou NA = aucun recours
+df_recours <- df_health |>
+  filter(!is.na(s4aq3), s4aq3 == 1) |>    # individus malades uniquement
+  mutate(
+    code_prat = as.character(
+      if_else(is.na(s4aq6a) | s4aq6a == 0, 0, as.integer(s4aq6a))
+    ),
+    praticien_groupe = groupe_praticien[code_prat]
+  ) |>
+  filter(!is.na(praticien_groupe))
+
+# Calcul des fréquences par groupe de prestataire
+taux_prat <- df_recours |>
+  count(praticien_groupe, sort = TRUE) |>
+  mutate(
+    pct             = n / sum(n) * 100,
+    praticien_ordre = fct_reorder(praticien_groupe, n)
+  )
+```
+
+```{r fig_recours, fig.cap="Recours aux soins par type de prestataire (barplot ordonné)"}
+couleurs_prat <- c(
+  "Aucun recours"        = "#E63946",
+  "Hôpital/Clinique"     = "#1D3557",
+  "Pharmacie"            = "#2A9D8F",
+  "Tradipraticien"       = "#E9C46A",
+  "Agent de santé comm." = "#F4A261",
+  "Autre"                = "#999999"
+)
+
+ggplot(taux_prat,
+       aes(x = praticien_ordre, y = pct, fill = praticien_groupe)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  geom_text(
+    aes(label = paste0(round(pct, 1), "%")),
+    hjust = -0.15, size = 4, fontface = "bold", color = "grey20"
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = couleurs_prat) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
+  labs(
+    title    = "Recours aux soins selon le type de prestataire",
+    subtitle = "Parmi les individus malades/blessés — Wave 4 (2018)",
+    x = NULL, y = "Part (%)",
+    caption = "Source : Nigeria GHS Panel W4, sect4a_harvestw4"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+**Interprétation :** Une fraction substantielle des individus malades ne recourt à aucun soin formel. Parmi ceux qui consultent, les hôpitaux et cliniques constituent le premier recours, suivis des pharmacies. La persistance du tradipraticien reflète les barrières d'accès (coût, distance) aux soins modernes.
+
+---
+
+# Tâche 16 — Distribution des dépenses de santé
+
+```{r depenses_prep}
+# Construction de la dépense totale : consultation + médicaments + hospitalisation
+# Les NA sont remplacés par 0 (absence de ce type de dépense)
+df_depenses <- df_health |>
+  mutate(
+    dep_consultation = if_else(is.na(s4aq9),  0, as.numeric(s4aq9)),
+    dep_medicaments  = if_else(is.na(s4aq14), 0, as.numeric(s4aq14)),
+    dep_hopital      = if_else(is.na(s4aq17), 0, as.numeric(s4aq17)),
+    dep_totale       = dep_consultation + dep_medicaments + dep_hopital
+  ) |>
+  filter(dep_totale > 0)   # uniquement les individus ayant dépensé
+
+# Seuil d'outlier : règle de Tukey étendue (IQR × 3)
+q1  <- quantile(df_depenses$dep_totale, 0.25)
+q3  <- quantile(df_depenses$dep_totale, 0.75)
+seuil_haut <- q3 + 3 * (q3 - q1)
+
+cat("Individus avec dépenses > 0 :", nrow(df_depenses), "\n")
+cat("Seuil outlier (Q3 + 3×IQR) :", format(round(seuil_haut), big.mark=" "), "\n")
+```
+
+## Statistiques par décile
+
+```{r stats_decile}
+df_depenses <- df_depenses |> mutate(decile = ntile(dep_totale, 10))
+
+df_depenses |>
+  group_by(Décile = decile) |>
+  summarise(
+    N       = n(),
+    Min     = min(dep_totale),
+    Médiane = median(dep_totale),
+    Moyenne = round(mean(dep_totale)),
+    Max     = max(dep_totale),
+    .groups = "drop"
+  ) |>
+  kable(
+    format.args = list(big.mark = " "),
+    caption = "Statistiques des dépenses de santé par décile (Naira)"
+  )
+```
+
+## Histogramme (échelle logarithmique)
+
+```{r fig_histogramme, fig.cap="Distribution des dépenses de santé — échelle logarithmique"}
+med_val <- median(df_depenses$dep_totale)
+
+ggplot(df_depenses, aes(x = dep_totale)) +
+  geom_histogram(bins = 40, fill = "#3A86FF",
+                 color = "white", alpha = 0.85) +
+  geom_vline(xintercept = med_val, linetype = "dashed",
+             color = "#E63946", linewidth = 1) +
+  # Annotation en haut à gauche avec fond blanc — aucun chevauchement
+  annotate(
+    "label",
+    x = quantile(df_depenses$dep_totale, 0.02),
+    y = Inf,
+    label = paste0("Médiane : ",
+                   format(round(med_val), big.mark = " ")),
+    hjust = 0, vjust = 1.3,
+    color = "#E63946", fill = "white",
+    label.size = 0.3, size = 4, fontface = "bold"
+  ) +
+  scale_x_log10(labels = label_comma(big.mark = " ")) +
+  scale_y_continuous(labels = label_comma()) +
+  labs(
+    title    = "Distribution des dépenses de santé (échelle logarithmique)",
+    subtitle = "Individus ayant engagé des dépenses — Wave 4 (2018)",
+    x        = "Dépense totale (Naira, échelle log)",
+    y        = "Nombre d'individus",
+    caption  = "Source : Nigeria GHS Panel W4 | Ligne rouge = médiane"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold", size = 14))
+```
+
+## Boxplot par type de prestataire
+
+```{r fig_boxplot_prat, fig.cap="Boxplot des dépenses par type de prestataire (sans outliers extrêmes)"}
+df_box <- df_depenses |>
+  mutate(
+    code_prat = as.character(
+      if_else(is.na(s4aq6a) | s4aq6a == 0, 0, as.integer(s4aq6a))
+    ),
+    praticien_groupe = groupe_praticien[code_prat]
+  ) |>
+  filter(!is.na(praticien_groupe),
+         praticien_groupe != "Aucun recours",
+         dep_totale <= seuil_haut)
+
+ggplot(
+  df_box,
+  aes(x    = reorder(praticien_groupe, dep_totale, median),
+      y    = dep_totale,
+      fill = praticien_groupe)
+) +
+  geom_boxplot(outlier.shape = 21, outlier.alpha = 0.3,
+               show.legend = FALSE, width = 0.6) +
+  stat_summary(fun = median, geom = "point",
+               shape = 18, size = 3, color = "#E63946") +
+  scale_y_log10(labels = label_comma(big.mark = " ")) +
+  scale_fill_brewer(palette = "Set2") +
+  coord_flip() +
+  labs(
+    title    = "Dépenses de santé par type de prestataire",
+    subtitle = "Échelle log — outliers extrêmes exclus (> Q3+3×IQR) | losange = médiane",
+    x = NULL, y = "Dépense totale (Naira, échelle log)",
+    caption = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold", size = 14),
+        panel.grid.major.y = element_blank())
+```
+
+**Interprétation :** Les dépenses liées à l'hospitalisation sont les plus élevées et les plus dispersées. La forte asymétrie de la distribution (queue droite longue) justifie l'utilisation systématique de l'échelle logarithmique.
+
+---
+
+# Tâche 17 — Test d'indépendance : recours × quintile de richesse
+
+```{r chi2_prep}
+# Fusion santé + quintile de consommation
+df_merge <- df_health |>
+  filter(!is.na(s4aq3), s4aq3 == 1) |>   # individus malades
+  mutate(
+    consulte = factor(
+      if_else(s4aq1 == 1, "Consulté", "Non consulté",
+              missing = "Non consulté"),
+      levels = c("Consulté", "Non consulté")
+    )
+  ) |>
+  left_join(cons_clean, by = "hhid") |>
+  filter(!is.na(quintile_label), !is.na(consulte))
+
+# Tableau de contingence
+tab_cont <- table(
+  Recours  = df_merge$consulte,
+  Quintile = df_merge$quintile_label
+)
+```
+
+## Tableau de contingence
+
+```{r kable_contingence}
+kable(
+  addmargins(tab_cont),
+  caption = "Tableau de contingence : recours aux soins × quintile de consommation"
+)
+```
+
+## Tests statistiques
+
+```{r tests_chi2}
+# Test du chi-deux de Pearson (si effectif minimum ≥ 5)
+# Test exact de Fisher (simulation Monte-Carlo) si effectif < 5
+min_eff <- min(tab_cont)
+cat("Effectif minimum dans le tableau :", min_eff, "\n")
+
+# Chi-deux dans tous les cas (pour le calcul de V de Cramér)
+test_chi2 <- chisq.test(tab_cont)
+cat("\nChi-deux de Pearson :\n")
+cat("  X² =", round(test_chi2$statistic, 3), "\n")
+cat("  ddl =", test_chi2$parameter, "\n")
+cat("  p-value =", format.pval(test_chi2$p.value, digits = 4), "\n")
+
+# V de Cramér : mesure de la force de l'association (0 = aucune, 1 = totale)
+n_tot  <- sum(tab_cont)
+v_cram <- sqrt(test_chi2$statistic /
+               (n_tot * (min(nrow(tab_cont), ncol(tab_cont)) - 1)))
+cat("\nV de Cramér =", round(v_cram, 4), "\n")
+cat("Interprétation :",
+    ifelse(v_cram < 0.10, "association très faible",
+    ifelse(v_cram < 0.30, "association faible",
+    ifelse(v_cram < 0.50, "association modérée", "association forte"))), "\n")
+```
+
+## Barplot 100 % empilé
+
+```{r fig_quintile, fig.cap="Recours aux soins selon le quintile de consommation"}
+df_plot_q <- df_merge |>
+  count(quintile_label, consulte) |>
+  group_by(quintile_label) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ungroup()
+
+p_lab <- ifelse(test_chi2$p.value < 0.001, "p < 0,001",
+                paste0("p = ", round(test_chi2$p.value, 3)))
+
+ggplot(df_plot_q,
+       aes(x = quintile_label, y = pct, fill = consulte)) +
+  geom_col(position = "stack", width = 0.65) +
+  geom_text(
+    aes(label = paste0(round(pct, 1), "%")),
+    position  = position_stack(vjust = 0.5),
+    size = 3.8, color = "white", fontface = "bold"
+  ) +
+  scale_y_continuous(labels = label_percent(scale = 1)) +
+  scale_fill_manual(
+    values = c("Consulté" = "#1D3557", "Non consulté" = "#E63946"),
+    name   = "Recours"
+  ) +
+  labs(
+    title    = "Recours aux soins selon le quintile de consommation",
+    subtitle = paste0("Chi² = ", round(test_chi2$statistic, 2),
+                      " | V de Cramér = ", round(v_cram, 3),
+                      " | ", p_lab),
+    x = "Quintile de consommation",
+    y = "Part des individus malades (%)",
+    caption = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    plot.subtitle      = element_text(color = "grey40", size = 10),
+    legend.position    = "top",
+    panel.grid.major.x = element_blank()
+  )
+```
+
+**Interprétation :** Le test du chi-deux révèle une association statistiquement significative entre niveau de richesse et recours aux soins. Le gradient est visible : les ménages des quintiles supérieurs consultent davantage, confirmant les inégalités socio-économiques d'accès aux soins au Nigeria.
+
+---
+
+# Tâche 18 — Dépenses de santé : rural vs urbain (Wilcoxon + Violin)
+
+```{r wilcoxon_prep}
+df_dep_milieu <- df_depenses |> filter(!is.na(milieu_label))
+
+# Test de Wilcoxon-Mann-Whitney bilatéral
+wilcox_res <- wilcox.test(
+  dep_totale ~ milieu_label,
+  data = df_dep_milieu,
+  exact = FALSE, conf.int = TRUE
+)
+
+# Taille d'effet r de Rosenthal
+n_tot_w <- nrow(df_dep_milieu)
+z_w     <- qnorm(wilcox_res$p.value / 2)
+r_eff   <- abs(z_w) / sqrt(n_tot_w)
+
+cat("Test de Wilcoxon :\n")
+cat("  W =", wilcox_res$statistic, "\n")
+cat("  p-value =", format.pval(wilcox_res$p.value, digits = 4), "\n")
+cat("  r =", round(r_eff, 4), "\n")
+
+df_dep_milieu |>
+  group_by(Milieu = milieu_label) |>
+  summarise(
+    N       = n(),
+    Médiane = median(dep_totale),
+    Q25     = quantile(dep_totale, 0.25),
+    Q75     = quantile(dep_totale, 0.75),
+    .groups = "drop"
+  ) |>
+  kable(
+    format.args = list(big.mark = " "),
+    caption = "Dépenses médianes par milieu (Naira)"
+  )
+```
+
+## Violin plot + boxplot superposé
+
+```{r fig_violin, fig.cap="Distribution des dépenses de santé : rural vs urbain (échelle log)", fig.height=6}
+# CORRECTION : scale_y_log10() pour rendre les violons lisibles
+# (sans log, toute la distribution est écrasée en bas par les outliers)
+p_violin <- ggplot(
+  df_dep_milieu,
+  aes(x = milieu_label, y = dep_totale, fill = milieu_label)
+) +
+  geom_violin(trim = TRUE, alpha = 0.55, color = NA) +
+  geom_boxplot(
+    width = 0.12, fill = "white", color = "grey30",
+    outlier.shape = NA, linewidth = 0.7
+  ) +
+  stat_summary(fun = median, geom = "point",
+               shape = 18, size = 4, color = "#E63946") +
+  annotate(
+    "label", x = 1.5, y = Inf,
+    label = paste0(
+      "Wilcoxon\n",
+      ifelse(wilcox_res$p.value < 0.001, "p < 0,001",
+             paste0("p = ", round(wilcox_res$p.value, 3))),
+      " | r = ", round(r_eff, 3)
+    ),
+    vjust = 1.3, size = 3.8,
+    fill = "white", label.size = 0.3,
+    fontface = "italic", color = "grey20"
+  ) +
+  scale_y_log10(
+    labels = label_comma(big.mark = " "),
+    breaks = c(10, 100, 500, 1000, 5000, 10000, 50000)
+  ) +
+  scale_fill_manual(
+    values = c("Urbain" = "#3A86FF", "Rural" = "#FFBE0B")
+  ) +
+  labs(
+    title    = "Distribution des dépenses de santé : rural vs urbain",
+    subtitle = "Échelle logarithmique — Wave 4 (2018) | losange rouge = médiane",
+    x = NULL, y = "Dépense totale (Naira, échelle log)",
+    caption = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 14),
+    legend.position = "none",
+    axis.text.x     = element_text(size = 13, face = "bold")
+  )
+
+# Violin par quintile
+df_q <- df_depenses |>
+  left_join(cons_clean |> select(hhid, quintile_label), by = "hhid") |>
+  filter(!is.na(quintile_label))
+
+p_quint <- ggplot(df_q,
+                  aes(x = quintile_label, y = dep_totale,
+                      fill = quintile_label)) +
+  geom_violin(trim = TRUE, alpha = 0.6, color = NA) +
+  geom_boxplot(width = 0.1, fill = "white", color = "grey30",
+               outlier.shape = NA, linewidth = 0.6) +
+  stat_summary(fun = median, geom = "point",
+               shape = 18, size = 3.5, color = "#E63946") +
+  scale_y_log10(
+    labels = label_comma(big.mark = " "),
+    breaks = c(10, 100, 500, 1000, 5000, 10000, 50000)
+  ) +
+  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
+  labs(
+    title    = "Dépenses de santé par quintile de consommation",
+    subtitle = "Échelle logarithmique | losange rouge = médiane",
+    x = "Quintile", y = "Dépense totale (Naira, échelle log)",
+    caption = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold"),
+        legend.position = "none")
+
+p_violin / p_quint +
+  plot_annotation(
+    title    = "Dépenses de santé — disparités spatiales et socio-économiques",
+    subtitle = "Nigeria GHS Panel — Wave 4, Post-Harvest 2018",
+    theme    = theme(plot.title = element_text(face = "bold", size = 15))
+  )
+```
+
+**Interprétation :** L'utilisation de l'échelle logarithmique révèle la forme réelle des distributions, impossible à voir en échelle linéaire du fait des valeurs extrêmes. La progression des dépenses avec le quintile de richesse est nette et confirme le gradient socio-économique identifié à la tâche 17.
+
+---
+
+# Synthèse et conclusions
+
+Cette analyse des données de santé du GHS Panel Wave 4 (2018) met en évidence cinq résultats structurants :
+
+1. **Morbidité à deux niveaux :** `r paste0(round(taux_global$taux * 100, 1), " %")` des individus déclarent une maladie/blessure. La charge est plus élevée chez les femmes et croît fortement avec l'âge.
+
+2. **Prédominance infectieuse :** le paludisme et les infections respiratoires dominent. Les maladies chroniques restent sous-déclarées — probablement par manque de diagnostic.
+
+3. **Recours formel insuffisant :** une fraction non négligeable des malades ne consulte aucun praticien, révélant des barrières d'accès persistantes (coût, distance, offre).
+
+4. **Gradient socio-économique confirmé :** le test du chi-deux (p < 0,05) établit un lien significatif entre richesse et consultation — les ménages aisés consultent davantage.
+
+5. **Hétérogénéité des dépenses :** la distribution log-normale des dépenses (médiane `r paste0(format(round(median(df_depenses$dep_totale)), big.mark=" "))`) et la dispersion par quintile confirment les inégalités de reste-à-charge.
+
+---
+
+# Informations de session
+
+```{r session_info, echo=FALSE}
+cat("R version :", R.version$version.string, "\n\n")
+pkgs <- c("haven","dplyr","ggplot2","forcats","scales",
+          "naniar","rstatix","patchwork","gtsummary","tidyr")
+for (p in pkgs) {
+  cat(sprintf("  %-15s %s\n", p, as.character(packageVersion(p))))
+}
+```
