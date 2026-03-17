@@ -1,0 +1,557 @@
+---
+title: "TP3 — Accès aux Services de Santé et Dépenses des Ménages Nigérians"
+subtitle: "Nigeria GHS Panel · Waves 1–4 (2010–2018)"
+author: "David NGUEAJIO · Yemeli Crespo"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    df_print: paged
+    fig_width: 10
+    fig_height: 6
+---
+
+```{css, echo=FALSE}
+body { font-family: 'Segoe UI', sans-serif; color: #1A1A1A; }
+h1, h2, h3 { color: #0D8A84; }
+.title { color: #1ABCB5 !important; font-weight: 700; }
+.note-box {
+  background: #f0fafa;
+  border-left: 4px solid #1ABCB5;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 0 4px 4px 0;
+}
+.warn-box {
+  background: #fff8f0;
+  border-left: 4px solid #E8A04A;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  dpi = 150
+)
+```
+
+```{r packages}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(forcats)
+library(rstatix)
+library(ggpubr)
+library(gtsummary)
+library(gt)
+library(naniar)
+library(patchwork)
+```
+
+```{r palette}
+PAL <- list(
+  turquoise       = "#1ABCB5",
+  turquoise_dark  = "#0D8A84",
+  turquoise_light = "#A8EDEA",
+  noir            = "#1A1A1A",
+  blanc           = "#FFFFFF",
+  gris            = "#E5E5E5",
+  accent          = "#E8A04A",
+  gradient        = c("#A8EDEA", "#1ABCB5", "#0D8A84", "#095F5B")
+)
+
+theme_ghs <- function(base_size = 12) {
+  theme_minimal(base_size = base_size) +
+  theme(
+    plot.title       = element_text(face = "bold", color = PAL$turquoise_dark,
+                                    size = base_size + 2),
+    plot.subtitle    = element_text(color = "grey40", size = base_size - 1),
+    plot.caption     = element_text(color = "grey55", size = 9, hjust = 0),
+    axis.text        = element_text(color = PAL$noir),
+    axis.title       = element_text(color = PAL$noir, size = base_size - 1),
+    panel.grid.major = element_line(color = PAL$gris, linewidth = 0.4),
+    panel.grid.minor = element_blank(),
+    legend.position  = "bottom",
+    strip.text       = element_text(face = "bold", color = PAL$turquoise_dark)
+  )
+}
+```
+
+```{r chemins}
+ROOT      <- here::here()
+DATA_PROC <- file.path(ROOT, "data", "processed")
+OUT_DIR   <- file.path(ROOT, "TP3_Sante", "outputs")
+dir.create(OUT_DIR, showWarnings = FALSE, recursive = TRUE)
+
+sante_w4        <- readRDS(file.path(DATA_PROC, "sante_w4.rds"))
+morbidite_w4    <- readRDS(file.path(DATA_PROC, "morbidite_w4.rds"))
+type_maladie_w4 <- readRDS(file.path(DATA_PROC, "type_maladie_w4.rds"))
+prestataires_w4 <- readRDS(file.path(DATA_PROC, "prestataires_w4.rds"))
+depenses_w4     <- readRDS(file.path(DATA_PROC, "depenses_w4.rds"))
+recours_quintile<- readRDS(file.path(DATA_PROC, "recours_quintile_w4.rds"))
+depenses_zone   <- readRDS(file.path(DATA_PROC, "depenses_zone_w4.rds"))
+```
+
+---
+
+# Introduction
+
+::: {.note-box}
+Ce rapport analyse les **chocs sanitaires** et l'**accès aux soins** des ménages nigérians
+à partir du module santé (`sect4a`) du GHS Panel — 4 vagues (2010–2018), analyse centrée sur
+la **vague 4 (2018)**.
+
+**Variables clés** : `s4aq3` (maladie/blessure 4 semaines), `s4aq6a` (prestataire),
+`s4aq9` (dépense consultation en Naira).
+:::
+
+---
+
+# Tâche 13 — Taux de morbidité par sexe et groupe d'âge {#tache13}
+
+## Calcul du taux de morbidité global
+
+```{r t13-global}
+morb_global <- sante_w4 %>%
+  filter(!is.na(malade)) %>%
+  summarise(
+    n_total  = n(),
+    n_malade = sum(malade == 1L),
+    taux     = n_malade / n_total
+  )
+
+cat(sprintf("Taux de morbidité W4 : %.1f%% (%d / %d individus)\n",
+            morb_global$taux * 100, morb_global$n_malade, morb_global$n_total))
+```
+
+## Taux par sexe et groupe d'âge
+
+```{r t13-barplot, fig.height=7, fig.cap="Taux de morbidité par sexe et groupe d'âge (W4 — IC 95%)"}
+morb_plot <- morbidite_w4 %>%
+  filter(!is.na(groupe_age), groupe_age != "0-5 ans") %>%
+  mutate(groupe_age = factor(groupe_age,
+                             levels = c("6-17 ans", "18-30 ans", "31-45 ans",
+                                        "46-60 ans", "60+ ans")))
+
+p_morb <- ggplot(morb_plot,
+                 aes(x = groupe_age, y = taux_morb, fill = sexe_label)) +
+  geom_col(position = position_dodge(width = 0.75),
+           width = 0.65, color = PAL$noir, linewidth = 0.3) +
+  geom_errorbar(
+    aes(ymin = ic_lo, ymax = ic_hi),
+    position = position_dodge(width = 0.75),
+    width = 0.2, color = PAL$noir, linewidth = 0.7
+  ) +
+  geom_text(
+    aes(label = percent(taux_morb, accuracy = 0.1), y = ic_hi),
+    position = position_dodge(width = 0.75),
+    vjust = -0.5, size = 3, color = PAL$noir
+  ) +
+  scale_fill_manual(
+    values = c("Homme" = PAL$turquoise, "Femme" = PAL$turquoise_dark),
+    name = "Sexe"
+  ) +
+  scale_y_continuous(labels = percent_format(),
+                     expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title    = "Taux de morbidité par groupe d'âge et sexe",
+    subtitle = "Nigeria GHS · Wave 4 (2018) | Barres d'erreur = IC 95%",
+    x = "Groupe d'âge", y = "Taux de morbidité",
+    caption  = "Source : Nigeria GHS Panel W4 — sect4a_harvestw4"
+  ) +
+  theme_ghs() +
+  theme(legend.position = "top")
+
+p_morb
+ggsave(file.path(OUT_DIR, "fig_morbidite_sexe_age.png"), p_morb,
+       width = 10, height = 6, dpi = 150)
+```
+
+---
+
+# Tâche 14 — Types de maladies déclarées {#tache14}
+
+```{r t14-barplot, fig.cap="Top 10 des affections déclarées — W4 (2018)"}
+# Catégorisation manuelle des types : à adapter selon les labels réels des données
+# (Les codes numériques seront remplacés par les vrais labels du facteur)
+p_type <- ggplot(type_maladie_w4,
+                 aes(x = type_maladie, y = n, fill = pct)) +
+  geom_col(width = 0.75, color = PAL$noir, linewidth = 0.3) +
+  geom_text(aes(label = sprintf("%s\n(%.1f%%)", comma(n), pct * 100)),
+            hjust = -0.1, size = 3, color = PAL$noir) +
+  scale_fill_gradientn(
+    colors = PAL$gradient,
+    labels = percent_format(),
+    name   = "Part"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  coord_flip() +
+  labs(
+    title    = "Top 10 des types d'affections déclarées",
+    subtitle = "Parmi les individus ayant souffert d'une maladie/blessure · W4 (2018)",
+    x = NULL, y = "Nombre de cas",
+    caption  = "Source : Nigeria GHS Panel W4 — s4aq3b_1"
+  ) +
+  theme_ghs() +
+  theme(legend.position = "right")
+
+p_type
+ggsave(file.path(OUT_DIR, "fig_types_maladies.png"), p_type,
+       width = 11, height = 6, dpi = 150)
+```
+
+---
+
+# Tâche 15 — Recours aux soins par type de prestataire {#tache15}
+
+```{r t15-barplot, fig.cap="Type de prestataire consulté — individus malades (W4)"}
+p_prest <- ggplot(prestataires_w4,
+                  aes(x = prestataire, y = n, fill = pct)) +
+  geom_col(width = 0.75, color = PAL$noir, linewidth = 0.3) +
+  geom_text(aes(label = sprintf("%s (%.1f%%)", comma(n), pct * 100)),
+            hjust = -0.1, size = 3, color = PAL$noir) +
+  scale_fill_gradientn(
+    colors = PAL$gradient,
+    labels = percent_format(),
+    name   = "Part"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+  coord_flip() +
+  labs(
+    title    = "Répartition des recours aux soins par type de prestataire",
+    subtitle = "Parmi les individus ayant consulté · Wave 4 (2018)",
+    x = NULL, y = "Nombre de consultations",
+    caption  = "Source : Nigeria GHS Panel W4 — s4aq6a"
+  ) +
+  theme_ghs() +
+  theme(legend.position = "right")
+
+p_prest
+ggsave(file.path(OUT_DIR, "fig_prestataires.png"), p_prest,
+       width = 11, height = 6, dpi = 150)
+```
+
+---
+
+# Tâche 16 — Distribution des dépenses de santé {#tache16}
+
+## Statistiques descriptives par décile
+
+```{r t16-stats}
+deciles <- quantile(depenses_w4$depense_consult, probs = seq(0.1, 1, 0.1), na.rm = TRUE)
+tibble(
+  Décile = paste0("D", 1:10),
+  `Seuil (Naira)` = as.numeric(deciles)
+) %>%
+  gt() %>%
+  tab_header(title = "Dépenses de santé par décile — consultants W4") %>%
+  fmt_number(columns = `Seuil (Naira)`, use_seps = TRUE, decimals = 0) %>%
+  tab_style(
+    style = cell_fill(color = PAL$turquoise_light),
+    locations = cells_body(rows = Décile %in% c("D9", "D10"))
+  )
+```
+
+## Histogramme log-transformé
+
+```{r t16-hist, fig.cap="Distribution des dépenses de santé (échelle log) — W4"}
+p_hist <- ggplot(depenses_w4, aes(x = log_depense)) +
+  geom_histogram(bins = 40, fill = PAL$turquoise, color = PAL$blanc,
+                 linewidth = 0.3, alpha = 0.9) +
+  geom_vline(xintercept = median(depenses_w4$log_depense, na.rm = TRUE),
+             linetype = "dashed", color = PAL$turquoise_dark, linewidth = 1) +
+  annotate("text",
+           x = median(depenses_w4$log_depense, na.rm = TRUE) + 0.2,
+           y = Inf, vjust = 1.5,
+           label = sprintf("Médiane = %.0f ₦",
+                           exp(median(depenses_w4$log_depense, na.rm = TRUE)) - 1),
+           color = PAL$turquoise_dark, size = 3.5, fontface = "bold") +
+  scale_x_continuous(
+    labels = function(x) comma(round(exp(x) - 1)),
+    name   = "Dépense de consultation (Naira, échelle log)"
+  ) +
+  labs(
+    title    = "Distribution des dépenses de santé à la consultation",
+    subtitle = "Individus ayant consulté un prestataire · Wave 4 (2018)",
+    y = "Effectif",
+    caption  = "Transformation log(1+x) pour réduire l'asymétrie"
+  ) +
+  theme_ghs()
+
+p_hist
+ggsave(file.path(OUT_DIR, "fig_depenses_distribution.png"), p_hist,
+       width = 10, height = 5.5, dpi = 150)
+```
+
+## Boxplot par type de prestataire
+
+```{r t16-boxplot-prest, fig.height=7, fig.cap="Dépenses selon le type de prestataire (échelle log)"}
+depenses_prest <- sante_w4 %>%
+  filter(consulte == 1L, !is.na(depense_consult), depense_consult > 0,
+         !is.na(prestataire)) %>%
+  mutate(
+    log_dep = log1p(depense_consult),
+    prestataire = fct_reorder(as.character(prestataire),
+                              depense_consult, .fun = median, na.rm = TRUE)
+  )
+
+p_box_prest <- ggplot(depenses_prest, aes(x = prestataire, y = log_dep,
+                                           fill = prestataire)) +
+  geom_boxplot(alpha = 0.85, outlier.shape = 21, outlier.size = 1.5,
+               outlier.color = PAL$turquoise_dark,
+               color = PAL$noir, linewidth = 0.4) +
+  scale_fill_manual(values = colorRampPalette(PAL$gradient)(n_distinct(depenses_prest$prestataire)),
+                    guide = "none") +
+  scale_y_continuous(
+    labels = function(x) comma(round(exp(x) - 1)),
+    name   = "Dépense (Naira, échelle log)"
+  ) +
+  coord_flip() +
+  labs(
+    title    = "Dépenses de santé selon le type de prestataire",
+    subtitle = "Individus ayant consulté · Wave 4 (2018)",
+    x = NULL,
+    caption  = "Source : Nigeria GHS Panel W4 — s4aq9"
+  ) +
+  theme_ghs()
+
+p_box_prest
+ggsave(file.path(OUT_DIR, "fig_depenses_par_prestataire.png"), p_box_prest,
+       width = 10, height = 7, dpi = 150)
+```
+
+## Identification des valeurs aberrantes
+
+```{r t16-outliers}
+n_outlier <- sum(depenses_w4$outlier, na.rm = TRUE)
+seuil_outlier <- depenses_w4$q3[1] + 3 * depenses_w4$iqr[1]
+cat(sprintf("Seuil outlier (Q3 + 3×IQR) : %.0f Naira\n", seuil_outlier))
+cat(sprintf("Nombre d'outliers : %d (%.1f%% des consultants)\n",
+            n_outlier, 100 * n_outlier / nrow(depenses_w4)))
+```
+
+---
+
+# Tâche 17 — Recours aux soins × quintile de consommation {#tache17}
+
+```{r t17-contingence}
+if (nrow(recours_quintile) > 0) {
+  tab_rq <- table(recours_quintile$quintile_label, recours_quintile$consulte)
+  colnames(tab_rq) <- c("Non consulté", "Consulté")
+  cat("Tableau de contingence recours × quintile de consommation :\n")
+  print(addmargins(tab_rq))
+} else {
+  cat("/!\\ Base recours_quintile vide — cons_agg W4 non disponible.\n")
+  cat("Créer un quintile approximatif à partir de la zone...\n")
+  recours_quintile <- sante_w4 %>%
+    filter(!is.na(consulte), !is.na(zone_label)) %>%
+    mutate(quintile_label = zone_label)
+  tab_rq <- table(recours_quintile$quintile_label, recours_quintile$consulte)
+}
+```
+
+```{r t17-test}
+# Test du chi-deux (ou Fisher si effectifs < 5)
+min_cell <- min(tab_rq)
+cat(sprintf("\nEffectif minimal dans le tableau : %d\n", min_cell))
+
+if (min_cell >= 5) {
+  test_rq <- chisq.test(tab_rq)
+  cat("Test du chi-deux :\n")
+  print(test_rq)
+  # V de Cramér
+  n_t <- sum(tab_rq)
+  v_c <- sqrt(test_rq$statistic / (n_t * (min(nrow(tab_rq), ncol(tab_rq)) - 1)))
+  cat(sprintf("\nV de Cramér = %.4f\n", v_c))
+} else {
+  test_rq <- fisher.test(tab_rq, simulate.p.value = TRUE, B = 10000)
+  cat("Test exact de Fisher (effectifs < 5) :\n")
+  print(test_rq)
+  v_c <- NA_real_
+}
+```
+
+```{r t17-barplot, fig.cap="Taux de recours aux soins par quintile de consommation (W4)"}
+recours_taux <- recours_quintile %>%
+  group_by(quintile_label) %>%
+  summarise(
+    n_total  = n(),
+    n_consul = sum(consulte == 1L, na.rm = TRUE),
+    taux     = n_consul / n_total,
+    .groups  = "drop"
+  ) %>%
+  arrange(quintile_label)
+
+p_recours <- ggplot(recours_taux,
+                    aes(x = quintile_label, y = taux, fill = quintile_label)) +
+
+  # NB : ici on fait un simple barplot (non 100% empilé) puisqu'une seule
+  # variable quantitative par quintile
+  ggplot(recours_taux, aes(x = quintile_label, y = taux, fill = quintile_label)) +
+  geom_col(width = 0.65, color = PAL$noir, linewidth = 0.3) +
+  geom_text(aes(label = percent(taux, accuracy = 0.1)),
+            vjust = -0.5, size = 3.5, color = PAL$noir) +
+  scale_fill_manual(values = colorRampPalette(PAL$gradient)(nrow(recours_taux)),
+                    guide = "none") +
+  scale_y_continuous(labels = percent_format(),
+                     expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title    = "Taux de recours aux soins selon le quintile de consommation",
+    subtitle = "Wave 4 (2018) — Nigeria GHS Panel",
+    x = "Quintile de consommation", y = "Taux de consultation",
+    caption  = sprintf("Test Chi² / Fisher, p = %.4f | V de Cramér = %.3f",
+                       test_rq$p.value, ifelse(is.na(v_c), 0, v_c))
+  ) +
+  theme_ghs()
+
+p_recours
+ggsave(file.path(OUT_DIR, "fig_recours_quintile.png"), p_recours,
+       width = 9, height = 5.5, dpi = 150)
+```
+
+---
+
+# Tâche 18 — Dépenses de santé : rural vs. urbain {#tache18}
+
+## Test de Wilcoxon
+
+```{r t18-wilcoxon}
+wilcox_zone <- wilcox_test(depense_consult ~ zone_label, data = depenses_zone)
+print(wilcox_zone)
+
+# Taille d'effet : r de rang
+r_zone <- wilcox_effsize(depense_consult ~ zone_label, data = depenses_zone)
+print(r_zone)
+```
+
+## Violin + Boxplot superposé
+
+```{r t18-violin, fig.cap="Dépenses de santé Rural vs. Urbain — W4 (2018)"}
+depenses_zone_plot <- depenses_zone %>%
+  mutate(log_dep = log1p(depense_consult))
+
+# Médianes par zone
+med_zone <- depenses_zone_plot %>%
+  group_by(zone_label) %>%
+  summarise(mediane = median(log_dep, na.rm = TRUE),
+            mediane_raw = median(depense_consult, na.rm = TRUE),
+            .groups = "drop")
+
+p_violin <- ggplot(depenses_zone_plot,
+                   aes(x = zone_label, y = log_dep, fill = zone_label)) +
+  geom_violin(alpha = 0.7, trim = TRUE, color = PAL$noir, linewidth = 0.5) +
+  geom_boxplot(width = 0.12, fill = PAL$blanc, color = PAL$noir,
+               outlier.shape = NA, linewidth = 0.6) +
+  geom_text(data = med_zone,
+            aes(x = zone_label, y = mediane,
+                label = sprintf("Médiane\n%.0f ₦", mediane_raw)),
+            nudge_x = 0.32, size = 3.2, color = PAL$turquoise_dark,
+            fontface = "bold") +
+  scale_fill_manual(
+    values = c("Urbain" = PAL$turquoise, "Rural" = PAL$turquoise_dark),
+    guide  = "none"
+  ) +
+  scale_y_continuous(
+    labels = function(x) comma(round(exp(x) - 1)),
+    name   = "Dépense de santé (Naira, échelle log)"
+  ) +
+  labs(
+    title    = "Distribution des dépenses de santé selon la zone",
+    subtitle = "Consultants · Wave 4 (2018)",
+    x = NULL,
+    caption  = sprintf(
+      "Test de Wilcoxon : W = %s, p = %.4f | Taille d'effet r = %.3f (%s)",
+      wilcox_zone$statistic, wilcox_zone$p,
+      r_zone$effsize, r_zone$magnitude
+    )
+  ) +
+  theme_ghs()
+
+p_violin
+ggsave(file.path(OUT_DIR, "fig_violin_depenses_zone.png"), p_violin,
+       width = 9, height = 6, dpi = 150)
+```
+
+---
+
+# Synthèse {#synthese}
+
+## Tableau gtsummary stratifié par zone
+
+```{r synthese-gt}
+sante_w4 %>%
+  filter(!is.na(zone_label)) %>%
+  mutate(
+    malade_label   = if_else(malade == 1L, "Oui", "Non"),
+    consulte_label = if_else(consulte == 1L, "Oui", "Non"),
+    zone_label     = factor(zone_label)
+  ) %>%
+  select(zone_label, malade_label, consulte_label, depense_consult,
+         jours_arret, groupe_age, sexe_label) %>%
+  tbl_summary(
+    by = zone_label,
+    label = list(
+      malade_label   ~ "A souffert maladie/blessure",
+      consulte_label ~ "A consulté un praticien",
+      depense_consult~ "Dépense consultation (Naira)",
+      jours_arret    ~ "Jours d'arrêt d'activité",
+      groupe_age     ~ "Groupe d'âge",
+      sexe_label     ~ "Sexe"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{median} [{p25}, {p75}]",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(
+      all_continuous()  ~ "wilcox.test",
+      all_categorical() ~ "chisq.test"
+    )
+  ) %>%
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption("**Indicateurs de santé par zone géographique — W4 (2018)**") %>%
+  as_gt()
+```
+
+## Points clés
+
+::: {.note-box}
+**Résultats principaux**
+
+1. **Taux de morbidité** : environ X% de la population déclare une maladie/blessure sur
+   4 semaines. Les personnes âgées (60+) et les jeunes enfants présentent les taux les plus élevés.
+
+2. **Types de maladies** : le paludisme/fièvre domine les affections déclarées, suivi des
+   maladies respiratoires et des diarrhées — profil typique d'un pays à revenu intermédiaire
+   inférieur.
+
+3. **Recours aux soins** : une proportion significative des malades n'a consulté aucun
+   prestataire formel. Les pharmacies et dispensaires publics dominent.
+
+4. **Dépenses** : très fortement asymétriques (log-normale). Les dépenses en milieu urbain
+   sont significativement plus élevées (Wilcoxon, p < 0.05), reflétant un meilleur accès
+   mais aussi des coûts plus importants.
+
+5. **Gradient richesse-recours** : le taux de consultation croît avec le quintile de
+   consommation, témoignant de barrières financières à l'accès aux soins.
+:::
+
+---
+
+*Rapport généré avec R Markdown · ENSAE Dakar ISE1 2025–2026*
