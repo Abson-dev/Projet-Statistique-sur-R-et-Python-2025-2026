@@ -1,4 +1,4 @@
-# TP2: Analyse statistique de l'éducation et de l'alphabétisation au Nigéria
+# TP2: Education et alphabétisation des membres des ménages  nigérians
 
 ## Description
 Ce projet analyse les données de l'enquête LSMS (Living Standards Measurement Study) vague 4 sur l'éducation et l'alphabétisation au Nigéria. Il explore les niveaux d'éducation, les disparités par sexe, âge et région, ainsi que les taux de scolarisation.
