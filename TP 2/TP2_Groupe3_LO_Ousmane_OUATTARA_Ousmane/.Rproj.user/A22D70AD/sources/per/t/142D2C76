@@ -1,0 +1,27 @@
+{
+    "id": "142D2C76",
+    "path": "D:/ENSAE/ISE1/SEMESTRE 2/Projet_Statistique/TP2_Groupe3_LO_Ousmane_OUATTARA_Ousmane/scripts/01_import_data.R",
+    "project_path": "scripts/01_import_data.R",
+    "type": "r_source",
+    "hash": "1476360208",
+    "contents": "",
+    "dirty": false,
+    "created": 1773400490530.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "4,27",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1773400845,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1773400845422,
+    "read_only": false,
+    "read_only_alternatives": []
+}

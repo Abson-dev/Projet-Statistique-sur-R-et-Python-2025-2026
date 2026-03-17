@@ -1,0 +1,66 @@
+
+---
+title: ""
+author: ""
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: true
+    number_sections: true
+geometry:
+  - top=30mm
+  - left=25mm
+  - right=25mm
+  - bottom=30mm
+header-includes:
+  - \usepackage{fancyhdr}
+  - \usepackage{graphicx}
+  - \pagestyle{fancy}
+  - \fancyhead[L]{Rapport d'Analyse GHS-LSMS}
+  - \fancyhead[R]{Nigeria Wave 4}
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
+)
+```
+
+
+\begin{titlepage}
+    \begin{flushleft}
+        \includegraphics[width=4cm]{images/logo.png}
+    \end{flushleft}
+    
+    \centering
+    \vspace*{2cm}
+    
+    {\huge \textbf{Analyse Socio-Démographique du Nigeria}} \\
+    \vspace{0.5cm}
+    {\Large Étude du niveau d'éducation et des disparités régionales} \\
+    
+    \vfill
+    
+    {\Large \textbf{Membres du groupe :}} \\
+    \vspace{0.8cm}
+    {\large LO Ousmane} \\
+    {\large WATTARA Ousmane} \\
+    
+    \vfill
+    
+    {\large Projet Statistique sous R} \\
+    {\large \textbf{ENSAE Pierre NDIAYE}} \\
+    {\large Année académique 2025-2026}
+\end{titlepage}
+
+\newpage
+
+
+
+

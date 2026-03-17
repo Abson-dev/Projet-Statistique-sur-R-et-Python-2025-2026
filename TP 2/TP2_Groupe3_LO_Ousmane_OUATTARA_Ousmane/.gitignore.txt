@@ -1,0 +1,2 @@
+# Données lourdes (si non demandées)
+data/raw/
