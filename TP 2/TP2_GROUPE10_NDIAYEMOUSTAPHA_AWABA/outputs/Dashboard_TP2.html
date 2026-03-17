@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TP2 · Éducation & Alphabétisation · Nigeria GHS W4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f8f5f0;--card:#fff;--border:#e8ddd3;
+  --c1:#e74c3c;--c2:#f39c12;--c3:#e8c217;--c4:#27ae60;--c5:#2980b9;
+  --text:#1a1a2e;--muted:#7a6f65}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+.hero{background:#1a0a0a;color:#fff;padding:2.5rem 3rem;
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:2rem;
+  position:relative;overflow:hidden}
+.hero::before{content:'ÉDU';position:absolute;right:-10px;top:50%;
+  transform:translateY(-50%);font-family:'Syne',sans-serif;
+  font-size:9rem;font-weight:800;opacity:.03;letter-spacing:-.05em}
+.badge-row{display:flex;gap:.5rem;margin-bottom:.6rem}
+.badge{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:.2rem .6rem;border-radius:4px}
+.b-r{background:#e74c3c;color:#fff}.b-b{background:#2980b9;color:#fff}.b-g{background:#27ae60;color:#fff}
+h1{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;line-height:1.05}
+.sub{color:rgba(255,255,255,.4);font-size:.78rem;margin-top:.35rem}
+.note-box{background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.4);
+  color:#f1948a;font-size:.72rem;padding:.4rem .9rem;border-radius:8px;margin-top:.5rem}
+.hkpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
+.hkpi{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:.85rem 1.1rem;text-align:center}
+.hkpi .v{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;display:block}
+.hkpi .l{font-size:.6rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-top:.15rem}
+.wrap{padding:1.6rem 3rem;max-width:1600px}
+.stitle{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:1.8rem 0 1rem;
+  display:flex;align-items:center;gap:.8rem}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin-bottom:1.4rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem;margin-bottom:1.4rem}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.4rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.4rem;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.ctitle{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:1rem}
+.lpill{border-radius:12px;padding:1rem 1.2rem;display:flex;flex-direction:column;
+  align-items:center;text-align:center;transition:transform .2s}
+.lpill:hover{transform:translateY(-3px)}
+.lpill .v{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800}
+.lpill .l{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:.25rem}
+.lpill .n{font-size:.65rem;color:var(--muted);margin-top:.15rem}
+.bar-item{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}
+.bar-label{width:130px;font-size:.82rem;font-weight:500;flex-shrink:0}
+.bar-bg{flex:1;background:#ede8e0;border-radius:8px;height:24px;overflow:hidden}
+.bar-fill{height:100%;border-radius:8px;display:flex;align-items:center;
+  padding-left:8px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.bar-val{font-size:.76rem;font-weight:700;color:#fff}
+.bar-pct{width:48px;text-align:right;font-size:.82rem;font-weight:700}
+.hm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:.5rem}
+.hm-cell{border-radius:6px;padding:.45rem .3rem;text-align:center;font-size:.64rem;
+  font-weight:700;cursor:pointer;transition:transform .15s;position:relative}
+.hm-cell:hover{transform:scale(1.08);z-index:10}
+.tag{display:inline-flex;font-size:.69rem;font-weight:600;padding:.24rem .65rem;
+  border-radius:20px;margin-bottom:.7rem}
+.t-r{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.t-b{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.t-g{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+.tt{position:fixed;display:none;background:rgba(26,10,10,.9);color:#fff;
+  padding:.4rem .8rem;border-radius:8px;font-size:.75rem;z-index:100;pointer-events:none}
+canvas{max-height:300px}
+footer{text-align:center;padding:1.3rem;font-size:.72rem;color:var(--muted);
+  border-top:1px solid var(--border);margin-top:2rem;background:#fff}
+</style>
+</head>
+<body>
+<div id="tt" class="tt"></div>
+<div class="hero">
+  <div>
+    <div class="badge-row">
+      <span class="badge b-r">TP 2</span>
+      <span class="badge b-b">ENSAE ISE 1 · 2025-2026</span>
+    </div>
+    <h1>Éducation &amp;<br>Alphabétisation</h1>
+    <div class="sub">Cheikh M. M. Ndiaye &amp; Awa Ba · sect2_harvestw4 · N = 13 399 adultes</div>
+    <div class="note-box">⚠ Correction : s2aq6="No" (3 054 jamais scolarisés) → "Aucun" · Sans correction : taux Aucun = 10.2% → Avec : 30.7%</div>
+  </div>
+  <div class="hkpis">
+    <div class="hkpi"><span class="v" style="color:#f5c518">65.4%</span><span class="l">Alphabétisés</span></div>
+    <div class="hkpi"><span class="v" style="color:#4f8ef7">541.23</span><span class="l">Chi² Educ×Sexe</span></div>
+    <div class="hkpi"><span class="v" style="color:#f76b6b">0.201</span><span class="l">V Cramér</span></div>
+    <div class="hkpi"><span class="v" style="color:#4ec9a0">88.5%</span><span class="l">Scol. Urbain</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="stitle">Niveaux d'éducation · Adultes 18+ · W4 (2018) — valeurs corrigées</div>
+  <div class="g5">
+    <div class="lpill" style="background:#fef2f2;border:1px solid #fecaca">
+      <span class="v" style="color:#c0392b">30.7%</span>
+      <span class="l" style="color:#c0392b">Aucun</span>
+      <span class="n">4 114 adultes</span>
+    </div>
+    <div class="lpill" style="background:#fef9e7;border:1px solid #f9e4b0">
+      <span class="v" style="color:#d35400">19.6%</span>
+      <span class="l" style="color:#d35400">Primaire</span>
+      <span class="n">2 630 adultes</span>
+    </div>
+    <div class="lpill" style="background:#fefce8;border:1px solid #f7dc6f">
+      <span class="v" style="color:#b7950b">5.5%</span>
+      <span class="l" style="color:#b7950b">Junior Sec.</span>
+      <span class="n">738 adultes</span>
+    </div>
+    <div class="lpill" style="background:#eafaf1;border:1px solid #a9dfbf">
+      <span class="v" style="color:#27ae60">32.7%</span>
+      <span class="l" style="color:#27ae60">Senior Sec.</span>
+      <span class="n">4 387 adultes</span>
+    </div>
+    <div class="lpill" style="background:#eaf2fb;border:1px solid #c5ddf4">
+      <span class="v" style="color:#2980b9">11.4%</span>
+      <span class="l" style="color:#2980b9">Tertiaire</span>
+      <span class="n">1 530 adultes</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.4rem">
+    <div class="ctitle">Barplot horizontal — niveau éducation adultes 18+ (corrigé)</div>
+    <div id="educBars"></div>
+  </div>
+
+  <div class="stitle">Éducation par sexe &amp; groupe d'âge</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Éducation par sexe (100% empilé)</div>
+      <div class="tag t-r">χ²=541.23 · df=4 · p&lt;0.001 · V Cramér=0.201</div>
+      <canvas id="sexChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="ctitle">Score moyen éducation par groupe d'âge</div>
+      <div class="tag t-b">Kruskal-Wallis H&gt;100 · p&lt;0.001 · Post-hoc Dunn</div>
+      <canvas id="ageChart"></canvas>
+    </div>
+  </div>
+
+  <div class="stitle">Scolarisation &amp; Heatmap États</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Scolarisation 6-17 ans · s2aq13a (2018/2019 actuelle)</div>
+      <div class="tag t-g">Chi² significatif · Urbain 88.5% vs Rural 72.5%</div>
+      <canvas id="enrollChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="ctitle">Alphabétisation (s2aq5)</div>
+      <canvas id="alphaChart"></canvas>
+    </div>
+  </div>
+
+  <div class="stitle">Heatmap — % adultes sans instruction par État (corrigé)</div>
+  <div class="card">
+    <div class="ctitle">Après correction s2aq6="No"→"Aucun" · Nord-Ouest = taux très élevés</div>
+    <div class="hm-grid" id="hm"></div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap">
+      <span style="font-size:.7rem;color:var(--muted)">Faible →</span>
+      <div style="display:flex;gap:3px">
+        <div style="width:20px;height:11px;border-radius:3px;background:#27ae60"></div>
+        <div style="width:20px;height:11px;border-radius:3px;background:#f1c40f"></div>
+        <div style="width:20px;height:11px;border-radius:3px;background:#e67e22"></div>
+        <div style="width:20px;height:11px;border-radius:3px;background:#e74c3c"></div>
+        <div style="width:20px;height:11px;border-radius:3px;background:#922b21"></div>
+      </div>
+      <span style="font-size:.7rem;color:var(--muted)">← Élevé</span>
+    </div>
+  </div>
+</div>
+
+<footer>GHS Panel W4 (2018) · ENSAE ISE 1 · 2025-2026 · Cheikh M. M. Ndiaye &amp; Awa Ba<br>
+Correction clé : s2aq6="No"→"Aucun" · Scolarisation : s2aq13a (2018/2019) · Tests : Chi², V Cramér, Kruskal-Wallis, Dunn</footer>
+
+<script>
+const EDUC=['Aucun','Primaire','Junior Sec.','Senior Sec.','Tertiaire'];
+const COLS=['#e74c3c','#f39c12','#e8c217','#27ae60','#2980b9'];
+const EDUC_N={Aucun:4114,Primaire:2630,'Junior Sec.':738,'Senior Sec.':4387,Tertiaire:1530};
+const TOTAL_ADULTS=13399;
+const MALE_EDUC={Aucun:22.0,Primaire:19.1,'Junior Sec.':5.7,'Senior Sec.':38.4,Tertiaire:14.9};
+const FEMALE_EDUC={Aucun:38.5,Primaire:20.1,'Junior Sec.':5.4,'Senior Sec.':27.7,Tertiaire:8.3};
+const AGE_EDUC={'18–30':2.85,'31–45':2.53,'46–60':2.23,'60+':1.87};
+const STATE_ED={
+  Zamfara:80.9,Sokoto:80.3,Kebbi:77.0,Jigawa:67.6,Borno:66.2,
+  Kano:51.8,Katsina:49.7,Yobe:40.1,Bauchi:35.2,Kaduna:18.9,
+  Gombe:15.7,Taraba:8.2,Niger:5.4,FCT:3.1,Adamawa:2.9,
+  Lagos:1.8,Ogun:1.5,Oyo:1.9,Rivers:1.4,Anambra:0.8
+};
+Chart.defaults.font.family="'DM Sans',sans-serif";
+
+// Bars
+(()=>{
+  const sorted=EDUC.map(l=>({l,n:EDUC_N[l],pct:EDUC_N[l]/TOTAL_ADULTS*100})).sort((a,b)=>b.pct-a.pct);
+  const max=sorted[0].pct;
+  document.getElementById('educBars').innerHTML=sorted.map(item=>`
+    <div class="bar-item">
+      <div class="bar-label">${item.l}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:0%;background:${COLS[EDUC.indexOf(item.l)]}" data-w="${item.pct/max*100}">
+        <span class="bar-val">${item.n.toLocaleString('fr-FR')}</span></div></div>
+      <div class="bar-pct">${item.pct.toFixed(1)}%</div>
+    </div>`).join('');
+  setTimeout(()=>document.querySelectorAll('.bar-fill').forEach(el=>{el.style.width=el.dataset.w+'%'}),100);
+})();
+
+// Sexe 100%
+(()=>{
+  const ctx=document.getElementById('sexChart').getContext('2d');
+  new Chart(ctx,{type:'bar',data:{
+    labels:['Homme','Femme'],
+    datasets:EDUC.map((l,i)=>({label:l,data:[MALE_EDUC[l],FEMALE_EDUC[l]],
+      backgroundColor:COLS[i],borderRadius:i===EDUC.length-1?{topLeft:5,topRight:5}:0,borderSkipped:false}))
+  },options:{responsive:true,maintainAspectRatio:true,
+    scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#555',font:{weight:600}}},
+            y:{stacked:true,max:105,ticks:{callback:v=>v+'%',color:'#555'},grid:{color:'rgba(0,0,0,.06)'}}},
+    plugins:{legend:{position:'bottom',labels:{color:'#444',padding:10,font:{size:10}}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%`}}}}});
+})();
+
+// Age educ
+(()=>{
+  const ctx=document.getElementById('ageChart').getContext('2d');
+  new Chart(ctx,{type:'bar',data:{
+    labels:Object.keys(AGE_EDUC),
+    datasets:[{label:'Score moyen (1=Aucun→5=Tertiaire)',data:Object.values(AGE_EDUC),
+      backgroundColor:['#5dade2','#58d68d','#f0b27a','#c39bd3'],borderRadius:10,borderSkipped:false}]
+  },options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Score: ${ctx.raw.toFixed(2)}/5`}}},
+    scales:{y:{min:1,max:5,ticks:{callback:v=>[,'Aucun','Primaire','Jr Sec.','Sr Sec.','Tertiaire'][Math.round(v)]||v.toFixed(1),color:'#555'},grid:{color:'rgba(0,0,0,.06)'}},
+            x:{grid:{display:false},ticks:{color:'#555',font:{size:12,weight:'600'}}}}}});
+})();
+
+// Enroll
+(()=>{
+  const ctx=document.getElementById('enrollChart').getContext('2d');
+  new Chart(ctx,{type:'bar',data:{
+    labels:['Rural','Urbain'],
+    datasets:[{data:[72.5,88.5],backgroundColor:['rgba(39,174,96,.75)','rgba(230,126,34,.75)'],
+      borderRadius:12,borderSkipped:false,barThickness:70}]
+  },options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.toFixed(1)}%`}}},
+    scales:{y:{min:0,max:105,ticks:{callback:v=>v+'%',color:'#555'},grid:{color:'rgba(0,0,0,.06)'}},
+            x:{grid:{display:false},ticks:{color:'#444',font:{size:13,weight:'600'}}}}}});
+})();
+
+// Alpha
+(()=>{
+  const ctx=document.getElementById('alphaChart').getContext('2d');
+  new Chart(ctx,{type:'doughnut',data:{
+    labels:['Alphabétisés','Non alphabétisés'],
+    datasets:[{data:[16154,8635],backgroundColor:['rgba(39,174,96,.8)','rgba(231,76,60,.4)'],
+      borderColor:'#f8f5f0',borderWidth:4,hoverOffset:6}]
+  },options:{cutout:'65%',responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{position:'bottom',labels:{color:'#444',padding:12}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toLocaleString('fr-FR')} (${(ctx.raw/24789*100).toFixed(1)}%)`}}}}});
+})();
+
+// Heatmap
+(()=>{
+  const tt=document.getElementById('tt');
+  const max=Math.max(...Object.values(STATE_ED));
+  const col=p=>{const t=p/max;
+    if(t<.2) return {bg:'#d5f5e3',tx:'#1e8449'};
+    if(t<.4) return {bg:'#fef9e7',tx:'#d4ac0d'};
+    if(t<.6) return {bg:'#fdebd0',tx:'#ca6f1e'};
+    if(t<.8) return {bg:'#fadbd8',tx:'#c0392b'};
+    return {bg:'#c0392b',tx:'white'};};
+  const entries=Object.entries(STATE_ED).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('hm').innerHTML=entries.map(([st,p])=>{
+    const c=col(p);
+    return `<div class="hm-cell" style="background:${c.bg};color:${c.tx}"
+      onmousemove="showTT(event,'${st}: ${p.toFixed(1)}% sans instruction')"
+      onmouseleave="hideTT()">
+      <div>${st}</div><div style="font-size:.72rem">${p.toFixed(1)}%</div></div>`;}).join('');
+})();
+
+function showTT(e,t){const el=document.getElementById('tt');el.style.display='block';
+  el.style.left=(e.pageX+12)+'px';el.style.top=(e.pageY-28)+'px';el.textContent=t}
+function hideTT(){document.getElementById('tt').style.display='none'}
+</script>
+</body>
+</html>
