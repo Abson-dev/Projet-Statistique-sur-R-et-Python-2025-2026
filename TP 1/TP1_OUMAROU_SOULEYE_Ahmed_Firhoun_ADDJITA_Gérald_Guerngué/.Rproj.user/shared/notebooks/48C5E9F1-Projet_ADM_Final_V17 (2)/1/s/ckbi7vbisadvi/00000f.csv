@@ -1,0 +1,12 @@
+"0","ggplot(resultats, aes(x = reorder(Continent, IDES, median),"
+"0","                      y = IDES, fill = Continent)) +"
+"0","  geom_boxplot(alpha = 0.75, show.legend = FALSE, outlier.size = 1) +"
+"0","  stat_summary(fun = mean, geom = ""point"", shape = 18,"
+"0","               size = 2, color = ""black"") +"
+"0","  labs(x = ""Continent"", y = ""IDES normalisé"","
+"0","       caption = ""Le losange noir représente la moyenne"") +"
+"0","  theme_minimal(base_size = 9) +"
+"0","  theme(axis.text.x = element_text(angle = 25, hjust = 1))"
+"2","Erreur dans ggplot(resultats, aes(x = reorder(Continent, IDES, median), y = IDES,  : 
+  impossible de trouver la fonction ""ggplot""
+"

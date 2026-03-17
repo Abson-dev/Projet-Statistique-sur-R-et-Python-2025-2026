@@ -1,0 +1,1 @@
+{"frames":[],"message":"Erreur dans kable(conf_mat, caption = \"Matrice de confusion de l'AFD — Échantillon test (20%)\") : \n  impossible de trouver la fonction \"kable\"\n"}

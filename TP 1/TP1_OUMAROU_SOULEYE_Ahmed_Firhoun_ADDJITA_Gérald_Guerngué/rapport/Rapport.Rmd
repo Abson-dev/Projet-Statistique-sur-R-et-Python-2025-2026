@@ -1,0 +1,372 @@
+---
+title: "Analyse 1 - Profil démographique des ménages nigérians"
+author: "Ahmed Firhoun OUMAROU SOULEYE & Gérald Guerngué ADDJITA"
+date: "2026-03-12"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+library(haven)
+library(dplyr)
+library(visdat)
+library(ggplot2)
+library(PropCIs)
+library(forcats)
+library(rcompanion)
+library(gtsummary)
+```
+```{r}
+waves <-1:4
+for (w in waves) {
+  assign(
+    paste0("processed_w", w),
+    read_dta(paste0("../data/processed/processed_w", w, ".dta"))
+  )
+}
+processed_w4 <- processed_w4 %>%
+  mutate(across(-c(hhid, indiv, starts_with("wt_"),ends_with("s1q4")), ~ as_factor(.x)))
+```
+
+### 1. Charger sect1_harvestw4 avec haven. Explorer la structure: str(), glimpse(), summary(). Vérifier les doublons sur hhid + indiv_id et les valeurs manquantes (naniar::vis_miss).
+
+#### 1.a. Charger les données et explorer la structure
+```{r}
+sect1_harvestw4 <- read_dta("../data/raw/sect1_harvestw4.dta") %>%
+    select(hhid, indiv, s1q2, s1q3, s1q4) %>%
+    mutate(across(-c(hhid, indiv,s1q4), ~ as_factor(.x)))
+```
+
+```{r}
+str(sect1_harvestw4)
+```
+
+```{r}
+glimpse(sect1_harvestw4)
+```
+
+```{r}
+summary(sect1_harvestw4)
+```
+#### 1.b. Vérifier les doublons
+```{r}
+nrow(unique(sect1_harvestw4[, c("hhid", "indiv")]))
+nrow(sect1_harvestw4)
+```
+Il n'y a pas de doublons sur hhid+indiv
+#### 1.c. Valeurs manquantes
+```{r}
+visdat::vis_miss(sect1_harvestw4)
+```
+### 2. Analyse univariée de l'âge des membres: histogramme (binwidth = 5), boîte à moustaches, statistiques descriptives (moyenne, médiane, Q1, Q3, CV, asymétrie). Tester la normalité avec Shapiro-Wilk.
+
+#### 2.a.Graphiques
+```{r}
+ggplot(sect1_harvestw4, aes(x = s1q4)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "black") +
+  labs(title = "Histogramme de l'âge des membres des ménages",
+       x = "Age",
+       y = "Fréquence")
+```
+
+```{r}
+ggplot(sect1_harvestw4, aes(y = s1q4)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Boxplot de l'âge des membres des ménages",
+       y = "Âge")
+```
+
+#### 2.b.Statistiques descriptives
+
+```{r}
+x <- processed_w4$harvest_s1q4
+
+m <- mean(x, na.rm = TRUE)
+s <- sd(x, na.rm = TRUE)
+skew <- mean((x - m)^3, na.rm = TRUE) / (s^3)
+kurt <- mean((x - m)^4, na.rm = TRUE) / (s^4)
+
+resultats <- data.frame(
+  N          = sum(!is.na(x)),
+  Moyenne    = round(m, 2),
+  Médiane    = round(median(x, na.rm = TRUE), 2),
+  Ecart_type = round(s, 2),
+  Q1         = round(quantile(x, 0.25, na.rm = TRUE), 2),
+  Q3         = round(quantile(x, 0.75, na.rm = TRUE), 2),
+  IQR        = round(IQR(x, na.rm = TRUE), 2),
+  Min        = min(x, na.rm = TRUE),
+  Max        = max(x, na.rm = TRUE),
+  CV_pct     = round(s/m * 100, 2),
+  Asymetrie  = round(skew, 3),
+  Kurtosis   = round(kurt, 3)
+)
+
+# Afficher le résultat
+print(resultats)
+```
+La moyenne est de 24,4 ans mais la médiane n'est que de 18 ans, soit un écart de plus de 6 ans entre les deux indicateurs. Cet écart important signale une distribution fortement asymétrique tirée vers le haut par quelques individus âgés — la médiane est ici l'indicateur de position centrale le plus fiable.
+L'écart-type de 19,7 ans est remarquablement élevé pour une variable d'âge, reflétant la cohabitation dans les mêmes ménages d'enfants en bas âge et de personnes très âgées. L'IQR de 28 ans (Q1 = 9 ans, Q3 = 37 ans) confirme cette dispersion : 50% de la population a entre 9 et 37 ans. Le coefficient de variation de 80,95% traduit une hétérogénéité très forte — les âges varient énormément autour de la moyenne.
+Le minimum de 0 an (nourrissons) et le maximum de 130 ans mérite attention. Une valeur de 130 ans est biologiquement improbable et suggère des erreurs de saisie ou de codage dans les données brutes — il serait prudent de plafonner les âges à une valeur raisonnable (ex. 110 ans) comme tu l'as fait dans la pyramide.
+L'asymétrie positive de 0,983 confirme que la distribution est étalée vers les âges élevés, avec une queue droite longue. Le kurtosis de 3,233 est très proche de 3, indiquant une forme de distribution modérément leptokurtique.
+#### 2.c. Test de Shapiro-Wilks
+```{r}
+resultats_shapiro <- data.frame()
+
+x <- as.numeric(processed_w4$harvest_s1q4)
+x <- x[!is.na(x)]
+
+# Échantillon si trop grand
+if (length(x) > 5000) x <- sample(x, 5000)
+
+test <- shapiro.test(x)
+
+
+resultats_shapiro <- data.frame(
+  N = length(x),
+  Statistique_test = round(test$statistic, 4),
+  p_value = round(test$p.value, 4)
+)
+
+
+print(resultats_shapiro)
+```
+La p-value est inférieure à 0.05, on rejette l'hypothèse de normalité au seul de 5%.
+```{r}
+
+pyramid_data <- processed_w4 %>%
+  filter(!is.na(harvest_s1q4), !is.na(harvest_s1q2),
+         harvest_s1q4 >= 0, harvest_s1q4 <= 110) %>%
+  mutate(
+    groupe_age = cut(harvest_s1q4,
+      breaks = c(0,5,10,15,20,25,30,35,40,45,
+                 50,55,60,65,70,75,80,Inf),
+      labels = c("0-4","5-9","10-14","15-19","20-24",
+                 "25-29","30-34","35-39","40-44","45-49",
+                 "50-54","55-59","60-64","65-69","70-74",
+                 "75-79","80+"),
+      right = FALSE),
+    sexe_label = factor(harvest_s1q2,
+      levels = c(1, 2),
+      labels = c("Hommes", "Femmes"))) %>%
+  filter(!is.na(groupe_age))
+
+n_total_pyr <- nrow(pyramid_data)
+
+pyr_count <- pyramid_data %>%
+  count(groupe_age, sexe_label) %>%
+  mutate(
+    pct_plot = ifelse(sexe_label == "Hommes",
+                      -n / n_total_pyr * 100,
+                       n / n_total_pyr * 100),
+    label_pct = paste0(abs(round(pct_plot, 1)), "%")
+  )
+
+y_lim <- max(abs(pyr_count$pct_plot)) * 1.28
+
+cat("► N pyramide :", n_total_pyr, "\n")
+cat("► Répartition par sexe :\n")
+print(pyramid_data %>% count(sexe_label) %>%
+        mutate(pct = round(n / sum(n) * 100, 1)))
+
+ggplot(pyr_count,
+  aes(x = groupe_age, y = pct_plot, fill = sexe_label)) +
+  geom_col(width = 0.88, alpha = 0.92) +
+  geom_text(
+    aes(label = label_pct),
+    hjust = ifelse(pyr_count$sexe_label == "Hommes",
+                   1.18, -0.18),
+    size  = 3, color = "#2D3436", fontface = "bold"
+  ) +
+  scale_fill_manual(
+    values = c("Hommes" = "#4ECDC4", "Femmes" = "#FF6B6B"),
+    name   = "Sexe"
+  ) +
+  scale_y_continuous(
+    labels = function(x) paste0(abs(x), "%"),
+    limits = c(-y_lim, y_lim),
+    breaks = seq(-8, 8, 2)
+  ) +
+  coord_flip() +
+  geom_hline(yintercept = 0, color = "#2D3436",
+             linewidth = 0.9) +
+  annotate("text",
+           x = 17.5, y = -y_lim * 0.75,
+           label    = "◄  HOMMES",
+           fontface = "bold", color = "#4ECDC4", size = 4.5) +
+  annotate("text",
+           x = 17.5, y = y_lim * 0.75,
+           label    = "FEMMES  ►",
+           fontface = "bold", color = "#FF6B6B", size = 4.5) +
+  labs(
+    title    = "Pyramide des âges des membres des ménages",
+    subtitle = paste0("Nigeria GHS Panel — Wave 4 (2018) | N = ",
+                      format(n_total_pyr, big.mark = " "),
+                      " individus"),
+    x        = "Groupe d'âge (années)",
+    y        = "Part de la population (%)",
+    caption  = paste0("Source : World Bank LSMS-ISA | ",
+                      "sect1_harvestw4\n",
+                      "Note : Structure pyramidale typique d'un ",
+                      "pays en développement (base jeune large)")
+  ) +
+  theme(
+    legend.position    = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_line(color = "#EEEEEE",
+                                      linewidth = 0.5)
+  )
+```
+Les tranches d'âge inférieures à 20 ans concentrent près de la moitié de la population totale. Les 5-9 ans constituent le groupe le plus représenté, atteignant 8,5% chez les hommes et 7,8% chez les femmes. On note cependant que les 0-4 ans sont proportionnellement moins nombreux que les 5-9 ans (5,7% contre 8,5% côté masculin), ce qui peut refléter soit une légère inflexion récente de la natalité, soit une sous-déclaration des très jeunes enfants au moment de l'enquête.
+Entre 20 et 55 ans, chaque tranche quinquennale perd progressivement du poids, illustrant l'effet combiné de la mortalité et, possiblement, des migrations. C'est dans cette fenêtre d'âge qu'apparaît un déséquilibre notable entre les sexes : les femmes y sont systématiquement surreprésentées par rapport aux hommes. Entre 25 et 44 ans, l'écart atteint parfois plus d'un point de pourcentage, comme chez les 35-39 ans (2,2% d'hommes contre 3,3% de femmes). Ce phénomène s'explique vraisemblablement par la migration masculine — les hommes en âge de travailler quittant le ménage pour des zones urbaines ou d'autres régions — et ne sont donc pas captés par une enquête ménage.
+Un sommet très effilé. Au-delà de 60 ans, les effectifs deviennent très faibles, aucune tranche ne dépassant 1,5% de la population totale. Cela reflète une espérance de vie encore modeste et la surmortalité des générations plus anciennes, qui ont traversé des périodes de conflits, de maladies et d'accès limité aux soins.
+Cette pyramide signale une pression démographique considérable sur les systèmes éducatifs et de santé à court terme. À plus long terme, si la fécondité poursuit sa transition à la baisse et que les cohortes nombreuses de jeunes accèdent au marché du travail, le Nigeria pourrait bénéficier d'un dividende démographique significatif. En attendant, le ratio de dépendance reste élevé, avec une large base de jeunes à charge supportée par une population active relativement restreinte.
+
+```{r}
+df_lien <- processed_w4 %>%
+  filter(!is.na(harvest_s1q3))
+
+freq_table <- df_lien %>%
+  group_by(harvest_s1q3) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  mutate(total = sum(n),
+         prop  = n / total)
+
+freq_table <- freq_table %>%
+  mutate(
+    prop_lower = mapply(function(x, n) exactci(x, n, conf.level = 0.95)$conf.int[1], n, total),
+    prop_upper = mapply(function(x, n) exactci(x, n, conf.level = 0.95)$conf.int[2], n, total)
+  )
+
+# Graphique
+ggplot(freq_table, aes(x = reorder(harvest_s1q3, n), y = prop)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_errorbar(aes(ymin = prop_lower, ymax = prop_upper), width = 0.2) +
+  geom_text(
+    aes(label = paste0(round(prop * 100, 1), "%")),
+    hjust = -0.15,
+    size  = 3,
+    color = "#2D3436"
+  ) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    limits = c(0, max(freq_table$prop) * 1.15)
+  ) +
+  labs(
+    title = "Distribution du lien de parenté (Vague 4)",
+    x     = "Lien de parenté",
+    y     = "Proportion (IC 95%)"
+  ) +
+  theme_minimal()
+```
+
+
+La catégorie "Own Child" (3) est de loin la plus représentée, concentrant près de 45% des membres des ménages enquêtés. Cela confirme la structure observée dans la pyramide des âges : les ménages nigériens sont peuplés d'un grand nombre d'enfants, cohérent avec un indice de fécondité encore élevé. Les intervalles de confiance très étroits sur cette barre attestent de la robustesse de cette estimation.
+
+**Les chefs de ménage (HEAD) et leurs conjoints (SPOUSE)** représentent chacun environ 18-20% de l'échantillon, ce qui est attendu puisque chaque ménage ne compte qu'un chef et au plus un conjoint principal recensé. Leur proportion similaire suggère une majorité de ménages biparentaux dans l'échantillon.
+
+**Les catégories intermédiaires** — petits-enfants (Grandchild, ~4%), frères et sœurs (Brother/Sister, ~3%), neveux/nièces (Niece/Nephew) — restent marginales mais témoignent d'une structure familiale élargie non négligeable, courante en Afrique subsaharienne où plusieurs générations cohabitent fréquemment sous le même toit.
+
+Les catégories restantes (enfants adoptés, aide domestique, beaux-parents, non-apparentés) sont quasi-invisibles graphiquement, chacune représentant moins de 1% de l'échantillon. Les larges intervalles de confiance relatifs sur ces petites barres indiquent une estimation peu précise pour ces groupes, ce qui est normal compte tenu de leurs faibles effectifs.
+
+En somme, la composition des ménages est typiquement nucléaire élargie : un couple avec de nombreux enfants biologiques, parfois rejoint par des petits-enfants ou des membres de la fratrie.
+
+```{r}
+menages <- processed_w4 %>%
+  filter(!is.na(hhid), !is.na(sector)) %>%
+  group_by(hhid, sector) %>%
+  summarise(taille_menage = n(), .groups = "drop") %>%
+  mutate(sector = as.factor(sector))
+
+ggplot(menages, aes(x = sector, y = taille_menage, fill = sector)) +
+  geom_boxplot() +
+  labs(
+    title = "Taille des ménages selon la zone",
+    x = "Zone",
+    y = "Taille du ménage"
+  ) +
+  scale_fill_manual(values = c("Rurale" = "lightgreen", "Urbaine" = "lightblue")) +
+  theme_minimal()
+
+wilcox_res <- wilcox.test(
+  taille_menage ~ sector,
+  data = menages,
+  exact = FALSE
+)
+
+print(wilcox_res)
+
+wilcox_effsize <- wilcoxonR(
+  x = menages$taille_menage,
+  g = menages$sector
+)
+
+print(wilcox_effsize)
+```
+Les deux graphes révèlent des distributions similaires mais avec un décalage visible. La zone urbaine affiche une médiane autour de 5 personnes par ménage, avec une boîte relativement compacte , tandis que la zone 2 (rurale) présente une médiane légèrement supérieure, autour de 6 personnes, avec une boîte plus large traduisant une plus grande variabilité. Les deux zones présentent de nombreuses valeurs extrêmes au-dessus des moustaches, atteignant parfois 27-33 personnes, ce qui correspond à des ménages polygames ou des familles élargies, phénomène courant au Nigeria.
+**Test de Wilcoxon-Mann-Whitney**
+Avec une statistique W = 2 303 750 et une p-value < 2,2e-16, la différence entre les deux zones est hautement significative sur le plan statistique — on rejette sans ambiguïté l'hypothèse nulle d'égalité des distributions. Les ménages ruraux (zone 2) sont donc significativement plus grands que les ménages urbains (zone 1).
+Taille d'effet : r = -0,118
+C'est ici que l'interprétation doit être nuancée. Malgré une p-value extrêmement faible, le r de rang de -0,118 indique un effet faible, selon les seuils conventionnels de Cohen adaptés au r de rang (petit : 0,1 — moyen : 0,3 — grand : 0,5). La valeur négative signifie simplement que les rangs sont plus élevés dans la zone 2, confirmant que les ménages ruraux sont plus grands, mais l'amplitude de cette différence reste modeste à l'échelle de la population.
+
+```{r}
+tableau_recap <- processed_w4 %>%
+  mutate(
+    zone = factor(sector),   
+    sexe = factor(harvest_s1q2,
+      levels = c(1, 2),
+      labels = c("Homme", "Femme")),
+    age = harvest_s1q4
+  ) %>%
+  group_by(hhid) %>%
+  mutate(taille_menage = n()) %>%
+  ungroup() %>%
+  filter(!is.na(zone)) %>%  
+  select(zone, age, sexe, taille_menage) %>%
+  tbl_summary(
+    by = zone,
+    statistic = list(
+      all_continuous()  ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      all_continuous()  ~ 1,
+      all_categorical() ~ c(0, 1)
+    ),
+    label = list(
+      age           ~ "Âge (années)",
+      sexe          ~ "Sexe",
+      taille_menage ~ "Taille du ménage"
+    ),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(
+      age           ~ "wilcox.test",
+      sexe          ~ "chisq.test",
+      taille_menage ~ "wilcox.test"
+    )
+  ) %>%
+  add_overall() %>%
+  add_n() %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_caption("**Tableau 1. Caractéristiques sociodémographiques selon la zone**")
+
+tableau_recap
+```
+ La moyenne d'âge globale est de 24,4 ans (écart-type 19,7), confirmant une population très jeune. Les individus en zone urbaine sont légèrement plus âgés en moyenne (25,4 ans) que ceux en zone rurale (24,0 ans), une différence statistiquement significative (p < 0,001). Cela peut refléter une migration des jeunes adultes vers les villes, tandis que les zones rurales concentrent davantage d'enfants en bas âge.
+
+La répartition hommes/femmes est équilibrée dans les deux zones — 49,4% d'hommes en urbain contre 49,9% en rural, soit un écart négligeable. Le test du chi-deux confirme l'absence de différence significative entre zones (p = 0,4).
+
+La taille du ménage  révèle une différence  plus marquée entre les deux zones. Les ménages ruraux sont en moyenne plus grands (8,4 personnes, écart-type 4,2) que les ménages urbains (7,3 personnes, écart-type 4,0), avec une différence hautement significative (p < 0,001).
+
+Les zones urbaines et rurales se distinguent significativement sur l'âge et la taille des ménages, mais pas sur la composition par sexe. Ces résultats sont cohérents avec les dynamiques classiques de transition démographique et d'urbanisation observées au Nigeria.
+

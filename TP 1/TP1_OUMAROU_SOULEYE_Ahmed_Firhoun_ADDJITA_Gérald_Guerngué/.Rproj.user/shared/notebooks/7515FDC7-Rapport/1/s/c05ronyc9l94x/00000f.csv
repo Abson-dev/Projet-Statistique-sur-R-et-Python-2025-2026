@@ -1,0 +1,5 @@
+"0","ggplot(sect1_harvestw4, aes(x = s1q4)) +"
+"0","  geom_histogram(binwidth = 5, fill = ""steelblue"", color = ""black"") +"
+"0","  labs(title = ""Histogramme de l'âge des membres des ménages"","
+"0","       x = ""Age"","
+"0","       y = ""Fréquence"")"

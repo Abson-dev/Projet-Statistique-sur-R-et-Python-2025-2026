@@ -1,0 +1,4 @@
+"0","ggplot(sect1_harvestw4, aes(y = s1q4)) +"
+"0","  geom_boxplot(fill = ""lightblue"", color = ""black"") +"
+"0","  labs(title = ""Boxplot de l'âge des membres des ménages"","
+"0","       y = ""Âge"")"
