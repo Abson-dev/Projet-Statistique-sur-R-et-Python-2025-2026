@@ -1,0 +1,17 @@
+"0","# Graphique avec intervalles de confiance"
+"0","p_scol <- ggplot(taux_scol, aes(x = zone, y = taux)) +"
+"0","  geom_col(fill = ""darkgreen"") +"
+"0","  geom_errorbar(aes(ymin = IC_inf, ymax = IC_sup), width = 0.2) +"
+"0","  geom_text(aes(label = taux_pct), vjust = -1.5) +"
+"0","  labs(x = ""Zone"", y = ""Taux de scolarisation"","
+"0","       title = ""Figure 4 : Taux de scolarisation des enfants 6-17 ans par zone"") +"
+"0","  theme_minimal()"
+"0",""
+"0","print(p_scol)"
+"1","[1m[33mError[39m in `geom_errorbar()`:[22m
+[38;5;254m[33m![38;5;254m Problem while computing aesthetics.
+[36mℹ[38;5;254m Error occurred in the 2nd layer.[39m
+[1mCaused by error:[22m
+[33m![39m objet 'IC_inf' introuvable
+[90mRun `]8;;x-r-run:rlang::last_trace()rlang::last_trace()]8;;` to see where the error occurred.[39m
+"
