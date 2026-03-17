@@ -1,0 +1,28 @@
+figure {
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+
+h2 {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+h1 {
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+p {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.quarto-figure {
+  margin: 0px;
+}
+
+img {
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
