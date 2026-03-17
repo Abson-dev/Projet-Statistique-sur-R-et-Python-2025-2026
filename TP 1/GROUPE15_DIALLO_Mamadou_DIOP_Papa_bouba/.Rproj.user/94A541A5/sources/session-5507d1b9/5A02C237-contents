@@ -1,0 +1,288 @@
+---
+title: "Analyse des données ménages - Sect1 Harvest W4"
+author: "DIALLO Mamadou Moussa - DIOP Papa Boubacar"
+date: "2026-03-16"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme: cosmo
+  pdf:
+    toc: true
+    number-sections: true
+editor: source
+---
+
+```{r setup, include=FALSE}
+# Configuration globale
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+
+# Nettoyage de l'environnement
+rm(list=ls())
+```
+
+```{r packages}
+# Importation des packages
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(apyramid)
+library(naniar)
+library(gtsummary)
+library(rstatix)
+library(PropCIs)
+library(patchwork)
+library(tidyr)
+library(purrr)
+```
+
+```{r chargement-donnees}
+# Chargement des données
+data <- read_stata("../data/raw/sect1_harvestw4.dta")
+data_2 <- read_stata("../data/raw/secta_harvestw4.dta")
+```
+
+# Exploration initiale des données
+
+## Structure des données
+
+```{r exploration}
+#| eval: false
+#| include: false
+# Structure des données
+str(data)
+glimpse(data)
+summary(data)
+```
+
+## Vérification des doublons
+
+```{r doublons}
+data %>% count(hhid, indiv) %>% filter(n > 1) %>% count()
+```
+
+## Valeurs manquantes
+
+```{r missing-values}
+vis_miss(data, warn_large_data = F)
+```
+
+# Analyse univariée de l'âge des membres
+
+## Visualisations
+
+```{r age-histogramme}
+# Histogramme avec des classes de 5 ans
+ggplot(data, aes(x = s1q4)) +
+  geom_histogram(binwidth = 5, fill = "darkgreen", color = "black") +
+  labs(
+    title = "Distribution de l'âge des membres",
+    x = "Âge (années)",
+    y = "Effectif"
+  ) +
+  theme_minimal()
+```
+
+```{r age-boxplot}
+# Boîte à moustaches
+ggplot(data, aes(x = s1q4)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Distribution de l'âge",
+    x = "Âge (années)"
+  ) +
+  theme_minimal()
+```
+
+## Statistiques descriptives
+
+```{r age-statistiques}
+stat_desc_age <- data %>% 
+  select(s1q4) %>%
+  tbl_summary(
+    type = s1q4 ~ "continuous2",
+    statistic = all_continuous() ~ c("{mean}", "{median}", "{p25}", "{p75}"),
+    label = s1q4 ~ "Âge"
+  )
+stat_desc_age
+```
+
+## Test de normalité
+
+```{r age-normalite, warning=TRUE}
+# Test de Shapiro-Wilk (taille de l'échantillon est supérieur à 5)
+# shapiro.test(data$s1q4)
+```
+
+# Pyramide des âges
+
+```{r pyramide}
+data_pyramid <- data %>% 
+  select(age = s1q4, sexe = s1q2) %>% 
+  filter(!is.na(age), !is.na(sexe)) %>% 
+  mutate(age_group = cut(age, breaks = seq(0, 100, by = 5)))
+
+age_pyramid(data_pyramid, age_group = age_group, split_by = sexe) +
+  labs(title = "Pyramide des âges") +
+  theme_minimal()
+```
+
+# Fréquence des liens de parenté
+
+## Diagramme en barres simple
+
+```{r parente-barres}
+data %>% 
+  count(s1q3) %>%
+  arrange(desc(n)) %>% 
+  ggplot(aes(x = n, y = reorder(s1q3, n))) +
+  geom_col(fill = "darkblue") +
+  labs(
+    title = "Fréquence des liens de parenté",
+    x = "Fréquence",
+    y = ""
+  ) +
+  theme_minimal()
+```
+
+## Proportions avec intervalles de confiance
+
+```{r parente-proportions-ic}
+total <- nrow(data)
+
+resultats_parente <- data %>%
+  filter(!is.na(s1q3)) %>%
+  count(s1q3, name = "effectif") %>%
+  mutate(
+    proportion = effectif / total,
+    proportion_pct = scales::percent(proportion, accuracy = 0.1),
+    IC_lower = sapply(effectif, function(x) scoreci(x, total, conf.level = 0.95)$conf.int[1]),
+    IC_upper = sapply(effectif, function(x) scoreci(x, total, conf.level = 0.95)$conf.int[2]),
+    IC_text = paste0("[", scales::percent(IC_lower, accuracy = 0.1), " ; ", 
+                     scales::percent(IC_upper, accuracy = 0.1), "]")
+  )
+
+# Affichage du tableau
+resultats_parente %>%
+  select(s1q3, effectif, proportion_pct, IC_text) %>%
+  rename(
+    `Lien de parenté` = s1q3,
+    Effectif = effectif,
+    Proportion = proportion_pct,
+    `IC 95%` = IC_text
+  )
+
+# Visualisation avec IC
+resultats_parente %>%
+  ggplot(aes(x = proportion, y = reorder(s1q3, proportion))) +
+  geom_col(fill = "darkblue") +
+  geom_errorbar(aes(xmin = IC_lower, xmax = IC_upper), width = 0.2) +
+  labs(
+    title = "Proportions des liens de parenté avec IC à 95%",
+    x = "Proportion",
+    y = ""
+  ) +
+  scale_x_continuous(labels = scales::percent) +
+  theme_minimal()
+```
+
+# Comparaison de la taille des ménages entre zones rurales et urbaines
+
+## Préparation des données
+
+```{r preparation-taille-menage}
+# Calcul de la taille des ménages
+data_group <- data %>% 
+  select(hhid) %>% 
+  group_by(hhid) %>% 
+  summarise(taille_men = n())
+
+# Jointure avec les données de zone
+data_group <- inner_join(data_group, data_2, by = "hhid")
+```
+
+## Visualisation
+
+```{r boxplot-taille-zone}
+ggplot(data_group, aes(x = as_factor(sector), y = taille_men)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Distribution de la taille des ménages par zone",
+    x = "Zone",
+    y = "Taille du ménage"
+  ) +
+  theme_minimal()
+```
+
+## Test statistique
+
+```{r test-wilcoxon}
+wilcox.test(taille_men ~ as_factor(sector), data = data_group)
+```
+
+# Tableau récapitulatif stratifié par zone
+
+## Préparation des données complètes
+
+```{r preparation-tableau-final}
+data_2 <- data_2 %>% select(hhid, sector)
+data <- inner_join(data, data_2, by = "hhid")
+
+data <- data %>% 
+  group_by(hhid) %>% 
+  mutate(taille_men = n()) %>% 
+  ungroup()
+
+data_tab <- data %>%
+  select(hhid, s1q4, s1q2, taille_men, sector.y) %>%
+  inner_join(data_2 %>% select(hhid, sector), by = "hhid") %>%
+  mutate(
+    sector = as_factor(sector),
+    s1q2 = as_factor(s1q2)
+  )
+```
+
+## Tableau stratifié
+
+```{r tableau-gtsummary}
+tab_resume <- data_tab %>%
+  mutate(
+    sector.y = haven::as_factor(sector.y),
+    s1q2 = haven::as_factor(s1q2)
+  ) %>%
+  select(sector.y, s1q4, s1q2, taille_men) %>%
+  tbl_summary(
+    by = sector.y,
+    label = list(
+      s1q4 ~ "Âge",
+      s1q2 ~ "Sexe",
+      taille_men ~ "Taille du ménage"
+    ),
+    type = list(
+      s1q4 ~ "continuous2",
+      taille_men ~ "continuous2"
+    ),
+    statistic = list(
+      all_continuous() ~ c("{mean} ({sd})", "{median} [{p25} ; {p75}]"),
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(
+      s1q4 ~ "wilcox.test",
+      s1q2 ~ "chisq.test",
+      taille_men ~ "wilcox.test"
+    )
+  ) %>%
+  bold_labels()
+
+tab_resume
+```
