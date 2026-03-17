@@ -124,15 +124,7 @@ install.packages(c(
 
 ## 6. Reproduction des résultats
 
-**Étape 1 — Préparer les données**
-
-Placer le fichier `.dta` dans le dossier `data/raw/` :
-
-```
-data/raw/sect1_harvestw4.dta
-```
-
-**Étape 2 — Exécuter l'analyse**
+**Étape 1 — Exécuter l'analyse**
 
 Ouvrir RStudio à partir du Rproj du projet, puis exécuter :
 
@@ -142,7 +134,7 @@ source("main.R")
 
 Les deux scripts sont exécutés séquentiellement. Les figures PNG sont sauvegardées dans `outputs/` et le tableau HTML dans `outputs/tableau_gtsummary.html`.
 
-**Étape 3 — Compiler le rapport**
+**Étape 2 — Compiler le rapport**
 
 Ouvrir `rapport/Rapport_TP1_profil_demographique.Rmd` dans RStudio et cliquer sur **Knit**. Les données sont lues depuis `../data/raw/` via des chemins relatifs — l'étape 1 doit donc être réalisée en premier.
 
