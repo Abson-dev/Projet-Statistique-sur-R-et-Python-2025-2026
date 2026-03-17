@@ -46,5 +46,5 @@ TP3/
 4. Compiler le rapport : `docs/Rapport.Rmd` (nécessite knitr, kableExtra)
 
 ## Auteur
-[Nom de l'étudiant]                  
-
+Mouhamet SECK
+Manampisoa Clarrat FINARITRINIAINA
