@@ -55,6 +55,8 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama/
 │
 ├── main.R                                  # Point d'entrée — orchestre l'exécution de tous les scripts
 │
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama.Rproj
+│
 ├── scripts/
 │   ├── 01_morbidite_sexe_age.R             # Tâche 13 : taux de morbidité par sexe et groupe d'âge
 │   ├── 02_types_maladies.R                 # Tâche 14 : top 10 des affections déclarées
