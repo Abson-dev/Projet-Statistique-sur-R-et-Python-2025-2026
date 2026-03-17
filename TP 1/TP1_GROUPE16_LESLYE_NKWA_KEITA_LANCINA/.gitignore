@@ -10,3 +10,13 @@ Thumbs.db
 .Rhistory
 .RData
 .Rproj.user/
+# Fichiers docs à exclure
+docs/Conventions_colorimétriques.docx
+docs/GHS_Variable_Dictionary.xlsx
+docs/General Household Survey-Panel 2010-2011.pdf
+docs/LSMS-ISA_use_of_financial_services.pdf
+docs/LSMS_Integrated_Panel_Survey_Report.pdf
+docs/TP1_R.pdf
+docs/TP1_R_some_lesson.pdf
+docs/ddi-documentation-english-81.pdf
+docs/documentation_TP1.qmd
