@@ -1,0 +1,8 @@
+"0","#| layout-ncol: 2"
+"0","#| echo: false"
+"0","#| message: false"
+"0","#| warning: false"
+"0","#| fig-height: 5"
+"0","load(""../output/figures/histogramme_age.RDATA"")"
+"0","load(""../output/figures/boxplot_age.RDATA"")"
+"0","histogramme_age"

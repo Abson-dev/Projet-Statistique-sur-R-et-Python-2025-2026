@@ -1,0 +1,9 @@
+"0",""
+"0","# ── Test de Wilcoxon-Mann-Whitney ────────────────────────────"
+"0","wt <- wilcox.test(taille ~ zone_label,"
+"0","                   data    = taille_menage,"
+"0","                   exact   = FALSE,"
+"0","                   conf.int = TRUE)"
+"2","Erreur dans wilcox.test.formula(taille ~ zone_label, data = taille_menage,  : 
+  le facteur de regroupement doit avoir exactement 2 niveaux
+"

@@ -1,0 +1,5 @@
+"0","kable(conf_mat,"
+"0","      caption = ""Matrice de confusion de l'AFD — Échantillon test (20%)"")"
+"2","Erreur dans kable(conf_mat, caption = ""Matrice de confusion de l'AFD — Échantillon test (20%)"") : 
+  impossible de trouver la fonction ""kable""
+"
