@@ -1,0 +1,762 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={TP2},
+  pdfauthor={Parfait Jemmy Prodige NGOYI, Analyste statisticien},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{TP2}
+\author{Parfait Jemmy Prodige NGOYI, Analyste statisticien}
+\date{2026-03-17}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{6}
+\tightlist
+\item
+  Chargement de sect2b\_harvestw4 et sect1\_harvestw4.
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(haven)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: le package 'haven' a été compilé avec la version R 4.3.3
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sect2\_harvest }\OtherTok{\textless{}{-}} \FunctionTok{read\_dta}\NormalTok{(}\StringTok{"sect2\_harvestw4.dta"}\NormalTok{)}
+\NormalTok{sect1\_harvest }\OtherTok{\textless{}{-}} \FunctionTok{read\_dta}\NormalTok{(}\StringTok{"sect1\_harvestw4.dta"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Jointure des bases de données
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: le package 'dplyr' a été compilé avec la version R 4.3.3
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attachement du package : 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+## Les objets suivants sont masqués depuis 'package:stats':
+## 
+##     filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+## Les objets suivants sont masqués depuis 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data\_joint }\OtherTok{\textless{}{-}}\NormalTok{ sect1\_harvest }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{left\_join}\NormalTok{(sect2\_harvest, }\AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"hhid"}\NormalTok{, }\StringTok{"indiv"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+Inspection les valeurs manquantes du niveau d'éducation
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(data\_joint}\SpecialCharTok{$}\NormalTok{s2aq9))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 11066
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{mean}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(data\_joint}\SpecialCharTok{$}\NormalTok{s2aq9))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.3647691
+\end{verbatim}
+
+Il y a 11066 valeurs manquantes dans la variable s2aq9 (niveau
+d'éducation complété). Soit un taux de 36,48\% de valeurs manquantes sur
+cette variable.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{7}
+\tightlist
+\item
+  Construction d'une variable ordonnée niveau\_educ à 5 catégories
+  (Aucun, Primaire, Junior Secondary, Senior Secondary, Tertiaire) à
+  partir de s2bq1.
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data\_joint }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{niveau\_educ =} \FunctionTok{case\_when}\NormalTok{(}
+\NormalTok{    s2aq9 }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{, }\DecValTok{3}\NormalTok{, }\DecValTok{51}\NormalTok{, }\DecValTok{52}\NormalTok{, }\DecValTok{61}\NormalTok{)                    }\SpecialCharTok{\textasciitilde{}} \StringTok{"Aucun"}\NormalTok{,}
+\NormalTok{    s2aq9 }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{11}\NormalTok{, }\DecValTok{12}\NormalTok{, }\DecValTok{13}\NormalTok{, }\DecValTok{14}\NormalTok{, }\DecValTok{15}\NormalTok{, }\DecValTok{16}\NormalTok{)                    }\SpecialCharTok{\textasciitilde{}} \StringTok{"Primaire"}\NormalTok{,}
+\NormalTok{    s2aq9 }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{21}\NormalTok{, }\DecValTok{22}\NormalTok{, }\DecValTok{23}\NormalTok{)                                 }\SpecialCharTok{\textasciitilde{}} \StringTok{"Junior Secondary"}\NormalTok{,}
+\NormalTok{    s2aq9 }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{24}\NormalTok{, }\DecValTok{25}\NormalTok{, }\DecValTok{26}\NormalTok{, }\DecValTok{27}\NormalTok{, }\DecValTok{28}\NormalTok{, }\DecValTok{31}\NormalTok{, }\DecValTok{33}\NormalTok{, }\DecValTok{34}\NormalTok{, }\DecValTok{35}\NormalTok{, }\DecValTok{321}\NormalTok{)   }\SpecialCharTok{\textasciitilde{}} \StringTok{"Senior Secondary"}\NormalTok{,}
+\NormalTok{    s2aq9 }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{41}\NormalTok{, }\DecValTok{43}\NormalTok{, }\DecValTok{322}\NormalTok{, }\DecValTok{411}\NormalTok{, }\DecValTok{412}\NormalTok{, }\DecValTok{421}\NormalTok{, }\DecValTok{422}\NormalTok{, }\DecValTok{423}\NormalTok{, }\DecValTok{424}\NormalTok{)  }\SpecialCharTok{\textasciitilde{}} \StringTok{"Tertiaire"}\NormalTok{,}
+    \ConstantTok{TRUE} \SpecialCharTok{\textasciitilde{}} \ConstantTok{NA\_character\_}
+\NormalTok{  ),}
+  \AttributeTok{niveau\_educ =} \FunctionTok{factor}\NormalTok{(niveau\_educ,}
+                       \AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\StringTok{"Aucun"}\NormalTok{, }\StringTok{"Primaire"}\NormalTok{, }\StringTok{"Junior Secondary"}\NormalTok{,}
+                                  \StringTok{"Senior Secondary"}\NormalTok{, }\StringTok{"Tertiaire"}\NormalTok{),}
+                       \AttributeTok{ordered =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+Calcul des fréquences et proportions par catégorie
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{freq }\OtherTok{\textless{}{-}} \FunctionTok{table}\NormalTok{(data\_joint}\SpecialCharTok{$}\NormalTok{niveau\_educ)}
+\NormalTok{pourcent }\OtherTok{\textless{}{-}} \FunctionTok{prop.table}\NormalTok{(freq) }\SpecialCharTok{*} \DecValTok{100}
+
+\FunctionTok{data.frame}\NormalTok{(}
+  \AttributeTok{Niveau =} \FunctionTok{names}\NormalTok{(freq),}
+  \AttributeTok{Frequence =}\NormalTok{ freq,}
+  \AttributeTok{Pourcentage =} \FunctionTok{round}\NormalTok{(pourcent, }\DecValTok{2}\NormalTok{)}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##             Niveau   Frequence.Var1 Frequence.Freq Pourcentage.Var1
+## 1            Aucun            Aucun           3368            Aucun
+## 2         Primaire         Primaire           7068         Primaire
+## 3 Junior Secondary Junior Secondary           2129 Junior Secondary
+## 4 Senior Secondary Senior Secondary           5116 Senior Secondary
+## 5        Tertiaire        Tertiaire           1590        Tertiaire
+##   Pourcentage.Freq
+## 1            17.48
+## 2            36.68
+## 3            11.05
+## 4            26.55
+## 5             8.25
+\end{verbatim}
+
+Visualisation avec un barplot horizontal coloré par catégorie
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{ (ggplot2)}
+\CommentTok{\# Préparer les données avec pourcentages}
+\NormalTok{data\_plot }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(niveau\_educ)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{count}\NormalTok{(niveau\_educ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{pourcentage =}\NormalTok{ n }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(n) }\SpecialCharTok{*} \DecValTok{100}\NormalTok{)}
+
+\CommentTok{\# Barplot horizontal stylisé avec étiquettes}
+\FunctionTok{ggplot}\NormalTok{(data\_plot, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ niveau\_educ, }\AttributeTok{y =}\NormalTok{ pourcentage, }\AttributeTok{fill =}\NormalTok{ niveau\_educ)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_bar}\NormalTok{(}\AttributeTok{stat =} \StringTok{"identity"}\NormalTok{, }\AttributeTok{width =} \FloatTok{0.7}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =} \FunctionTok{paste0}\NormalTok{(}\FunctionTok{round}\NormalTok{(pourcentage,}\DecValTok{1}\NormalTok{), }\StringTok{"\%"}\NormalTok{)),}
+            \AttributeTok{hjust =} \SpecialCharTok{{-}}\FloatTok{0.1}\NormalTok{, }\AttributeTok{size =} \DecValTok{4}\NormalTok{) }\SpecialCharTok{+}  \CommentTok{\# étiquette à droite de la barre}
+  \FunctionTok{coord\_flip}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{scale\_fill\_brewer}\NormalTok{(}\AttributeTok{palette =} \StringTok{"Set2"}\NormalTok{) }\SpecialCharTok{+}  \CommentTok{\# palette harmonieuse}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Distribution du niveau d\textquotesingle{}éducation"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Niveau d\textquotesingle{}éducation"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Pourcentage"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{14}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}
+    \AttributeTok{legend.position =} \StringTok{"none"}\NormalTok{,}
+    \AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{, }\AttributeTok{size =} \DecValTok{16}\NormalTok{, }\AttributeTok{hjust =} \FloatTok{0.5}\NormalTok{),}
+    \AttributeTok{axis.title.y =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{),}
+    \AttributeTok{axis.title.x =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{)}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{expand =} \FunctionTok{expansion}\NormalTok{(}\AttributeTok{mult =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\FloatTok{0.1}\NormalTok{)))}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{TP2_files/figure-latex/unnamed-chunk-8-1.pdf}}
+
+La variable niveau\_educ, construite à partir de s2aq9 (sect2a), ne
+couvre que les individus ayant définitivement quitté l'école. Les
+individus encore scolarisés (s2bq1, sect2b) étant exclus, les résultats
+sont à interpréter comme caractérisant la sous-population des sortants
+définitifs, et non la population générale.
+
+Le niveau Primaire est le plus fréquent (36,7\%), suivi du Senior
+Secondary (26,5\%). Près d'un individu sur cinq (17,5\%) n'a aucun
+niveau d'éducation formelle. Les niveaux Junior Secondary (11\%) et
+Tertiaire (8,3\%) sont nettement moins représentés, ce qui traduit une
+distribution asymétrique vers les niveaux bas. La médiane se situe
+vraisemblablement au niveau Primaire.
+
+Le faible effectif au Tertiaire est cohérent avec la construction de la
+variable : les étudiants encore en cours figurent dans sect2b et sont
+absents ici, ce qui sous-estime mécaniquement ce niveau.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{8}
+\tightlist
+\item
+  Comparaison entre la distribution du niveau d'éducation entre hommes
+  et femmes (adultes 18+):
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Préparer les données correctement}
+\NormalTok{profil\_educ }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(niveau\_educ), }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(s1q2), s1q4 }\SpecialCharTok{\textgreater{}=} \DecValTok{18}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{sexe =} \FunctionTok{factor}\NormalTok{(s1q2, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), }\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"Homme"}\NormalTok{,}\StringTok{"Femme"}\NormalTok{))) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(niveau\_educ, sexe) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{Frequence =} \FunctionTok{n}\NormalTok{(), }\AttributeTok{.groups =} \StringTok{"drop"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(niveau\_educ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Pourcentage =} \FunctionTok{round}\NormalTok{(Frequence }\SpecialCharTok{/} \FunctionTok{sum}\NormalTok{(Frequence) }\SpecialCharTok{*} \DecValTok{100}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(profil\_educ, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ niveau\_educ, }\AttributeTok{y =}\NormalTok{ Pourcentage, }\AttributeTok{fill =}\NormalTok{ sexe)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_bar}\NormalTok{(}\AttributeTok{stat =} \StringTok{"identity"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =} \FunctionTok{paste0}\NormalTok{(Pourcentage, }\StringTok{"\%"}\NormalTok{)),}
+            \AttributeTok{position =} \FunctionTok{position\_stack}\NormalTok{(}\AttributeTok{vjust =} \FloatTok{0.5}\NormalTok{), }\AttributeTok{size =} \DecValTok{4}\NormalTok{, }\AttributeTok{color =} \StringTok{"white"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{coord\_flip}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{scale\_fill\_manual}\NormalTok{(}\AttributeTok{values =} \FunctionTok{c}\NormalTok{(}\StringTok{"steelblue"}\NormalTok{,}\StringTok{"tomato"}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Répartition hommes/femmes par niveau d\textquotesingle{}éducation (18+)"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Niveau d\textquotesingle{}éducation"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Pourcentage"}\NormalTok{,}
+    \AttributeTok{fill =} \StringTok{"Sexe"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{14}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}
+    \AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{, }\AttributeTok{hjust =} \FloatTok{0.5}\NormalTok{),}
+    \AttributeTok{axis.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{)}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{expand =} \FunctionTok{expansion}\NormalTok{(}\AttributeTok{mult =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\FloatTok{0.05}\NormalTok{)))}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{TP2_files/figure-latex/unnamed-chunk-10-1.pdf}}
+Commentaire : On observe un gradient de genre monotone : la proportion
+de femmes décroît strictement à mesure que le niveau d'éducation
+augmente (53,4\% au niveau Aucun → 38,5\% au Tertiaire). Le point de
+quasi-parité se situe au Junior Secondary (51,4\% F / 48,6\% H), au-delà
+duquel les hommes deviennent majoritaires.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tibble)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: le package 'tibble' a été compilé avec la version R 4.3.3
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Filtrer adultes 18+ et supprimer les NA}
+\NormalTok{table\_edu\_sexe }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(niveau\_educ), }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(s1q2), s1q4 }\SpecialCharTok{\textgreater{}=} \DecValTok{18}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{sexe =} \FunctionTok{factor}\NormalTok{(s1q2, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), }\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"Homme"}\NormalTok{,}\StringTok{"Femme"}\NormalTok{))) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{count}\NormalTok{(niveau\_educ, sexe) }\SpecialCharTok{\%\textgreater{}\%}
+\NormalTok{  tidyr}\SpecialCharTok{::}\FunctionTok{pivot\_wider}\NormalTok{(}\AttributeTok{names\_from =}\NormalTok{ sexe, }\AttributeTok{values\_from =}\NormalTok{ n, }\AttributeTok{values\_fill =} \DecValTok{0}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{column\_to\_rownames}\NormalTok{(}\StringTok{"niveau\_educ"}\NormalTok{)}
+
+\CommentTok{\# Transformer en tableau classique}
+\NormalTok{table\_chi }\OtherTok{\textless{}{-}} \FunctionTok{as.matrix}\NormalTok{(table\_edu\_sexe)}
+\NormalTok{table\_chi}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                  Homme Femme
+## Aucun              502   574
+## Primaire          1198  1416
+## Junior Secondary   359   379
+## Senior Secondary  2402  1939
+## Tertiaire          970   606
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Test de Chi{-}2}
+\NormalTok{chi\_test }\OtherTok{\textless{}{-}} \FunctionTok{chisq.test}\NormalTok{(table\_chi)}
+\NormalTok{chi\_test}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Pearson's Chi-squared test
+## 
+## data:  table_chi
+## X-squared = 131.48, df = 4, p-value < 2.2e-16
+\end{verbatim}
+
+Le résultat est hautement significatif (p \textless{} 0,001) --- on
+rejette sans ambiguïté l'hypothèse nulle d'indépendance entre le sexe et
+le niveau d'éducation. Il existe une association statistiquement
+significative entre le niveau d'éducation et le sexe.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data\_plot }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(niveau\_educ), }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(s1q4))}
+
+\FunctionTok{ggplot}\NormalTok{(data\_plot, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ niveau\_educ, }\AttributeTok{y =}\NormalTok{ s1q4, }\AttributeTok{fill =}\NormalTok{ niveau\_educ)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{outlier.shape =} \DecValTok{21}\NormalTok{, }\AttributeTok{outlier.size =} \DecValTok{2}\NormalTok{, }\AttributeTok{alpha =} \FloatTok{0.8}\NormalTok{, }\AttributeTok{width =} \FloatTok{0.5}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{scale\_fill\_brewer}\NormalTok{(}\AttributeTok{palette =} \StringTok{"Set2"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Distribution de l\textquotesingle{}âge par niveau d\textquotesingle{}éducation"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Niveau d\textquotesingle{}éducation"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Âge"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{13}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}
+    \AttributeTok{legend.position =} \StringTok{"none"}\NormalTok{,}
+    \AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{, }\AttributeTok{hjust =} \FloatTok{0.5}\NormalTok{),}
+    \AttributeTok{panel.grid.minor =} \FunctionTok{element\_blank}\NormalTok{()}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{TP2_files/figure-latex/unnamed-chunk-13-1.pdf}}
+Une progression cohérente mais non monotone. Les médianes croissent
+globalement avec le niveau d'éducation, ce qui est attendu --- les
+individus plus éduqués sont structurellement plus âgés au moment de la
+sortie définitive.
+
+Le cas ``Aucun'' est atypique. La médiane très basse (\textasciitilde8
+ans) et la très grande dispersion (IQR large, valeurs jusqu'à 100 ans)
+traduisent une population hétérogène : d'un côté des enfants n'ayant
+jamais été scolarisés, de l'autre des personnes âgées dont la
+non-scolarisation reflète des générations sans accès à l'école. C'est la
+boîte la plus dispersée de toutes.
+
+Le Junior Secondary se distingue par une boîte très étroite et une
+médiane basse (\textasciitilde17 ans) --- c'est le niveau le plus
+homogène en âge, ce qui suggère que les sortants à ce niveau
+correspondent à une tranche d'âge précise et concentrée.
+
+Le Tertiaire présente la médiane la plus élevée (\textasciitilde33 ans)
+avec une dispersion modérée, cohérent avec une sortie tardive après de
+longues études --- mais là encore, les étudiants encore en cours sont
+absents, ce qui tire la médiane vers le haut (seuls les plus anciens
+diplômés sont captés). Les valeurs aberrantes (points au-delà des
+moustaches) sont présentes dans tous les groupes, particulièrement pour
+Aucun et Primaire, avec des individus âgés de 75 à 100 ans --- des
+générations pour lesquelles la scolarisation était rare ou inexistante.
+
+Kruskal-Wallis + post-hoc Dunn.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{install.packages}\NormalTok{(}\StringTok{"dunn.test"}\NormalTok{, }\AttributeTok{repos =} \StringTok{"https://cloud.r{-}project.org"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Installation du package dans 'C:/Users/LENOVO T470S/AppData/Local/R/win-library/4.3'
+## (car 'lib' n'est pas spécifié)
+\end{verbatim}
+
+\begin{verbatim}
+## 
+##   Une version binaire est disponible mais la version du source est plus
+##   récente:
+##           binary source needs_compilation
+## dunn.test  1.3.6  1.3.7             FALSE
+\end{verbatim}
+
+\begin{verbatim}
+## installation du package source 'dunn.test'
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(dunn.test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Kruskal{-}Wallis}
+\FunctionTok{kruskal.test}\NormalTok{(s1q4 }\SpecialCharTok{\textasciitilde{}}\NormalTok{ niveau\_educ, }\AttributeTok{data =}\NormalTok{ data\_plot)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Kruskal-Wallis rank sum test
+## 
+## data:  s1q4 by niveau_educ
+## Kruskal-Wallis chi-squared = 3928.3, df = 4, p-value < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Post{-}hoc Dunn avec correction de Bonferroni}
+\FunctionTok{dunn.test}\NormalTok{(data\_plot}\SpecialCharTok{$}\NormalTok{s1q4, }
+          \AttributeTok{g =}\NormalTok{ data\_plot}\SpecialCharTok{$}\NormalTok{niveau\_educ,}
+          \AttributeTok{method =} \StringTok{"bonferroni"}\NormalTok{,}
+          \AttributeTok{kw =} \ConstantTok{TRUE}\NormalTok{,}
+          \AttributeTok{label =} \ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   Kruskal-Wallis rank sum test
+## 
+## data: x and group
+## Kruskal-Wallis chi-squared = 3928.2908, df = 4, p-value = 0
+## 
+## 
+##                    Dunn's Pairwise Comparison of x by group                   
+##                                  (Bonferroni)                                 
+## Col Mean-│
+## Row Mean │      Aucun   Junior S   Primaire   Senior S
+## ─────────┼────────────────────────────────────────────
+## Junior S │  -17.99966
+##          │     0.0000*
+##          │
+## Primaire │  -18.57679   4.425702
+##          │     0.0000*    0.0000*
+##          │
+## Senior S │  -49.64826  -23.39207  -38.82706
+##          │     0.0000*    0.0000*    0.0000*
+##          │
+## Tertiair │  -46.96376  -28.07685  -37.47034  -11.40012
+##          │     0.0000*    0.0000*    0.0000*    0.0000*
+## 
+## α = 0.05
+## Reject Ho if p ≤ α/2, where p = Pr(Z ≥ |z|)
+\end{verbatim}
+
+La p-valeur quasi-nulle conduit au rejet de l'hypothèse nulle d'égalité
+des distributions d'âge entre les niveaux d'éducation. Il existe au
+moins une paire de groupes dont les distributions d'âge diffèrent
+significativement.
+
+Toutes les paires sont significativement différentes, ce qui confirme
+que chaque niveau d'éducation correspond à une distribution d'âge
+distincte dans la population des sortants définitifs.
+
+L'anomalie Aucun/Primaire mérite attention : la statistique Z de
+Primaire vs Aucun (-18,58) indique que les individus du niveau Primaire
+sont en médiane plus âgés que ceux du niveau Aucun --- contra-intuitif a
+priori, mais cohérent avec le boxplot : le groupe ``Aucun'' contient
+beaucoup d'enfants très jeunes n'ayant jamais été scolarisés, ce qui
+tire la médiane vers le bas.
+
+La comparaison Junior Secondary vs Primaire (Z = +4,43) est la plus
+faible de toutes, bien que significative --- les deux groupes sont
+relativement proches en âge, ce qui correspond aux boîtes adjacentes et
+de taille similaire observées sur le graphique. Les écarts les plus
+forts impliquent Senior Secondary et Tertiaire vs Aucun (Z ≈ -50 et
+-47), traduisant des différences de rangs massives entre les extrêmes de
+la distribution éducative.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{10}
+\tightlist
+\item
+  Comparaison du taux de scolarisation des 6-17 ans entre zones rurales
+  et urbaines
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 1. Préparer les données}
+\NormalTok{data\_scol }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(s1q4 }\SpecialCharTok{\textgreater{}=} \DecValTok{6} \SpecialCharTok{\&}\NormalTok{ s1q4 }\SpecialCharTok{\textless{}=} \DecValTok{17}\NormalTok{, }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(sector.x), }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(s2aq6)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{zone =} \FunctionTok{factor}\NormalTok{(sector.x, }\AttributeTok{levels =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{), }\AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"Urbain"}\NormalTok{, }\StringTok{"Rural"}\NormalTok{)),}
+    \AttributeTok{scolarise =} \FunctionTok{as.numeric}\NormalTok{(s2aq6 }\SpecialCharTok{==} \DecValTok{1}\NormalTok{)}
+\NormalTok{  )}
+
+\CommentTok{\# 2. Tableau de contingence}
+\NormalTok{table\_scol }\OtherTok{\textless{}{-}} \FunctionTok{table}\NormalTok{(data\_scol}\SpecialCharTok{$}\NormalTok{zone, data\_scol}\SpecialCharTok{$}\NormalTok{scolarise,}
+                    \AttributeTok{dnn =} \FunctionTok{c}\NormalTok{(}\StringTok{"Zone"}\NormalTok{, }\StringTok{"Scolarisé"}\NormalTok{))}
+\FunctionTok{print}\NormalTok{(table\_scol)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##         Scolarisé
+## Zone        0    1
+##   Urbain   98 2315
+##   Rural  1212 5515
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 3. Test du Chi{-}deux}
+\FunctionTok{chisq.test}\NormalTok{(table\_scol)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Pearson's Chi-squared test with Yates' continuity correction
+## 
+## data:  table_scol
+## X-squared = 280.57, df = 1, p-value < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 4. Taux + IC à 95\% par zone}
+\NormalTok{data\_ic }\OtherTok{\textless{}{-}}\NormalTok{ data\_scol }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(zone) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{n        =} \FunctionTok{n}\NormalTok{(),}
+    \AttributeTok{n\_scol   =} \FunctionTok{sum}\NormalTok{(scolarise),}
+    \AttributeTok{taux     =}\NormalTok{ n\_scol }\SpecialCharTok{/}\NormalTok{ n,}
+    \AttributeTok{se       =} \FunctionTok{sqrt}\NormalTok{(taux }\SpecialCharTok{*}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ taux) }\SpecialCharTok{/}\NormalTok{ n),}
+    \AttributeTok{ic\_lower =}\NormalTok{ taux }\SpecialCharTok{{-}} \FloatTok{1.96} \SpecialCharTok{*}\NormalTok{ se,}
+    \AttributeTok{ic\_upper =}\NormalTok{ taux }\SpecialCharTok{+} \FloatTok{1.96} \SpecialCharTok{*}\NormalTok{ se}
+\NormalTok{  )}
+
+\FunctionTok{print}\NormalTok{(data\_ic)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 2 x 7
+##   zone       n n_scol  taux      se ic_lower ic_upper
+##   <fct>  <int>  <dbl> <dbl>   <dbl>    <dbl>    <dbl>
+## 1 Urbain  2413   2315 0.959 0.00402    0.952    0.967
+## 2 Rural   6727   5515 0.820 0.00469    0.811    0.829
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 5. Graphique en barres groupées avec IC 95\%}
+\FunctionTok{ggplot}\NormalTok{(data\_ic, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ zone, }\AttributeTok{y =}\NormalTok{ taux }\SpecialCharTok{*} \DecValTok{100}\NormalTok{, }\AttributeTok{fill =}\NormalTok{ zone)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_col}\NormalTok{(}\AttributeTok{width =} \FloatTok{0.5}\NormalTok{, }\AttributeTok{alpha =} \FloatTok{0.85}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_errorbar}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{ymin =}\NormalTok{ ic\_lower }\SpecialCharTok{*} \DecValTok{100}\NormalTok{, }\AttributeTok{ymax =}\NormalTok{ ic\_upper }\SpecialCharTok{*} \DecValTok{100}\NormalTok{),}
+                \AttributeTok{width =} \FloatTok{0.15}\NormalTok{, }\AttributeTok{linewidth =} \FloatTok{0.8}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =} \FunctionTok{paste0}\NormalTok{(}\FunctionTok{round}\NormalTok{(taux }\SpecialCharTok{*} \DecValTok{100}\NormalTok{, }\DecValTok{1}\NormalTok{), }\StringTok{"\%"}\NormalTok{)),}
+            \AttributeTok{vjust =} \SpecialCharTok{{-}}\FloatTok{1.8}\NormalTok{, }\AttributeTok{fontface =} \StringTok{"bold"}\NormalTok{, }\AttributeTok{size =} \FloatTok{3.5}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{scale\_fill\_brewer}\NormalTok{(}\AttributeTok{palette =} \StringTok{"Set2"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{limits =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{100}\NormalTok{),}
+                     \AttributeTok{labels =}\NormalTok{ scales}\SpecialCharTok{::}\FunctionTok{percent\_format}\NormalTok{(}\AttributeTok{scale =} \DecValTok{1}\NormalTok{)) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title    =} \StringTok{"Taux de scolarisation des 6{-}17 ans}\SpecialCharTok{\textbackslash{}n}\StringTok{par zone géographique"}\NormalTok{,}
+    \AttributeTok{x        =} \StringTok{"Zone"}\NormalTok{,}
+    \AttributeTok{y        =} \StringTok{"Taux de scolarisation (\%)"}\NormalTok{,}
+    \AttributeTok{caption  =} \StringTok{"IC à 95\% — Test du Chi{-}deux"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{13}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}
+    \AttributeTok{legend.position  =} \StringTok{"none"}\NormalTok{,}
+    \AttributeTok{plot.title       =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{, }\AttributeTok{hjust =} \FloatTok{0.5}\NormalTok{),}
+    \AttributeTok{panel.grid.minor =} \FunctionTok{element\_blank}\NormalTok{()}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{TP2_files/figure-latex/unnamed-chunk-16-1.pdf}}
+L'écart de scolarisation entre zones urbaines et rurales est hautement
+significatif (p \textless{} 0,001) et substantiel : les enfants de 6-17
+ans en zone urbaine ont un taux de scolarisation de 95,9\%, contre
+82,0\% en zone rurale, soit un écart de près de 14 points de
+pourcentage. Les intervalles de confiance ne se chevauchent pas, ce qui
+confirme visuellement la significativité de l'écart indépendamment du
+test formel.
+
+Par aileurs, le taux de scolarisation des 6-17 ans est plus élévé en
+milieu urbain (95,9\%) qu'en milieu rural (82\%).
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{9}
+\tightlist
+\item
+  Heatmap (geom\_tile) croisant État nigérian (state) et niveau
+  d'éducation: part d'adultes sans instruction par État, colorée par
+  quintile.
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data\_joint }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{state\_nom =} \FunctionTok{factor}\NormalTok{(state.x,}
+    \AttributeTok{levels =} \DecValTok{1}\SpecialCharTok{:}\DecValTok{37}\NormalTok{,}
+    \AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"Abia"}\NormalTok{, }\StringTok{"Adamawa"}\NormalTok{, }\StringTok{"Akwa Ibom"}\NormalTok{, }\StringTok{"Anambra"}\NormalTok{, }\StringTok{"Bauchi"}\NormalTok{,}
+               \StringTok{"Bayelsa"}\NormalTok{, }\StringTok{"Benue"}\NormalTok{, }\StringTok{"Borno"}\NormalTok{, }\StringTok{"Cross River"}\NormalTok{, }\StringTok{"Delta"}\NormalTok{,}
+               \StringTok{"Ebonyi"}\NormalTok{, }\StringTok{"Edo"}\NormalTok{, }\StringTok{"Ekiti"}\NormalTok{, }\StringTok{"Enugu"}\NormalTok{, }\StringTok{"Gombe"}\NormalTok{,}
+               \StringTok{"Imo"}\NormalTok{, }\StringTok{"Jigawa"}\NormalTok{, }\StringTok{"Kaduna"}\NormalTok{, }\StringTok{"Kano"}\NormalTok{, }\StringTok{"Katsina"}\NormalTok{,}
+               \StringTok{"Kebbi"}\NormalTok{, }\StringTok{"Kogi"}\NormalTok{, }\StringTok{"Kwara"}\NormalTok{, }\StringTok{"Lagos"}\NormalTok{, }\StringTok{"Nasarawa"}\NormalTok{,}
+               \StringTok{"Niger"}\NormalTok{, }\StringTok{"Ogun"}\NormalTok{, }\StringTok{"Ondo"}\NormalTok{, }\StringTok{"Osun"}\NormalTok{, }\StringTok{"Oyo"}\NormalTok{,}
+               \StringTok{"Plateau"}\NormalTok{, }\StringTok{"Rivers"}\NormalTok{, }\StringTok{"Sokoto"}\NormalTok{, }\StringTok{"Taraba"}\NormalTok{, }\StringTok{"Yobe"}\NormalTok{,}
+               \StringTok{"Zamfara"}\NormalTok{, }\StringTok{"FCT"}\NormalTok{)}
+\NormalTok{  ))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data\_heat }\OtherTok{\textless{}{-}}\NormalTok{ data\_joint }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(s1q4 }\SpecialCharTok{\textgreater{}=} \DecValTok{18}\NormalTok{, }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(state\_nom), }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(niveau\_educ)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(state\_nom) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}
+    \AttributeTok{n          =} \FunctionTok{n}\NormalTok{(),}
+    \AttributeTok{n\_aucun    =} \FunctionTok{sum}\NormalTok{(niveau\_educ }\SpecialCharTok{==} \StringTok{"Aucun"}\NormalTok{),}
+    \AttributeTok{part\_aucun =}\NormalTok{ n\_aucun }\SpecialCharTok{/}\NormalTok{ n}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{quintile =} \FunctionTok{cut}\NormalTok{(part\_aucun,}
+                   \AttributeTok{breaks =} \FunctionTok{quantile}\NormalTok{(part\_aucun, }\AttributeTok{probs =} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{1}\NormalTok{, }\FloatTok{0.2}\NormalTok{)),}
+                   \AttributeTok{labels =} \FunctionTok{c}\NormalTok{(}\StringTok{"Q1 (plus bas)"}\NormalTok{, }\StringTok{"Q2"}\NormalTok{, }\StringTok{"Q3"}\NormalTok{, }\StringTok{"Q4"}\NormalTok{, }\StringTok{"Q5 (plus haut)"}\NormalTok{),}
+                   \AttributeTok{include.lowest =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{  )}
+
+\FunctionTok{ggplot}\NormalTok{(data\_heat, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =} \DecValTok{1}\NormalTok{, }\AttributeTok{y =} \FunctionTok{reorder}\NormalTok{(state\_nom, part\_aucun), }\AttributeTok{fill =}\NormalTok{ quintile)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_tile}\NormalTok{(}\AttributeTok{color =} \StringTok{"white"}\NormalTok{, }\AttributeTok{linewidth =} \FloatTok{0.5}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_text}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{label =} \FunctionTok{paste0}\NormalTok{(}\FunctionTok{round}\NormalTok{(part\_aucun }\SpecialCharTok{*} \DecValTok{100}\NormalTok{, }\DecValTok{1}\NormalTok{), }\StringTok{"\%"}\NormalTok{)),}
+            \AttributeTok{size =} \DecValTok{3}\NormalTok{, }\AttributeTok{color =} \StringTok{"white"}\NormalTok{, }\AttributeTok{fontface =} \StringTok{"bold"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{scale\_fill\_brewer}\NormalTok{(}\AttributeTok{palette =} \StringTok{"YlOrRd"}\NormalTok{, }\AttributeTok{direction =} \DecValTok{1}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title    =} \StringTok{"Part d\textquotesingle{}adultes sans instruction par État nigérian"}\NormalTok{,}
+    \AttributeTok{subtitle =} \StringTok{"Colorée par quintile — adultes 18 ans et plus"}\NormalTok{,}
+    \AttributeTok{x        =} \ConstantTok{NULL}\NormalTok{,}
+    \AttributeTok{y        =} \StringTok{"État"}\NormalTok{,}
+    \AttributeTok{fill     =} \StringTok{"Quintile"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{12}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme}\NormalTok{(}
+    \AttributeTok{axis.text.x     =} \FunctionTok{element\_blank}\NormalTok{(),}
+    \AttributeTok{axis.ticks.x    =} \FunctionTok{element\_blank}\NormalTok{(),}
+    \AttributeTok{panel.grid      =} \FunctionTok{element\_blank}\NormalTok{(),}
+    \AttributeTok{plot.title      =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{, }\AttributeTok{hjust =} \FloatTok{0.5}\NormalTok{),}
+    \AttributeTok{plot.subtitle   =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{hjust =} \FloatTok{0.5}\NormalTok{, }\AttributeTok{color =} \StringTok{"grey40"}\NormalTok{),}
+    \AttributeTok{legend.position =} \StringTok{"right"}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{TP2_files/figure-latex/unnamed-chunk-18-1.pdf}}
+
+\end{document}

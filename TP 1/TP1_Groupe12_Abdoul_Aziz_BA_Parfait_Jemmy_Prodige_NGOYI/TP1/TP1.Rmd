@@ -1,0 +1,485 @@
+---
+title: 'TP1: Profil démographique des ménages nigérians'
+author: "Parfait Jemmy Prodige NGOYI, Analyste statisticien"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Téléchargement des packages nécessaires 
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+# 1. Liste complète et propre (sans doublons)
+packages <- c("haven", "dplyr", "ggplot2", "apyramid", "naniar", 
+              "rstatix", "PropCIs", "patchwork", "coin", "gtsummary", 
+              "broom.helpers", "labelled")
+
+invisible(lapply(packages, library, character.only = TRUE))
+```
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+# 2. Identification des packages manquants
+missing_pkgs <- packages[!(packages %in% installed.packages()[, "Package"])]
+
+# 3. Installation avec gestion des dépendances
+if (length(missing_pkgs)) {
+  install.packages(missing_pkgs, dependencies = TRUE)
+}
+
+# 4. Chargement sécurisé
+# On utilise invisible() pour ne pas encombrer la console
+invisible(lapply(packages, library, character.only = TRUE))
+
+# Vérification rapide du chargement de gtsummary
+if ("gtsummary" %in% .packages()) {
+  message("gtsummary est prêt à l'emploi !")
+} else {
+  warning("gtsummary n'est toujours pas chargé. Vérifiez les erreurs d'installation.")
+}
+
+```
+
+1. Chargement des données de sect1_harvestw4
+```{r}
+library (haven)
+data <- read_dta("sect1_harvestw4.dta")
+data
+
+```
+Exploration de la structure
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(dplyr)
+# Avec str()
+data %>% 
+  select(sector, s1q2, s1q4, s1q3) %>% 
+  str()
+```
+```{r include=FALSE}
+# Avec glimpse()
+
+data %>% 
+  select(sector, s1q2, s1q4, s1q3) %>% 
+  glimpse()
+```
+```{r}
+data %>% 
+  select(s1q4) %>% 
+  summary()
+```
+
+
+Verification des doublons et valeurs manquantes
+```{r}
+# Voir les doublons
+library(dplyr)
+
+doublons <- data %>%
+  group_by(hhid, indiv) %>%
+  filter(n() > 1)
+
+doublons
+
+```
+```{r}
+# Compter les doublons
+data %>%
+  count(hhid, indiv) %>%
+  filter(n > 1)
+
+```
+Il n'y a aucun doublon dans le jeu de données.
+
+```{r}
+library(naniar)
+# Compter les valeurs manquantes par variable
+miss_var_summary(data)
+
+```
+Les variables s1q2(sexe) et s1q4(age) comptent 3780 valeurs manquantes, soit 12,5% de sa taille.
+nous allons supprimer ces enregistrements.
+```{r}
+library(tidyr)
+# Suppression des enregistrements ayant des valeurs manquantes sur les variables s1q2 et s1q4.
+data_traite <- data %>%
+  drop_na(s1q2, s1q4)
+
+```
+```{r}
+# Verification
+sum(is.na(data_traite$s1q2))
+sum(is.na(data_traite$s1q4))
+sum(is.na(data_traite$s1q3))
+
+```
+
+
+2. Analyse univariée de l'âge des membres
+
+```{r}
+library(ggplot2)
+# Avec un histogramme
+
+ggplot(data_traite, aes(x = s1q4)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
+  labs(
+    title = "Distribution de l'âge des membres",
+    x = "Âge",
+    y = "Effectif"
+  ) +
+  theme_minimal()
+
+```
+Il ressort de cet histogramme que la classe d'age de 10-15 a un effectif de plus de 4500 individus, ce qui fait d'elle la classe modale. Nous observons aussi que la distribution d'age est étalée à droite,avec un changement de tendance significativement observable à partir de la classe 30-35. Cela signifie que les individus d'ages inférieurs à 30 ans sont plus nombreux que ceux qui en plus de 30 ans.
+
+```{r}
+# Avec une boîte à moustaches
+
+ggplot(data_traite, aes(y = s1q4)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Boîte à moustaches de l'âge des membres",
+    y = "Âge"
+  ) +
+  theme_minimal()
+
+```
+Le boxplot permet d'observer que l'age moyen est inférieur à 25 ans. De plus, quelques individus ont plus de 55ans. Ces derniers s'écartent considérablement du reste des individus. Le boxplot présente aussi un individu agé de plus de 125 ans. Cette valeur peut être considérée comme valeur aberrante, au vue de la tendance des données.
+
+```{r}
+# correction de la valeur aberrente en le remplacant par NA.
+data_traite$s1q4 <- ifelse(data_traite$s1q4 == 130, NA, data_traite$s1q4)
+
+```
+
+```{r}
+# Avec les statistiques descriptives (moyenne, médiane, Q1, Q3, CV, asymétrie)
+
+data_traite %>%
+  summarise(
+    moyenne = mean(s1q4, na.rm = TRUE),
+    mediane = median(s1q4, na.rm = TRUE),
+    Q1 = quantile(s1q4, 0.25, na.rm = TRUE),
+    Q3 = quantile(s1q4, 0.75, na.rm = TRUE),
+    ecart_type = sd(s1q4, na.rm = TRUE),
+    CV = sd(s1q4, na.rm = TRUE) / mean(s1q4, na.rm = TRUE),
+  )
+
+```
+
+L'age moyen est de 23,97 ans, environ 24 ans.
+L'age médian est de 18 ans. Cela signifie que la moitié des individus ont moins de 18 ans.
+Le 1er quartile est de 8 ans. Cela veut dire que le quart des individus ont moins de 8 ans.
+Par ailleurs, le 3e quartile est de 36 ans, c'est-a-dire, 3 individus sur 4 ont moins de 36 ans.
+Le CV de 0,822 soit 82,2 % indique une très forte dispersion des âges autour de la moyenne.
+
+
+Test de normalité avec Shapiro-Wilk.
+
+Le test de Shapiro-Wilk n'est pas adapté à la taille de nos données (taille supérieure à 5000).
+On va effectuer un échantillonnage aléatoire de 5000 observations.
+```{r}
+set.seed(123)
+sample_data <- sample(data_traite$s1q4, 5000)
+shapiro.test(sample_data)
+
+```
+La p-value du test étant inférieure à 0,05. Alors,on rejette l'hypothese de normalité. La distribution d'age ne suit pas une distribution normale.
+
+3. Pyramide des âges (groupes de 5 ans) par sexe pour la vague 4
+```{r}
+# Creation des groupes d'ages de 5 ans
+data_traite <- data_traite %>%
+  mutate(age_group = cut(
+    s1q4,
+    breaks = seq(0, 100, 5),
+    right = FALSE
+  ))
+
+```
+```{r}
+data_traite <- data_traite %>%
+  rename(sexe = s1q2)
+
+data_traite <- data_traite %>%
+  mutate(sexe = factor(sexe,
+                       levels = c(1, 2),
+                       labels = c("Homme", "Femme")))
+```
+
+```{r}
+
+# Pyramide des âges (groupes de 5 ans) par sexe pour la vague 4
+pyramid_data <- data_traite %>%
+  count(age_group, sexe)
+# mettre les les hommes en négatif
+pyramid_data <- pyramid_data %>%
+  mutate(effectif = ifelse(sexe == "Homme", -n, n))
+
+```
+```{r}
+sum(is.na(data_traite$age_group))
+
+pyramid_data <- pyramid_data %>%
+  drop_na(age_group)
+
+sum(is.na(pyramid_data$age_group))
+
+```
+
+```{r}
+# Construction de la pyramide
+
+ggplot(pyramid_data, aes(x = age_group, y = effectif, fill = sexe)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Pyramide des âges - Vague 4",
+    x = "Groupes d'âge",
+    y = "Effectif"
+  ) +
+  theme_minimal()
+```
+
+Commentaire:la pyramide des âges met en évidence une structure démographique très jeune, caractérisée par une forte base (les enfants et les jeunes de 0 à 20 ans) et une diminution progressive des effectifs avec l’âge. La pyramide montre une répartition globalement équilibrée entre les hommes et les femmes dans la plupart des groupes d’âge. Les écarts observés restent relativement faibles, ce qui suggère l’absence de déséquilibre majeur entre les sexes.
+
+4. Fréquences du lien de parenté (chef de ménage, conjoint, enfant, autre):
+
+renommer les modalités de la variable s1q3 (lien de parenté)
+```{r}
+#voir les modalités
+unique(data_traite$s1q3)
+
+```
+```{r}
+# traitement de la variable s1q3
+data_traite$s1q3 <- factor(data_traite$s1q3,
+  levels = c(1,2,3,4,5,6,7,8,9,10,11,12,14,15),
+  labels = c(
+    "Chef de ménage",
+    "Conjoint",
+    "Enfant",
+    "Beau-fils / Belle-fille",
+    "Enfant adopté",
+    "Petit-enfant",
+    "Frère / Soeur",
+    "Neveu / Nièce",
+    "Beau-frère / Belle-soeur",
+    "Parent",
+    "Beau-parent",
+    "Employé domestique",
+    "Autre parent",
+    "Autre non-parent"
+  )
+)
+
+```
+```{r}
+# Calculer les fréquences et proportions de chaque modalité
+
+freq_data <- data_traite %>%
+  count(s1q3) %>%
+  mutate(
+    proportion = n / sum(n)
+  )
+freq_data
+```
+```{r}
+# calcul des intervalles de confiance à 95%, avec binom.test
+freq_data <- freq_data %>%
+  rowwise() %>%
+  mutate(
+    ic = list(binom.test(n, sum(freq_data$n))$conf.int),
+    ic_inf = ic[1],
+    ic_sup = ic[2]
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+# barplot
+ggplot(freq_data, aes(x = reorder(s1q3, proportion), y = proportion)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_errorbar(aes(ymin = ic_inf, ymax = ic_sup), width = 0.2) +
+  geom_text(aes(label = scales::percent(proportion, accuracy = 1)), 
+            hjust = -0.1, size = 3) +   # ajuste hjust pour que le texte soit à droite des barres
+  coord_flip() +
+  labs(
+    title = "Lien de parenté avec le chef de ménage",
+    x = "Modalités",
+    y = "Proportion"
+  ) +
+  theme_minimal()
+
+```
+La proportion d'enfants (55%) domine largement toutes les catégories de lien de parenté. Cela signifie que les ménages sont composés en grande partie d'enfants du chef de ménage,plus de la moitié des ménages. La deuxieme modalité la plus importante est la modalté "conjoint" (16%).
+Ce qui montre que les ménages sont majoritairement des cellules familiales constituées du CM, de son ou ses conjoint.e.s
+et en grande partie(plus de la moitié des ménages) de ses enfants.
+
+```{r}
+# avec un regroupement de modalités
+
+data_traite <- data_traite %>%
+  mutate(s1q3_group = ifelse(s1q3 %in% c("Chef de ménage", "Conjoint", "Enfant", "Petit-enfant"),
+                             s1q3, "Autres"))
+# Transformer en facteur avec les labels souhaités
+data_traite$s1q3_group <- factor(data_traite$s1q3_group,
+                                 levels = c("1", "2", "3", "6", "Autres"),
+                                 labels = c("Chef de ménage", "Conjoint", "Enfant", "Petit-enfant", "Autres"))
+
+
+```
+
+```{r}
+
+# Calculer les fréquences et proportions de chaque modalité
+
+freq_data <- data_traite %>%
+  count(s1q3_group) %>%
+  mutate(
+    proportion = n / sum(n)
+  )
+freq_data
+
+# ordonner les frequences
+freq_data <- freq_data %>%
+  arrange(proportion)
+
+```
+```{r}
+# ordonner les frequences
+freq_data <- freq_data %>%
+  arrange(proportion)
+
+# barplot
+
+ggplot(freq_data, aes(x = reorder(s1q3_group, proportion), y = proportion)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = scales::percent(proportion, accuracy = 0.1)), 
+            hjust = -0.1, size = 4) +  # étiquette à droite de la barre
+  coord_flip() +
+  labs(
+    title = "Lien de parenté avec le chef de ménage",
+    x = "Modalités",
+    y = "Proportion"
+  ) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), expand = expansion(mult = c(0, 0.1)))
+
+```
+
+5. Comparaison de la taille moyenne des ménages entre zones rurales et urbaines
+
+
+```{r}
+# Calculer taille des menages
+data_traite <- data_traite %>%
+  group_by(hhid) %>%
+  mutate(taille_men = n()) %>%
+  ungroup()
+
+```
+
+```{r}
+# traitement de la variable sector
+
+# Transformer en facteur avec labels
+data_traite$sector <- factor(data_traite$sector,
+                            levels = c(1, 2),       # les valeurs numériques actuelles
+                            labels = c("Urbain", "Rural"))  # nouveaux labels
+
+
+```
+```{r}
+# Boxplot des tailles de ménages par sector
+ggplot(data_traite, aes(x = sector, y = taille_men, fill = sector)) +
+  geom_boxplot(alpha = 0.6) +
+  stat_summary(fun = mean, geom = "point", color = "red", size = 3) + # moyenne
+  labs(
+    title = "Distribution de la taille des ménages par zone",
+    x = "Zone",
+    y = "Taille du ménage"
+  ) +
+  theme_minimal() +
+  scale_fill_manual(values = c("Urbain" = "steelblue", "Rural" = "orange"))
+```
+- Les points en rouge représentent la taille moyenne des ménages en milieu rural et en milieu urbain. La moyenne rurale est nettement supérieure, cela peut indiquer une structure familiale plus large (ménages multigénérationnels, plus d’enfants, etc.) en zone rurale. Cependant, un test de comparaison des moyennes permettra d'établir si cette différence est significative.
+- La boîte rurale est plus haute (vers les valeurs élevées), cela confirme une tendance à des ménages plus grands.
+- La présence de points au-delà des moustaches indique des ménages exceptionnellement grands(moustaches supérieures)
+- La taille médiane des ménages en zonne rurale est supérieure à celle en zone urbaine.
+Test de Wilcoxon-Mann-Whitney.(test de comparaison des moyennes)
+
+Robustesse du test:Le test de Wilcoxon compare les médianes (ou les rangs) plutôt que les moyennes, ce qui est plus représentatif pour des données sociales où quelques très grands ménages pourraient fausser une moyenne classique.
+
+```{r}
+wilcox_test <- wilcox.test(taille_men ~ sector, 
+                                  data = data_traite,
+                                  conf.int = TRUE,
+                                  conf.level = 0.95)
+print(wilcox_test)
+```
+Interpretation : 
+- La p-value < 2.2e-16 est extrêmement faible (bien en dessous du seuil classique de 5% ou 0,05). On rejette l'hypothèse nulle (H_0): L'un des groupes possède une concentration de rangs significativement plus élevée que l'autre. En o observant nos boxplots, il s'agit bien du groupe des ménages en zone rurale.
+
+La taille d'effet (r de rang)
+```{r}
+library(rstatix)
+
+effect_size <- data_traite %>% 
+  wilcox_effsize(taille_men ~ sector)
+
+effect_size
+```
+
+Interprétation:
+- La magnitude indique "small" (faible). La différence entre zones urbaine et rurale est petite.
+- Seulement ~2.6% de la variance expliquée (r² = 0.16² = 0.0256)
+- 97.4% de la variation de taille entre zones urbaine et rurale vient d'autres facteurs
+- La zone d'habitation n'est PAS un facteur déterminant de la taille du ménage.
+
+6. On fait de même pour l'age et pour le sexe
+```{r}
+# ========================================================================
+# TACHE 6 — Tableau gtsummary adapté (EHCVM / GHS Panel)
+# ========================================================================
+
+# === ÉTAPE 1 : PRÉPARATION ===
+donnees_tableau <- data_traite %>%
+  select(sector, s1q4, sexe, s1q3, taille_men)
+
+```
+
+```{r}
+library (dplyr)
+library (gtsummary)
+library(litedown)
+tableau <- donnees_tableau %>%
+  tbl_summary(
+    by = sector,
+    label = list(
+      s1q4       ~ "Âge (années)",
+      sexe       ~ "Sexe",
+      s1q3       ~ "Lien de parenté avec le chef",
+      taille_men ~ "Taille du ménage"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{median} ({p25} - {p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  add_overall(last = FALSE, col_label = "**Ensemble**") %>% 
+  add_p(
+    include = c(s1q4, sexe, taille_men),
+    test = list(
+      s1q4 ~ "wilcox.test",
+      taille_men ~ "wilcox.test"
+    )
+  ) %>%
+  bold_labels()
+
+# 4. Affichage
+print(tableau)
+```
+
