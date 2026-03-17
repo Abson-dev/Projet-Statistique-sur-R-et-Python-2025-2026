@@ -58,7 +58,7 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama/
 │   ├── 01_preparation_donnees.R                 # Tâche 7 : import, jointure, construction niveau_educ
 │   └── 02_analyses_graphiques.R                 # Tâches 8-12 : statistiques, graphiques, exports
 │
-├── data/
+├── data/                                        # Les données sont importées depuis un compte GitHub et ce ne sont que les données épurées qui y seront après l'exécution 
 │
 ├── rapport/
 │   └── Rapport_TP2_education_alphabetisation.Rmd   # Rapport R Markdown complet (avec code)
@@ -127,22 +127,12 @@ install.packages(c(
 
 ## 6. Reproduction des résultats
 
-**Étape 1 — Préparer les données**
+**Étape 1 — Exécuter l'analyse**
 
-Placer les trois fichiers `.dta` dans le dossier `data/raw/` :
-
-```
-data/raw/sect2_harvestw4.dta
-data/raw/sect1_harvestw4.dta
-data/raw/secta_harvestw4.dta
-```
-
-**Étape 2 — Exécuter l'analyse**
-
-Ouvrir RStudio, définir le répertoire de travail à la racine du projet (là où se trouve `main.R`), puis exécuter :
+Ouvrir RStudio, à partir de Rproj du projet, puis exécuter :
 
 ```r
-source("main.R")
+main.R
 ```
 
 Les deux scripts sont exécutés séquentiellement. Les objets intermédiaires sont sauvegardés dans `data/processed/` et les figures PNG dans `outputs/`.
