@@ -4,7 +4,7 @@ Ce projet analyse les données de santé de l'Enquête Générale des Ménages d
 
 ## Structure du travail
 
-`
+```
 TP3/
 │ 
 │── data/                      # Données 
@@ -25,7 +25,7 @@ TP3/
 │ 
 │── README.md                  # Documentation du TP
 │── TP3.Rproj                  # Projet RStudio
-`
+```
 
 
 ## Données utilisées
