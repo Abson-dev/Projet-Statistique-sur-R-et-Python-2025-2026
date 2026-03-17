@@ -1,10 +1,10 @@
 # TP1 -- Profil demographique des menages nigerians
 
-Analyse descriptive des caracteristiques demographiques des menages a partir du **Nigeria General Household Survey Panel Wave 4 (2018-2019)**, collecte par le National Bureau of Statistics (NBS) en collaboration avec la Banque Mondiale (programme LSMS-ISA).
+Analyse descriptive des caractéristiques démographiques des menages a partir du **Nigeria General Household Survey Panel Wave 4 (2018-2019)**, collecte par le National Bureau of Statistics (NBS) en collaboration avec la Banque Mondiale (programme LSMS-ISA).
 
 **Auteurs** : Keita L. & Nkwa Tsamo L.
 
-**Cours** : Statistiques Descriptives -- ENSAE Pierre Ndiaye, ISE1 2025-2026
+**Cours** : Projet Statistique avec R ou Python , par Mr Aboubacar HEMA, Research Scientist at IPFRI
 
 ---
 
