@@ -54,6 +54,8 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama/
 │
 ├── main.R                                       # Point d'entrée — orchestre l'exécution des scripts
 │
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama.Rproj                                     
+│
 ├── scripts/
 │   ├── 01_preparation_donnees.R                 # Tâche 7 : import, jointure, construction niveau_educ
 │   └── 02_analyses_graphiques.R                 # Tâches 8-12 : statistiques, graphiques, exports
