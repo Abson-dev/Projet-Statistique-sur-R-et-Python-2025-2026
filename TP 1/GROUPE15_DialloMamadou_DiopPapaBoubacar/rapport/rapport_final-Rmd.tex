@@ -1,0 +1,608 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{longtable}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{anyfontsize}
+\usepackage{multirow}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Analyse des données ménages - Sect1 Harvest W4},
+  pdfauthor={DIALLO Mamadou Moussa - DIOP Papa Boubacar},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Analyse des données ménages - Sect1 Harvest W4}
+\author{DIALLO Mamadou Moussa - DIOP Papa Boubacar}
+\date{2026-03-17}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+L'objectif de ce tp est de décrire la composition et les
+caractéristiques démographiques des ménages enquêtés dans les quatres
+vagues du GHS Panel à partir de la section sect1\_harvest.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Importation des packages}
+\FunctionTok{library}\NormalTok{(haven)}
+\FunctionTok{library}\NormalTok{(dplyr)}
+\FunctionTok{library}\NormalTok{(ggplot2)}
+\FunctionTok{library}\NormalTok{(apyramid)}
+\FunctionTok{library}\NormalTok{(naniar)}
+\FunctionTok{library}\NormalTok{(gtsummary)}
+\FunctionTok{library}\NormalTok{(rstatix)}
+\FunctionTok{library}\NormalTok{(PropCIs)}
+\FunctionTok{library}\NormalTok{(patchwork)}
+\FunctionTok{library}\NormalTok{(tidyr)}
+\FunctionTok{library}\NormalTok{(purrr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Chargement des données}
+\NormalTok{data }\OtherTok{\textless{}{-}} \FunctionTok{read\_stata}\NormalTok{(}\StringTok{"../data/raw/sect1\_harvestw4.dta"}\NormalTok{)}
+\CommentTok{\# data\_2 \textless{}{-} read\_stata("../data/raw/secta\_harvestw4.dta")}
+\end{Highlighting}
+\end{Shaded}
+
+\section{Exploration initiale des
+données}\label{exploration-initiale-des-donnuxe9es}
+
+\subsection{Structure des données}\label{structure-des-donnuxe9es}
+
+\subsection{Vérification des
+doublons}\label{vuxe9rification-des-doublons}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{count}\NormalTok{(hhid, indiv) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{filter}\NormalTok{(n }\SpecialCharTok{\textgreater{}} \DecValTok{1}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{count}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 1 x 1
+##       n
+##   <int>
+## 1     0
+\end{verbatim}
+
+Il n'y a donc pas de doublons d'individu dans la base sect1\_harvest.
+
+\subsection{Valeurs manquantes}\label{valeurs-manquantes}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{vis\_miss}\NormalTok{(data, }\AttributeTok{warn\_large\_data =}\NormalTok{ F)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/missing-values-1.pdf}
+
+Le graphique ci-dessus représente le schéma des valeurs manquantes nous
+montre qu'il y a 59,1\% de valeurs manquantes. Cependant, cette valeur
+est à prendre avec des pincettes car il y a aussi bien de vraies valeurs
+manquantes que de fausses valeurs manquantes. Ces fausses valeurs
+manquantes correspondent à des sauts dans le questionnaire.
+
+\section{Analyse univariée de l'âge des
+membres}\label{analyse-univariuxe9e-de-luxe2ge-des-membres}
+
+\subsection{Visualisations}\label{visualisations}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Histogramme avec des classes de 5 ans}
+\FunctionTok{ggplot}\NormalTok{(data, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ s1q4)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_histogram}\NormalTok{(}\AttributeTok{binwidth =} \DecValTok{5}\NormalTok{, }\AttributeTok{fill =} \StringTok{"darkgreen"}\NormalTok{, }\AttributeTok{color =} \StringTok{"black"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Distribution de l\textquotesingle{}âge des membres"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Âge (années)"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Effectif"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/age-histogramme-1.pdf}
+L'histogramme ci-dessus montre la répartition des âges des membres des
+ménages par tranche de 5 ans. On peut observer que certaines tranches
+sont plus représentées, ce qui permet de voir si la population est
+plutôt jeune ou âgée. On constate que la distribution est étalée à
+droite, ce qui montre que la population est relativement jeune.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Boîte à moustaches}
+\FunctionTok{ggplot}\NormalTok{(data, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ s1q4)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{fill =} \StringTok{"lightblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Distribution de l\textquotesingle{}âge"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Âge (années)"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/age-boxplot-1.pdf}
+
+L'analyse de la boîte à moustaches renforce le constat de la jeunesse.
+En effet, 75\% des individus ont un âge compris entre 8 et 36ans.
+Cependant, nous constatons aussi la présence de valeurs extrêmes,
+c'est-à-dire les valeurs qui dépassent la moustache droite.
+
+\subsection{Statistiques descriptives}\label{statistiques-descriptives}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{stat\_desc\_age }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(s1q4) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{tbl\_summary}\NormalTok{(}
+    \AttributeTok{type =}\NormalTok{ s1q4 }\SpecialCharTok{\textasciitilde{}} \StringTok{"continuous2"}\NormalTok{,}
+    \AttributeTok{statistic =} \FunctionTok{all\_continuous}\NormalTok{() }\SpecialCharTok{\textasciitilde{}} \FunctionTok{c}\NormalTok{(}\StringTok{"\{mean\}"}\NormalTok{, }\StringTok{"\{median\}"}\NormalTok{, }\StringTok{"\{p25\}"}\NormalTok{, }\StringTok{"\{p75\}"}\NormalTok{),}
+    \AttributeTok{label =}\NormalTok{ s1q4 }\SpecialCharTok{\textasciitilde{}} \StringTok{"Âge"}
+\NormalTok{  )}
+\NormalTok{stat\_desc\_age}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[t]
+\fontsize{12.0pt}{14.0pt}\selectfont
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lc}
+\toprule
+\textbf{Characteristic} & \textbf{N = 30,337} \\ 
+\midrule\addlinespace[2.5pt]
+Âge &  \\ 
+    Mean & 24 \\ 
+    Median & 18 \\ 
+    Q1 & 8 \\ 
+    Q3 & 36 \\ 
+    Unknown & 3,780 \\ 
+\bottomrule
+\end{tabular*}
+\end{table}
+
+L'âge moyen des individus de l'échantillon est de 24 ans. Cette
+statistique étant sensible aux valeurs extrêmes, l'âge médian constitue
+une alternative plus robuste à ces valeurs extrêmes. L'âge médian dans
+l'échantillon est de 18 ans. Et seulement 25\% ont un âge supérieur à
+36ans. Ainsi, ces statistiques montrent que la population étudiée est
+jeune.
+
+\subsection{Test de normalité}\label{test-de-normalituxe9}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Test de Shapiro{-}Wilk (taille de l\textquotesingle{}échantillon est supérieur à 5)}
+\CommentTok{\# shapiro.test(data$s1q4)}
+\FunctionTok{library}\NormalTok{(tseries)}
+\FunctionTok{jarque.bera.test}\NormalTok{(}\FunctionTok{na.omit}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{s1q4))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Jarque Bera Test
+## 
+## data:  na.omit(data$s1q4)
+## X-squared = 4503.7, df = 2, p-value < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(}\AttributeTok{data =} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{s1q4\_clean =} \FunctionTok{na.omit}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{s1q4)), }\FunctionTok{aes}\NormalTok{(}\AttributeTok{sample =} \FunctionTok{na.omit}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{s1q4))) }\SpecialCharTok{+}
+  \FunctionTok{stat\_qq}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{stat\_qq\_line}\NormalTok{(}\AttributeTok{col =} \StringTok{"red"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/age-normalite-1.pdf}
+L'analyse visuelle de l'histogramme des âges montre que l'âge ne semble
+pas normalement distribué. Pour confirmer ce constat, on peut utiliser
+un test statistique de normalité. Cependant, la taille de l'échantillon
+étant supérieure à 5000, le test de shpiro-wilk ne peut s'effectuer.
+Néanmoins, une p-value très faible pour le test de normalité de Jarque
+Bera nous permet de conclure que la variable âge n'est pas normalement
+distribuée. De plus, le graphique quantile-quantile permet de vérifier
+que la normalité n'est pas respectée.
+
+\section{Pyramide des âges}\label{pyramide-des-uxe2ges}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data\_pyramid }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(}\AttributeTok{age =}\NormalTok{ s1q4, }\AttributeTok{sexe =}\NormalTok{ s1q2) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(age), }\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(sexe)) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{age\_group =} \FunctionTok{cut}\NormalTok{(age, }\AttributeTok{breaks =} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{100}\NormalTok{, }\AttributeTok{by =} \DecValTok{5}\NormalTok{)))}
+
+\FunctionTok{age\_pyramid}\NormalTok{(data\_pyramid, }\AttributeTok{age\_group =}\NormalTok{ age\_group, }\AttributeTok{split\_by =}\NormalTok{ sexe) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{"Pyramide des âges"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/pyramide-1.pdf}
+
+La pyramide des âges montre la répartition de la population par âge et
+par sexe. On constate que le pyramide a une base élargie et un sommet
+pointu et les effectifs diminuent avec l'âge. Ce qui confirme la
+jeunesse de la population. Cependant, on constate que l'effectif des
+individus de 5 à 9 ans est supérieur à celui des enfants de 0 à 4 ans.
+
+\section{Fréquence des liens de
+parenté}\label{fruxe9quence-des-liens-de-parentuxe9}
+
+\subsection{Diagramme en barres
+simple}\label{diagramme-en-barres-simple}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(forcats)}
+\NormalTok{data }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{count}\NormalTok{(s1q3) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{arrange}\NormalTok{(}\FunctionTok{desc}\NormalTok{(n)) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ n, }\AttributeTok{y =} \FunctionTok{fct\_reorder}\NormalTok{(}\FunctionTok{as\_factor}\NormalTok{(s1q3), n))) }\SpecialCharTok{+}  \CommentTok{\# conversion temporaire}
+  \FunctionTok{geom\_col}\NormalTok{(}\AttributeTok{fill =} \StringTok{"darkblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Fréquence des liens de parenté"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Fréquence"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{""}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/parente-barres-1.pdf}
+
+Ce graphique ci-dessus nous montre les effectifs par lien de parenté
+avec le chef de ménage des différents individus de l'échantillon. On
+constate que les individus qui sont enfants uniques du chef de ménage
+représente la part la plus importante. A l'opposé, les individus qui
+sont de la belle famille comptent parmi les effectifs les plus faibles.
+
+\subsection{Proportions avec intervalles de
+confiance}\label{proportions-avec-intervalles-de-confiance}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{total }\OtherTok{\textless{}{-}} \FunctionTok{nrow}\NormalTok{(data)}
+
+\NormalTok{resultats\_parente }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(s1q3)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{count}\NormalTok{(s1q3, }\AttributeTok{name =} \StringTok{"effectif"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{proportion =}\NormalTok{ effectif }\SpecialCharTok{/}\NormalTok{ total,}
+    \AttributeTok{proportion\_pct =}\NormalTok{ scales}\SpecialCharTok{::}\FunctionTok{percent}\NormalTok{(proportion, }\AttributeTok{accuracy =} \FloatTok{0.1}\NormalTok{),}
+    \AttributeTok{IC\_lower =} \FunctionTok{sapply}\NormalTok{(effectif, }\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{scoreci}\NormalTok{(x, total, }\AttributeTok{conf.level =} \FloatTok{0.95}\NormalTok{)}\SpecialCharTok{$}\NormalTok{conf.int[}\DecValTok{1}\NormalTok{]),}
+    \AttributeTok{IC\_upper =} \FunctionTok{sapply}\NormalTok{(effectif, }\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{scoreci}\NormalTok{(x, total, }\AttributeTok{conf.level =} \FloatTok{0.95}\NormalTok{)}\SpecialCharTok{$}\NormalTok{conf.int[}\DecValTok{2}\NormalTok{]),}
+    \AttributeTok{IC\_text =} \FunctionTok{paste0}\NormalTok{(}\StringTok{"["}\NormalTok{, scales}\SpecialCharTok{::}\FunctionTok{percent}\NormalTok{(IC\_lower, }\AttributeTok{accuracy =} \FloatTok{0.1}\NormalTok{), }\StringTok{" ; "}\NormalTok{, }
+\NormalTok{                     scales}\SpecialCharTok{::}\FunctionTok{percent}\NormalTok{(IC\_upper, }\AttributeTok{accuracy =} \FloatTok{0.1}\NormalTok{), }\StringTok{"]"}\NormalTok{)}
+\NormalTok{  )}
+
+\CommentTok{\# Affichage du tableau}
+\NormalTok{resultats\_parente }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(s1q3, effectif, proportion\_pct, IC\_text) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{rename}\NormalTok{(}
+    \StringTok{\textasciigrave{}}\AttributeTok{Lien de parenté}\StringTok{\textasciigrave{}} \OtherTok{=}\NormalTok{ (s1q3),}
+    \AttributeTok{Effectif =}\NormalTok{ effectif,}
+    \AttributeTok{Proportion =}\NormalTok{ proportion\_pct,}
+    \StringTok{\textasciigrave{}}\AttributeTok{IC 95\%}\StringTok{\textasciigrave{}} \OtherTok{=}\NormalTok{ IC\_text}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 14 x 4
+##    `Lien de parenté`                     Effectif Proportion `IC 95%`       
+##    <dbl+lbl>                                <int> <chr>      <chr>          
+##  1  1 [1. HEAD]                              4980 16.4%      [16.0% ; 16.8%]
+##  2  2 [2. SPOUSE]                            4273 14.1%      [13.7% ; 14.5%]
+##  3  3 [3. OWN CHILD]                        14636 48.2%      [47.7% ; 48.8%]
+##  4  4 [4. STEP CHILD]                         192 0.6%       [0.6% ; 0.7%]  
+##  5  5 [5. ADOPTED CHILD]                       88 0.3%       [0.2% ; 0.4%]  
+##  6  6 [6. GRANDCHILD]                        1045 3.4%       [3.2% ; 3.7%]  
+##  7  7 [7. BROTHER/SISTER]                     487 1.6%       [1.5% ; 1.8%]  
+##  8  8 [8. NIECE/NEPHEW]                       229 0.8%       [0.7% ; 0.9%]  
+##  9  9 [9. BROTHER/SISTER-IN-LAW]              137 0.5%       [0.4% ; 0.5%]  
+## 10 10 [10. PARENT]                            291 1.0%       [0.9% ; 1.1%]  
+## 11 11 [11. PARENT-IN-LAW]                      20 0.1%       [0.0% ; 0.1%]  
+## 12 12 [12. DOMESTIC HELP]                      39 0.1%       [0.1% ; 0.2%]  
+## 13 14 [14. OTHER RELATION (SPECIFY)]          123 0.4%       [0.3% ; 0.5%]  
+## 14 15 [15. OTHER NON-RELATION (SPECIFY)]       17 0.1%       [0.0% ; 0.1%]
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Visualisation avec IC}
+\NormalTok{resultats\_parente }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ proportion, }\AttributeTok{y =} \FunctionTok{fct\_reorder}\NormalTok{(}\FunctionTok{as\_factor}\NormalTok{(s1q3), proportion))) }\SpecialCharTok{+}
+  \FunctionTok{geom\_col}\NormalTok{(}\AttributeTok{fill =} \StringTok{"darkblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_errorbar}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{xmin =}\NormalTok{ IC\_lower, }\AttributeTok{xmax =}\NormalTok{ IC\_upper), }\AttributeTok{width =} \FloatTok{0.2}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Proportions des liens de parenté avec IC à 95\%"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Proportion"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{""}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{scale\_x\_continuous}\NormalTok{(}\AttributeTok{labels =}\NormalTok{ scales}\SpecialCharTok{::}\NormalTok{percent) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/parente-proportions-ic-1.pdf}
+
+Ce graphique représente les effectifs classés par lien de parenté avec
+le chef de ménage avec un intervalle de confiance à 95\%.
+
+\section{Comparaison de la taille des ménages entre zones rurales et
+urbaines}\label{comparaison-de-la-taille-des-muxe9nages-entre-zones-rurales-et-urbaines}
+
+\subsection{Préparation des
+données}\label{pruxe9paration-des-donnuxe9es}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calcul de la taille des ménages}
+\NormalTok{data\_group }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%}  
+  \FunctionTok{select}\NormalTok{(hhid, sector) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{group\_by}\NormalTok{(hhid) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{taille\_men =} \FunctionTok{n}\NormalTok{()) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{ungroup}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Visualisation}\label{visualisation}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(data\_group, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =} \FunctionTok{as\_factor}\NormalTok{(sector), }\AttributeTok{y =}\NormalTok{ taille\_men)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{fill =} \StringTok{"lightblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+    \AttributeTok{title =} \StringTok{"Distribution de la taille des ménages par zone"}\NormalTok{,}
+    \AttributeTok{x =} \StringTok{"Zone"}\NormalTok{,}
+    \AttributeTok{y =} \StringTok{"Taille du ménage"}
+\NormalTok{  ) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{rapport_final-Rmd_files/figure-latex/boxplot-taille-zone-1.pdf}
+
+Le graphique ci-dessus représente le boxplot de la taille du ménage
+selon le milieu de résidence. On constate que la taille médiane du
+ménage est inférieure en milieu urbain qu'en milieu rural. Cependant,
+pour vérifier si cette différence est significative, on peut faire
+recours à un test de moyenne entre les deux groupes. \#\# Test
+statistique
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{wilcox.test}\NormalTok{(taille\_men }\SpecialCharTok{\textasciitilde{}} \FunctionTok{as\_factor}\NormalTok{(sector), }\AttributeTok{data =}\NormalTok{ data\_group)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Wilcoxon rank sum test with continuity correction
+## 
+## data:  taille_men by as_factor(sector)
+## W = 76136889, p-value < 2.2e-16
+## alternative hypothesis: true location shift is not equal to 0
+\end{verbatim}
+
+Le test de significativité de la différence de moyenne entre les deux
+groupes nous donne une p-value très inférieure à 0,05. Ce qui nous
+permet de conclure que la différence de moyenne entre les deux groupes
+est significative.
+
+\section{Tableau récapitulatif stratifié par
+zone}\label{tableau-ruxe9capitulatif-stratifiuxe9-par-zone}
+
+\subsection{Préparation des données
+complètes}\label{pruxe9paration-des-donnuxe9es-compluxe8tes}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{group\_by}\NormalTok{(hhid) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{taille\_men =} \FunctionTok{n}\NormalTok{()) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{ungroup}\NormalTok{()}
+
+\NormalTok{data\_tab }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(hhid, s1q4, s1q2, taille\_men, sector) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{sector =} \FunctionTok{as\_factor}\NormalTok{(sector),}
+    \AttributeTok{s1q2 =} \FunctionTok{as\_factor}\NormalTok{(s1q2)}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Tableau stratifié}\label{tableau-stratifiuxe9}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tab\_resume }\OtherTok{\textless{}{-}}\NormalTok{ data\_tab }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}
+    \AttributeTok{sector =} \FunctionTok{as\_factor}\NormalTok{(sector),}
+    \AttributeTok{s1q2 =} \FunctionTok{as\_factor}\NormalTok{(s1q2)}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(sector, s1q4, s1q2, taille\_men) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{tbl\_summary}\NormalTok{(}
+    \AttributeTok{by =}\NormalTok{ sector,}
+    \AttributeTok{label =} \FunctionTok{list}\NormalTok{(}
+\NormalTok{      s1q4 }\SpecialCharTok{\textasciitilde{}} \StringTok{"Âge"}\NormalTok{,}
+\NormalTok{      s1q2 }\SpecialCharTok{\textasciitilde{}} \StringTok{"Sexe"}\NormalTok{,}
+\NormalTok{      taille\_men }\SpecialCharTok{\textasciitilde{}} \StringTok{"Taille du ménage"}
+\NormalTok{    ),}
+    \AttributeTok{type =} \FunctionTok{list}\NormalTok{(}
+\NormalTok{      s1q4 }\SpecialCharTok{\textasciitilde{}} \StringTok{"continuous2"}\NormalTok{,}
+\NormalTok{      taille\_men }\SpecialCharTok{\textasciitilde{}} \StringTok{"continuous2"}
+\NormalTok{    ),}
+    \AttributeTok{statistic =} \FunctionTok{list}\NormalTok{(}
+      \FunctionTok{all\_continuous}\NormalTok{() }\SpecialCharTok{\textasciitilde{}} \FunctionTok{c}\NormalTok{(}\StringTok{"\{mean\} (\{sd\})"}\NormalTok{, }\StringTok{"\{median\} [\{p25\} ; \{p75\}]"}\NormalTok{),}
+      \FunctionTok{all\_categorical}\NormalTok{() }\SpecialCharTok{\textasciitilde{}} \StringTok{"\{n\} (\{p\}\%)"}
+\NormalTok{    ),}
+    \AttributeTok{missing =} \StringTok{"no"}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{add\_p}\NormalTok{(}
+    \AttributeTok{test =} \FunctionTok{list}\NormalTok{(}
+\NormalTok{      s1q4 }\SpecialCharTok{\textasciitilde{}} \StringTok{"wilcox.test"}\NormalTok{,}
+\NormalTok{      s1q2 }\SpecialCharTok{\textasciitilde{}} \StringTok{"chisq.test"}\NormalTok{,}
+\NormalTok{      taille\_men }\SpecialCharTok{\textasciitilde{}} \StringTok{"wilcox.test"}
+\NormalTok{    )}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{bold\_labels}\NormalTok{()}
+
+\NormalTok{tab\_resume}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[t]
+\fontsize{12.0pt}{14.0pt}\selectfont
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc}
+\toprule
+\textbf{Characteristic} & \textbf{1. Urban}  N = 8,719\textsuperscript{\textit{1}} & \textbf{2. Rural}  N = 21,618\textsuperscript{\textit{1}} & \textbf{p-value}\textsuperscript{\textit{2}} \\ 
+\midrule\addlinespace[2.5pt]
+{\bfseries Âge} &  &  & <0.001 \\ 
+    Mean (SD) & 25 (19) & 24 (20) &  \\ 
+    Median [Q1 ; Q3] & 19 [9 ; 38] & 17 [8 ; 35] &  \\ 
+{\bfseries Sexe} &  &  & 0.5 \\ 
+    1. MALE & 3,730 (49\%) & 9,459 (50\%) &  \\ 
+    2. FEMALE & 3,837 (51\%) & 9,531 (50\%) &  \\ 
+{\bfseries Taille du ménage} &  &  & <0.001 \\ 
+    Mean (SD) & 7 (4) & 9 (4) &  \\ 
+    Median [Q1 ; Q3] & 7 [5 ; 9] & 8 [6 ; 11] &  \\ 
+\bottomrule
+\end{tabular*}
+\begin{minipage}{\linewidth}
+\vspace{.05em}
+\textsuperscript{\textit{1}}n (\%)\\
+\textsuperscript{\textit{2}}Wilcoxon rank sum test; Pearson's Chi-squared test\\
+\end{minipage}
+\end{table}
+
+Le tableau ci-dessus nous donne la répartition selon le milieu de
+résidence de l'âge des individus ainsi que de la taille du ménage; pour
+chaque croisement, un test est effectué pour voir la significativité de
+la différence de moyenne entre ces deux groupes. On constate que dans le
+milieu urbain, l'âge moyen des individus est de 25 ans tandis que dans
+le milieu rural, il est de 24 ans. De plus, le test affiche une p-value
+très inférieure à 5\%, raison pour laquelle, on peut conclure que la
+différence de moyenne entre ces deux groupes est significatif. Pour la
+taille des ménages, on constate que la moyenne en milieu rural est de 7
+alors qu'en milieu urbain elle est de 9. Le test affiche aussi une
+p-value très inférieure à 5\%, ce qui nous permet de conclure que la
+différence de moyenne entre ces deux groupes est significatif. Le
+tableau présente aussi la répartition selon le sexe et le milieu de
+résidence des individus. On constate que 49\% des individus sont de sexe
+masculin en milieu urbain et qu'en milieu rural 50\% sont de sexe
+masculin. La répartition selon le sexe est donc relativement équilibrée,
+ce qui est prouvé par un test de proportion affichant une p-value de
+0,5.
+
+\end{document}

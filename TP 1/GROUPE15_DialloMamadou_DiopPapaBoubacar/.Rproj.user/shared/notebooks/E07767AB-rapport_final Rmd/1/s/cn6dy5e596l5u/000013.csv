@@ -1,0 +1,8 @@
+"0","stat_desc_age <- data %>% "
+"0","  select(s1q4) %>%"
+"0","  tbl_summary("
+"0","    type = s1q4 ~ ""continuous2"","
+"0","    statistic = all_continuous() ~ c(""{mean}"", ""{median}"", ""{p25}"", ""{p75}""),"
+"0","    label = s1q4 ~ ""Âge"""
+"0","  )"
+"0","stat_desc_age"

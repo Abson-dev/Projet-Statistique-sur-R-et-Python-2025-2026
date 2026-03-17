@@ -1,0 +1,8 @@
+"0","# Boîte à moustaches"
+"0","ggplot(data, aes(x = s1q4)) +"
+"0","  geom_boxplot(fill = ""lightblue"") +"
+"0","  labs("
+"0","    title = ""Distribution de l'âge"","
+"0","    x = ""Âge (années)"""
+"0","  ) +"
+"0","  theme_minimal()"

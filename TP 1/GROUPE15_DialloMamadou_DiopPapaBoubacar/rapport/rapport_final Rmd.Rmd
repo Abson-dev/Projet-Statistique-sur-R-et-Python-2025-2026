@@ -1,0 +1,316 @@
+---
+title: "Analyse des données ménages - Sect1 Harvest W4"
+author: "DIALLO Mamadou Moussa - DIOP Papa Boubacar"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+---
+L'objectif de ce tp est de décrire la composition et les caractéristiques démographiques des ménages enquêtés dans les quatres vagues du GHS Panel à partir de la section sect1_harvest.
+
+
+```{r setup, include=FALSE}
+# Nettoyage de l'environnement
+rm(list=ls())
+# Configuration globale
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+```
+
+```{r packages}
+# Importation des packages
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(apyramid)
+library(naniar)
+library(gtsummary)
+library(rstatix)
+library(PropCIs)
+library(patchwork)
+library(tidyr)
+library(purrr)
+```
+
+```{r chargement-donnees}
+# Chargement des données
+data <- read_stata("../data/raw/sect1_harvestw4.dta")
+# data_2 <- read_stata("../data/raw/secta_harvestw4.dta")
+```
+
+# Exploration initiale des données
+
+## Structure des données
+
+```{r exploration}
+#| eval: false
+#| include: false
+# Structure des données
+str(data)
+glimpse(data)
+summary(data)
+```
+
+## Vérification des doublons
+
+```{r doublons}
+data %>% count(hhid, indiv) %>% filter(n > 1) %>% count()
+```
+Il n'y a donc pas de doublons d'individu dans la base sect1_harvest.
+
+## Valeurs manquantes
+
+```{r missing-values}
+vis_miss(data, warn_large_data = F)
+```
+
+Le graphique ci-dessus représente le schéma des valeurs manquantes nous montre qu'il y a 59,1% de valeurs manquantes. Cependant, cette valeur est à prendre avec des pincettes car il y a aussi bien de vraies valeurs manquantes que de fausses valeurs manquantes. Ces fausses valeurs manquantes correspondent à des sauts dans le questionnaire.
+
+# Analyse univariée de l'âge des membres
+
+## Visualisations
+
+```{r age-histogramme}
+# Histogramme avec des classes de 5 ans
+ggplot(data, aes(x = s1q4)) +
+  geom_histogram(binwidth = 5, fill = "darkgreen", color = "black") +
+  labs(
+    title = "Distribution de l'âge des membres",
+    x = "Âge (années)",
+    y = "Effectif"
+  ) +
+  theme_minimal()
+```
+L’histogramme ci-dessus montre la répartition des âges des membres des ménages par tranche de 5 ans. On peut observer que certaines tranches sont plus représentées, ce qui permet de voir si la population est plutôt jeune ou âgée. On constate que la distribution est étalée à droite, ce qui montre que la population est relativement jeune.
+```{r age-boxplot}
+# Boîte à moustaches
+ggplot(data, aes(x = s1q4)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Distribution de l'âge",
+    x = "Âge (années)"
+  ) +
+  theme_minimal()
+```
+
+L'analyse de la boîte à moustaches renforce le constat de la jeunesse. En effet, 75% des individus ont un âge compris entre 8 et 36ans. Cependant, nous constatons aussi la présence de valeurs extrêmes, c'est-à-dire les valeurs qui dépassent la moustache droite.
+
+## Statistiques descriptives
+
+```{r age-statistiques}
+stat_desc_age <- data %>% 
+  select(s1q4) %>%
+  tbl_summary(
+    type = s1q4 ~ "continuous2",
+    statistic = all_continuous() ~ c("{mean}", "{median}", "{p25}", "{p75}"),
+    label = s1q4 ~ "Âge"
+  )
+stat_desc_age
+```
+
+
+L'âge moyen des individus de l'échantillon est de 24 ans. Cette statistique étant sensible aux valeurs extrêmes, l'âge médian constitue une alternative plus robuste à ces valeurs extrêmes. L'âge médian dans l'échantillon est de 18 ans. Et seulement 25% ont un âge supérieur à 36ans.
+Ainsi, ces statistiques montrent que la population étudiée est jeune.
+
+## Test de normalité
+
+```{r age-normalite, warning=TRUE}
+# Test de Shapiro-Wilk (taille de l'échantillon est supérieur à 5)
+# shapiro.test(data$s1q4)
+library(tseries)
+jarque.bera.test(na.omit(data$s1q4))
+ggplot(data = data.frame(s1q4_clean = na.omit(data$s1q4)), aes(sample = na.omit(data$s1q4))) +
+  stat_qq() +
+  stat_qq_line(col = "red")
+```
+L'analyse visuelle de l'histogramme des âges montre que l'âge ne semble pas normalement distribué. Pour confirmer ce constat, on peut utiliser un test statistique de normalité. Cependant, la taille de l'échantillon étant supérieure à 5000, le test de shpiro-wilk ne peut s'effectuer. Néanmoins, une p-value très faible pour le test de normalité de Jarque Bera nous permet de conclure que la variable âge n'est pas normalement distribuée. De plus, le graphique quantile-quantile permet de vérifier que la normalité n'est pas respectée.
+
+# Pyramide des âges
+
+```{r pyramide}
+data_pyramid <- data %>% 
+  select(age = s1q4, sexe = s1q2) %>% 
+  filter(!is.na(age), !is.na(sexe)) %>% 
+  mutate(age_group = cut(age, breaks = seq(0, 100, by = 5)))
+
+age_pyramid(data_pyramid, age_group = age_group, split_by = sexe) +
+  labs(title = "Pyramide des âges") +
+  theme_minimal()
+```
+
+
+La pyramide des âges montre la répartition de la population par âge et par sexe. On constate que le pyramide a une base élargie et un sommet pointu et les effectifs diminuent avec l'âge. Ce qui confirme la jeunesse de la population. Cependant, on constate que l'effectif des individus de 5 à 9 ans est supérieur à celui des enfants de 0 à 4 ans.
+
+
+# Fréquence des liens de parenté
+
+## Diagramme en barres simple
+
+```{r parente-barres}
+library(forcats)
+data %>% 
+  count(s1q3) %>%
+  arrange(desc(n)) %>% 
+  ggplot(aes(x = n, y = fct_reorder(as_factor(s1q3), n))) +  # conversion temporaire
+  geom_col(fill = "darkblue") +
+  labs(
+    title = "Fréquence des liens de parenté",
+    x = "Fréquence",
+    y = ""
+  ) +
+  theme_minimal()
+```
+
+Ce graphique ci-dessus nous montre les effectifs par lien de parenté avec le chef de ménage des différents individus de l'échantillon. On constate que les individus qui sont enfants uniques du chef de ménage représente la part la plus importante. A l'opposé, les individus qui sont de la belle famille comptent parmi les effectifs les plus faibles.
+
+
+## Proportions avec intervalles de confiance
+
+```{r parente-proportions-ic}
+total <- nrow(data)
+
+resultats_parente <- data %>%
+  filter(!is.na(s1q3)) %>%
+  count(s1q3, name = "effectif") %>%
+  mutate(
+    proportion = effectif / total,
+    proportion_pct = scales::percent(proportion, accuracy = 0.1),
+    IC_lower = sapply(effectif, function(x) scoreci(x, total, conf.level = 0.95)$conf.int[1]),
+    IC_upper = sapply(effectif, function(x) scoreci(x, total, conf.level = 0.95)$conf.int[2]),
+    IC_text = paste0("[", scales::percent(IC_lower, accuracy = 0.1), " ; ", 
+                     scales::percent(IC_upper, accuracy = 0.1), "]")
+  )
+
+# Affichage du tableau
+resultats_parente %>%
+  select(s1q3, effectif, proportion_pct, IC_text) %>%
+  rename(
+    `Lien de parenté` = (s1q3),
+    Effectif = effectif,
+    Proportion = proportion_pct,
+    `IC 95%` = IC_text
+  )
+
+# Visualisation avec IC
+resultats_parente %>%
+  ggplot(aes(x = proportion, y = fct_reorder(as_factor(s1q3), proportion))) +
+  geom_col(fill = "darkblue") +
+  geom_errorbar(aes(xmin = IC_lower, xmax = IC_upper), width = 0.2) +
+  labs(
+    title = "Proportions des liens de parenté avec IC à 95%",
+    x = "Proportion",
+    y = ""
+  ) +
+  scale_x_continuous(labels = scales::percent) +
+  theme_minimal()
+```
+
+Ce graphique représente les effectifs classés par lien de parenté avec le chef de ménage avec un intervalle de confiance à 95%.
+
+
+# Comparaison de la taille des ménages entre zones rurales et urbaines
+
+## Préparation des données
+
+```{r preparation-taille-menage}
+# Calcul de la taille des ménages
+data_group <- data %>%  
+  select(hhid, sector) %>% 
+  group_by(hhid) %>% 
+  mutate(taille_men = n()) %>% ungroup()
+
+```
+
+## Visualisation
+
+```{r boxplot-taille-zone}
+ggplot(data_group, aes(x = as_factor(sector), y = taille_men)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Distribution de la taille des ménages par zone",
+    x = "Zone",
+    y = "Taille du ménage"
+  ) +
+  theme_minimal()
+```
+
+Le graphique ci-dessus représente le boxplot de la taille du ménage selon le milieu de résidence. On constate que la taille médiane du ménage est inférieure en milieu urbain qu'en milieu rural. Cependant, pour vérifier si cette différence est significative, on peut faire recours à un test de moyenne entre les deux groupes.
+## Test statistique
+
+```{r test-wilcoxon}
+wilcox.test(taille_men ~ as_factor(sector), data = data_group)
+```
+Le test de significativité de la différence de moyenne entre les deux groupes nous donne une p-value très inférieure à 0,05. Ce qui nous permet de conclure que la différence de moyenne entre les deux groupes est significative.
+
+# Tableau récapitulatif stratifié par zone
+
+## Préparation des données complètes
+
+```{r preparation-tableau-final}
+
+
+data <- data %>% 
+  group_by(hhid) %>% 
+  mutate(taille_men = n()) %>% 
+  ungroup()
+
+data_tab <- data %>%
+  select(hhid, s1q4, s1q2, taille_men, sector) %>%
+  mutate(
+    sector = as_factor(sector),
+    s1q2 = as_factor(s1q2)
+  )
+```
+
+
+## Tableau stratifié
+
+```{r tableau-gtsummary}
+tab_resume <- data_tab %>%
+  mutate(
+    sector = as_factor(sector),
+    s1q2 = as_factor(s1q2)
+  ) %>%
+  select(sector, s1q4, s1q2, taille_men) %>%
+  tbl_summary(
+    by = sector,
+    label = list(
+      s1q4 ~ "Âge",
+      s1q2 ~ "Sexe",
+      taille_men ~ "Taille du ménage"
+    ),
+    type = list(
+      s1q4 ~ "continuous2",
+      taille_men ~ "continuous2"
+    ),
+    statistic = list(
+      all_continuous() ~ c("{mean} ({sd})", "{median} [{p25} ; {p75}]"),
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(
+      s1q4 ~ "wilcox.test",
+      s1q2 ~ "chisq.test",
+      taille_men ~ "wilcox.test"
+    )
+  ) %>%
+  bold_labels()
+
+tab_resume
+```
+
+Le tableau ci-dessus nous donne la répartition selon le milieu de résidence de l'âge des individus ainsi que de la taille du ménage; pour chaque croisement, un test est effectué pour voir la significativité de la différence de moyenne entre ces deux groupes. On constate que dans le milieu urbain, l'âge moyen des individus est de 25 ans tandis que dans le milieu rural, il est de 24 ans. De plus, le test affiche une p-value très inférieure à 5%, raison pour laquelle, on peut conclure que la différence de moyenne entre ces deux groupes est significatif. Pour la taille des ménages, on constate que la moyenne en milieu rural est de 7 alors qu'en milieu urbain elle est de 9. Le test affiche aussi une p-value très inférieure à 5%, ce qui nous permet de conclure que la différence de moyenne entre ces deux groupes est significatif. Le tableau présente aussi la répartition selon le sexe et le milieu de résidence des individus. On constate que 49% des individus sont de sexe masculin en milieu urbain et qu'en milieu rural 50% sont de sexe masculin. La répartition selon le sexe est donc relativement équilibrée, ce qui est prouvé par un test de proportion affichant une p-value de 0,5.

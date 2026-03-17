@@ -1,0 +1,8 @@
+"0","data_pyramid <- data %>% "
+"0","  select(age = s1q4, sexe = s1q2) %>% "
+"0","  filter(!is.na(age), !is.na(sexe)) %>% "
+"0","  mutate(age_group = cut(age, breaks = seq(0, 100, by = 5)))"
+"0",""
+"0","age_pyramid(data_pyramid, age_group = age_group, split_by = sexe) +"
+"0","  labs(title = ""Pyramide des âges"") +"
+"0","  theme_minimal()"
