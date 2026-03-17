@@ -1,0 +1,8 @@
+"0","ggplot(data_group, aes(x = as_factor(sector), y = taille_men)) +"
+"0","  geom_boxplot(fill = ""lightblue"") +"
+"0","  labs("
+"0","    title = ""Distribution de la taille des ménages par zone"","
+"0","    x = ""Zone"","
+"0","    y = ""Taille du ménage"""
+"0","  ) +"
+"0","  theme_minimal()"

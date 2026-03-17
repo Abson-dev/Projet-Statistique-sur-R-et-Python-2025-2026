@@ -55,6 +55,8 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama/
 │
 ├── main.R                                  # Point d'entrée — orchestre l'exécution de tous les scripts
 │
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama.Rproj
+│
 ├── scripts/
 │   ├── 01_morbidite_sexe_age.R             # Tâche 13 : taux de morbidité par sexe et groupe d'âge
 │   ├── 02_types_maladies.R                 # Tâche 14 : top 10 des affections déclarées
@@ -63,7 +65,7 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama/
 │   ├── 05_test_independance.R              # Tâche 17 : test chi-deux recours × quintile
 │   └── 06_violin_rural_urbain.R            # Tâche 18 : violin plot dépenses rural/urbain
 │
-├── data/
+├── data/                                   # Les données sont importées depuis un compte GitHub et ce ne sont que les données épurées qui y seront après l'exécution
 │
 ├── rapport/
 │   ├── rapport avec code.Rmd               # Rapport long avec code (exploration + analyses complètes)
@@ -147,28 +149,17 @@ install.packages(c(
 
 ## 6. Reproduction des résultats
 
-**Étape 1 — Préparer les données**
+**Étape 1 — Exécuter l'analyse**
 
-Placer les quatre fichiers `.dta` dans le dossier `data/raw/` :
-
-```
-data/raw/sect4a_harvestw4.dta
-data/raw/sect1_harvestw4.dta
-data/raw/secta_harvestw4.dta
-data/raw/totcons_final.dta
-```
-
-**Étape 2 — Exécuter l'analyse**
-
-Ouvrir RStudio, définir le répertoire de travail à la racine du projet (là où se trouve `main.R`), puis exécuter :
+Ouvrir RStudio à partir du Rproj du projet, puis exécuter :
 
 ```r
-source("main.R")
+main.R
 ```
 
 Tous les scripts sont exécutés séquentiellement. Les figures PNG sont sauvegardées dans `output/figures/` et les tableaux CSV dans `output/tables/`.
 
-**Étape 3 — Compiler le rapport**
+**Étape 2 — Compiler le rapport**
 
 Ouvrir `rapport/rapport_court.Rmd` dans RStudio et cliquer sur **Knit**. Les figures sont chargées depuis `output/figures/` via des chemins relatifs — l'étape 2 doit donc être réalisée en premier.
 

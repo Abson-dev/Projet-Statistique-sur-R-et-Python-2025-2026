@@ -1,0 +1,365 @@
+---
+title: "TP2"
+author: "Parfait Jemmy Prodige NGOYI, Analyste statisticien"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+# 1. Liste complète et propre (sans doublons)
+packages <- c("haven", "dplyr", "ggplot2", "apyramid", "naniar", 
+              "rstatix", "PropCIs", "patchwork", "coin", "gtsummary", 
+              "broom.helpers", "labelled")
+
+invisible(lapply(packages, library, character.only = TRUE))
+```
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+# 2. Identification des packages manquants
+missing_pkgs <- packages[!(packages %in% installed.packages()[, "Package"])]
+
+# 3. Installation avec gestion des dépendances
+if (length(missing_pkgs)) {
+  install.packages(missing_pkgs, dependencies = TRUE)
+}
+
+# 4. Chargement sécurisé
+# On utilise invisible() pour ne pas encombrer la console
+invisible(lapply(packages, library, character.only = TRUE))
+
+# Vérification rapide du chargement de gtsummary
+if ("gtsummary" %in% .packages()) {
+  message("gtsummary est prêt à l'emploi !")
+} else {
+  warning("gtsummary n'est toujours pas chargé. Vérifiez les erreurs d'installation.")
+}
+
+```
+7. Chargement de sect2b_harvestw4 et sect1_harvestw4.
+```{r}
+library(haven)
+sect2_harvest <- read_dta("sect2_harvestw4.dta")
+sect1_harvest <- read_dta("sect1_harvestw4.dta")
+```
+Jointure des bases de données 
+```{r}
+library(dplyr)
+data_joint <- sect1_harvest %>%
+  left_join(sect2_harvest, by = c("hhid", "indiv"))
+```
+Inspection les valeurs manquantes du niveau d'éducation
+```{r}
+sum(is.na(data_joint$s2aq9))
+mean(is.na(data_joint$s2aq9))
+
+```
+Il y a 11066 valeurs manquantes dans la variable s2aq9 (niveau d'éducation complété). Soit un taux de 36,48% de valeurs manquantes sur cette variable.
+
+8. Construction d'une variable ordonnée niveau_educ à 5 catégories (Aucun, Primaire, Junior Secondary, Senior Secondary, Tertiaire) à partir de s2bq1.
+
+```{r}
+data_joint <- data_joint %>%
+  mutate(niveau_educ = case_when(
+    s2aq9 %in% c(0, 1, 2, 3, 51, 52, 61)                    ~ "Aucun",
+    s2aq9 %in% c(11, 12, 13, 14, 15, 16)                    ~ "Primaire",
+    s2aq9 %in% c(21, 22, 23)                                 ~ "Junior Secondary",
+    s2aq9 %in% c(24, 25, 26, 27, 28, 31, 33, 34, 35, 321)   ~ "Senior Secondary",
+    s2aq9 %in% c(41, 43, 322, 411, 412, 421, 422, 423, 424)  ~ "Tertiaire",
+    TRUE ~ NA_character_
+  ),
+  niveau_educ = factor(niveau_educ,
+                       levels = c("Aucun", "Primaire", "Junior Secondary",
+                                  "Senior Secondary", "Tertiaire"),
+                       ordered = TRUE)
+  )
+
+```
+Calcul des fréquences et proportions par catégorie
+```{r}
+freq <- table(data_joint$niveau_educ)
+pourcent <- prop.table(freq) * 100
+
+data.frame(
+  Niveau = names(freq),
+  Frequence = freq,
+  Pourcentage = round(pourcent, 2)
+)
+
+```
+
+Visualisation avec un barplot horizontal coloré par catégorie
+```{r}
+library (ggplot2)
+# Préparer les données avec pourcentages
+data_plot <- data_joint %>%
+  filter(!is.na(niveau_educ)) %>%
+  count(niveau_educ) %>%
+  mutate(pourcentage = n / sum(n) * 100)
+
+# Barplot horizontal stylisé avec étiquettes
+ggplot(data_plot, aes(x = niveau_educ, y = pourcentage, fill = niveau_educ)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_text(aes(label = paste0(round(pourcentage,1), "%")),
+            hjust = -0.1, size = 4) +  # étiquette à droite de la barre
+  coord_flip() +
+  scale_fill_brewer(palette = "Set2") +  # palette harmonieuse
+  labs(
+    title = "Distribution du niveau d'éducation",
+    x = "Niveau d'éducation",
+    y = "Pourcentage"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    axis.title.y = element_text(face = "bold"),
+    axis.title.x = element_text(face = "bold")
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+```
+
+La variable niveau_educ, construite à partir de s2aq9 (sect2a), ne couvre que les individus ayant définitivement quitté l'école. Les individus encore scolarisés (s2bq1, sect2b) étant exclus, les résultats sont à interpréter comme caractérisant la sous-population des sortants définitifs, et non la population générale.
+
+Le niveau Primaire est le plus fréquent (36,7%), suivi du Senior Secondary (26,5%). Près d'un individu sur cinq (17,5%) n'a aucun niveau d'éducation formelle. Les niveaux Junior Secondary (11%) et Tertiaire (8,3%) sont nettement moins représentés, ce qui traduit une distribution asymétrique vers les niveaux bas. La médiane se situe vraisemblablement au niveau Primaire.
+
+Le faible effectif au Tertiaire est cohérent avec la construction de la variable : les étudiants encore en cours figurent dans sect2b et sont absents ici, ce qui sous-estime mécaniquement ce niveau.
+
+9. Comparaison entre la distribution du niveau d'éducation entre hommes et femmes (adultes 18+):
+
+```{r}
+# Préparer les données correctement
+profil_educ <- data_joint %>%
+  filter(!is.na(niveau_educ), !is.na(s1q2), s1q4 >= 18) %>%
+  mutate(sexe = factor(s1q2, levels = c(1,2), labels = c("Homme","Femme"))) %>%
+  group_by(niveau_educ, sexe) %>%
+  summarise(Frequence = n(), .groups = "drop") %>%
+  group_by(niveau_educ) %>%
+  mutate(Pourcentage = round(Frequence / sum(Frequence) * 100, 2))
+
+```
+```{r}
+ggplot(profil_educ, aes(x = niveau_educ, y = Pourcentage, fill = sexe)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Pourcentage, "%")),
+            position = position_stack(vjust = 0.5), size = 4, color = "white") +
+  coord_flip() +
+  scale_fill_manual(values = c("steelblue","tomato")) +
+  labs(
+    title = "Répartition hommes/femmes par niveau d'éducation (18+)",
+    x = "Niveau d'éducation",
+    y = "Pourcentage",
+    fill = "Sexe"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(face = "bold")
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0,0.05)))
+```
+Commentaire : 
+On observe un gradient de genre monotone : la proportion de femmes décroît strictement à mesure que le niveau d'éducation augmente (53,4% au niveau Aucun → 38,5% au Tertiaire). Le point de quasi-parité se situe au Junior Secondary (51,4% F / 48,6% H), au-delà duquel les hommes deviennent majoritaires.
+
+```{r}
+library(tibble)
+# Filtrer adultes 18+ et supprimer les NA
+table_edu_sexe <- data_joint %>%
+  filter(!is.na(niveau_educ), !is.na(s1q2), s1q4 >= 18) %>%
+  mutate(sexe = factor(s1q2, levels = c(1,2), labels = c("Homme","Femme"))) %>%
+  count(niveau_educ, sexe) %>%
+  tidyr::pivot_wider(names_from = sexe, values_from = n, values_fill = 0) %>%
+  column_to_rownames("niveau_educ")
+
+# Transformer en tableau classique
+table_chi <- as.matrix(table_edu_sexe)
+table_chi
+
+```
+```{r}
+# Test de Chi-2
+chi_test <- chisq.test(table_chi)
+chi_test
+
+```
+Le résultat est hautement significatif (p < 0,001) — on rejette sans ambiguïté l'hypothèse nulle d'indépendance entre le sexe et le niveau d'éducation.
+Il existe une association statistiquement significative entre le niveau d'éducation et le sexe.
+
+```{r}
+data_plot <- data_joint %>%
+  filter(!is.na(niveau_educ), !is.na(s1q4))
+
+ggplot(data_plot, aes(x = niveau_educ, y = s1q4, fill = niveau_educ)) +
+  geom_boxplot(outlier.shape = 21, outlier.size = 2, alpha = 0.8, width = 0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = "Distribution de l'âge par niveau d'éducation",
+    x = "Niveau d'éducation",
+    y = "Âge"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+
+```
+Une progression cohérente mais non monotone. Les médianes croissent globalement avec le niveau d'éducation, ce qui est attendu — les individus plus éduqués sont structurellement plus âgés au moment de la sortie définitive.
+
+Le cas "Aucun" est atypique. La médiane très basse (~8 ans) et la très grande dispersion (IQR large, valeurs jusqu'à 100 ans) traduisent une population hétérogène : d'un côté des enfants n'ayant jamais été scolarisés, de l'autre des personnes âgées dont la non-scolarisation reflète des générations sans accès à l'école. C'est la boîte la plus dispersée de toutes.
+
+Le Junior Secondary se distingue par une boîte très étroite et une médiane basse (~17 ans) — c'est le niveau le plus homogène en âge, ce qui suggère que les sortants à ce niveau correspondent à une tranche d'âge précise et concentrée.
+
+Le Tertiaire présente la médiane la plus élevée (~33 ans) avec une dispersion modérée, cohérent avec une sortie tardive après de longues études — mais là encore, les étudiants encore en cours sont absents, ce qui tire la médiane vers le haut (seuls les plus anciens diplômés sont captés).
+Les valeurs aberrantes (points au-delà des moustaches) sont présentes dans tous les groupes, particulièrement pour Aucun et Primaire, avec des individus âgés de 75 à 100 ans — des générations pour lesquelles la scolarisation était rare ou inexistante.
+
+
+ Kruskal-Wallis + post-hoc Dunn.
+```{r}
+install.packages("dunn.test", repos = "https://cloud.r-project.org")
+library(dunn.test)
+```
+
+```{r}
+# Kruskal-Wallis
+kruskal.test(s1q4 ~ niveau_educ, data = data_plot)
+
+# Post-hoc Dunn avec correction de Bonferroni
+dunn.test(data_plot$s1q4, 
+          g = data_plot$niveau_educ,
+          method = "bonferroni",
+          kw = TRUE,
+          label = TRUE)
+```
+La p-valeur quasi-nulle conduit au rejet de l'hypothèse nulle d'égalité des distributions d'âge entre les niveaux d'éducation. Il existe au moins une paire de groupes dont les distributions d'âge diffèrent significativement. 
+
+Toutes les paires sont significativement différentes, ce qui confirme que chaque niveau d'éducation correspond à une distribution d'âge distincte dans la population des sortants définitifs.
+
+L'anomalie Aucun/Primaire mérite attention : la statistique Z de Primaire vs Aucun (-18,58) indique que les individus du niveau Primaire sont en médiane plus âgés que ceux du niveau Aucun — contra-intuitif a priori, mais cohérent avec le boxplot : le groupe "Aucun" contient beaucoup d'enfants très jeunes n'ayant jamais été scolarisés, ce qui tire la médiane vers le bas.
+
+La comparaison Junior Secondary vs Primaire (Z = +4,43) est la plus faible de toutes, bien que significative — les deux groupes sont relativement proches en âge, ce qui correspond aux boîtes adjacentes et de taille similaire observées sur le graphique.
+Les écarts les plus forts impliquent Senior Secondary et Tertiaire vs Aucun (Z ≈ -50 et -47), traduisant des différences de rangs massives entre les extrêmes de la distribution éducative.
+
+11. Comparaison du taux de scolarisation des 6-17 ans entre zones rurales et urbaines
+
+```{r}
+# 1. Préparer les données
+data_scol <- data_joint %>%
+  filter(s1q4 >= 6 & s1q4 <= 17, !is.na(sector.x), !is.na(s2aq6)) %>%
+  mutate(
+    zone = factor(sector.x, levels = c(1, 2), labels = c("Urbain", "Rural")),
+    scolarise = as.numeric(s2aq6 == 1)
+  )
+
+# 2. Tableau de contingence
+table_scol <- table(data_scol$zone, data_scol$scolarise,
+                    dnn = c("Zone", "Scolarisé"))
+print(table_scol)
+
+# 3. Test du Chi-deux
+chisq.test(table_scol)
+
+# 4. Taux + IC à 95% par zone
+data_ic <- data_scol %>%
+  group_by(zone) %>%
+  summarise(
+    n        = n(),
+    n_scol   = sum(scolarise),
+    taux     = n_scol / n,
+    se       = sqrt(taux * (1 - taux) / n),
+    ic_lower = taux - 1.96 * se,
+    ic_upper = taux + 1.96 * se
+  )
+
+print(data_ic)
+
+# 5. Graphique en barres groupées avec IC 95%
+ggplot(data_ic, aes(x = zone, y = taux * 100, fill = zone)) +
+  geom_col(width = 0.5, alpha = 0.85) +
+  geom_errorbar(aes(ymin = ic_lower * 100, ymax = ic_upper * 100),
+                width = 0.15, linewidth = 0.8) +
+  geom_text(aes(label = paste0(round(taux * 100, 1), "%")),
+            vjust = -1.8, fontface = "bold", size = 3.5) +
+  scale_fill_brewer(palette = "Set2") +
+  scale_y_continuous(limits = c(0, 100),
+                     labels = scales::percent_format(scale = 1)) +
+  labs(
+    title    = "Taux de scolarisation des 6-17 ans\npar zone géographique",
+    x        = "Zone",
+    y        = "Taux de scolarisation (%)",
+    caption  = "IC à 95% — Test du Chi-deux"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position  = "none",
+    plot.title       = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+```
+L'écart de scolarisation entre zones urbaines et rurales est hautement significatif (p < 0,001) et substantiel : les enfants de 6-17 ans en zone urbaine ont un taux de scolarisation de 95,9%, contre 82,0% en zone rurale, soit un écart de près de 14 points de pourcentage.
+Les intervalles de confiance ne se chevauchent pas, ce qui confirme visuellement la significativité de l'écart indépendamment du test formel.
+
+Par aileurs, le taux de scolarisation des 6-17 ans est plus élévé en milieu urbain (95,9%) qu'en milieu rural (82%). 
+
+
+10. Heatmap (geom_tile) croisant État nigérian (state) et niveau d'éducation: part d'adultes sans 
+instruction par État, colorée par quintile.
+
+```{r}
+data_joint <- data_joint %>%
+  mutate(state_nom = factor(state.x,
+    levels = 1:37,
+    labels = c("Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi",
+               "Bayelsa", "Benue", "Borno", "Cross River", "Delta",
+               "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe",
+               "Imo", "Jigawa", "Kaduna", "Kano", "Katsina",
+               "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa",
+               "Niger", "Ogun", "Ondo", "Osun", "Oyo",
+               "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe",
+               "Zamfara", "FCT")
+  ))
+```
+
+```{r}
+data_heat <- data_joint %>%
+  filter(s1q4 >= 18, !is.na(state_nom), !is.na(niveau_educ)) %>%
+  group_by(state_nom) %>%
+  summarise(
+    n          = n(),
+    n_aucun    = sum(niveau_educ == "Aucun"),
+    part_aucun = n_aucun / n
+  ) %>%
+  mutate(
+    quintile = cut(part_aucun,
+                   breaks = quantile(part_aucun, probs = seq(0, 1, 0.2)),
+                   labels = c("Q1 (plus bas)", "Q2", "Q3", "Q4", "Q5 (plus haut)"),
+                   include.lowest = TRUE)
+  )
+
+ggplot(data_heat, aes(x = 1, y = reorder(state_nom, part_aucun), fill = quintile)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = paste0(round(part_aucun * 100, 1), "%")),
+            size = 3, color = "white", fontface = "bold") +
+  scale_fill_brewer(palette = "YlOrRd", direction = 1) +
+  labs(
+    title    = "Part d'adultes sans instruction par État nigérian",
+    subtitle = "Colorée par quintile — adultes 18 ans et plus",
+    x        = NULL,
+    y        = "État",
+    fill     = "Quintile"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x     = element_blank(),
+    axis.ticks.x    = element_blank(),
+    panel.grid      = element_blank(),
+    plot.title      = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle   = element_text(hjust = 0.5, color = "grey40"),
+    legend.position = "right"
+  )
+```
+
