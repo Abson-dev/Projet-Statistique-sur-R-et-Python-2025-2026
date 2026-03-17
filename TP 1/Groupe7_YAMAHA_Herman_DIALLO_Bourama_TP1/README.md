@@ -129,7 +129,7 @@ install.packages(c(
 Ouvrir RStudio à partir du Rproj du projet, puis exécuter :
 
 ```r
-source("main.R")
+main.R
 ```
 
 Les deux scripts sont exécutés séquentiellement. Les figures PNG sont sauvegardées dans `outputs/` et le tableau HTML dans `outputs/tableau_gtsummary.html`.
