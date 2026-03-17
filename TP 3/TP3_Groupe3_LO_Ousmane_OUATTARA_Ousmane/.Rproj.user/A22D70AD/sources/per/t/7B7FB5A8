@@ -1,0 +1,27 @@
+{
+    "id": "7B7FB5A8",
+    "path": "D:/ENSAE/ISE1/SEMESTRE 2/Projet_Statistique/TP3/scripts/01_import_data.R",
+    "project_path": "scripts/01_import_data.R",
+    "type": "r_source",
+    "hash": "1443100350",
+    "contents": "",
+    "dirty": false,
+    "created": 1773357583094.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "18,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1773358093,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1773358093276,
+    "read_only": false,
+    "read_only_alternatives": []
+}
