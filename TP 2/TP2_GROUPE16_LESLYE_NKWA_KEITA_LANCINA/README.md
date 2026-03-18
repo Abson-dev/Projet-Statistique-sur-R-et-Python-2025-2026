@@ -233,5 +233,5 @@ La bibliographie complète est disponible dans `references.bib` (format BibTeX, 
 
 ## Licence
 
-Projet académique -- ENSAE Pierre Ndiaye, ISE1 2025-2026.
+Projet académique, ENSAE, ISE1 2025-2026.
 Les données GHS Panel sont la propriété du NBS Nigeria / Banque Mondiale (licence d'utilisation académique).
