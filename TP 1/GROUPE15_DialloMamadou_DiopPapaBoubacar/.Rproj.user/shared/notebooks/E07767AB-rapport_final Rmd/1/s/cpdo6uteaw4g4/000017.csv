@@ -1,6 +1,0 @@
-"0","# Calcul de la taille des ménages"
-"0","data_group <- data %>%  "
-"0","  select(hhid, sector) %>% "
-"0","  group_by(hhid) %>% "
-"0","  mutate(taille_men = n()) %>% ungroup()"
-"0",""
