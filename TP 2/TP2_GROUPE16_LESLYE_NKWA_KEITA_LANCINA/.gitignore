@@ -10,3 +10,7 @@ Thumbs.db
 .Rhistory
 .RData
 .Rproj.user/
+
+# Notes internes docs
+docs/TP2_R_Interpretations.md
+docs/TP2_R_Some_Lesson.md
