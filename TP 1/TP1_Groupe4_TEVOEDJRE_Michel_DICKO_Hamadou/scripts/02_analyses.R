@@ -7,20 +7,26 @@ library(gtsummary)
 library(gt)
 library(apyramid)
 library(forcats)
+library(survey)
 
 dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
 
-data <- readRDS("data/processed/data_brute.rds")
+data        <- readRDS("data/processed/data_brute.rds")
 data_indiv  <- readRDS("data/processed/data_indiv.rds")
 base_menage <- readRDS("data/processed/base_menage.rds")
+plan_indiv  <- readRDS("data/processed/plan_indiv.rds")
+plan_menage <- readRDS("data/processed/plan_menage.rds")
 
-# palette principale : terracotta pour Urbain, vert kaki pour Rural
-palette_secteur <- c("Urbain" = "#C0572B", "Rural" = "#5B7A52")
+# palette principale : bleu électrique pour Urbain, vert néon pour Rural
+palette_secteur <- c("Urbain" = "#0077FF", "Rural" = "#00C853")
 
-# couleurs supplémentaires utilisées dans plusieurs graphiques
-COL_ACCENT <- "#E8A045"   
-COL_FOND <- "#FAF7F2"   
-COL_GRILLE <- "#E8E2D9"   
+# couleurs vives pour les autres éléments
+COL_ACCENT  <- "#FF6D00"   # orange vif — ligne moyenne / points
+COL_FOND    <- "#F0F4FF"   # fond légèrement bleuté
+COL_GRILLE  <- "#D0DBF5"   # grille pastel bleutée
+COL_TITRE   <- "#1A1A2E"   # bleu nuit — titres
+COL_SOUS    <- "#3D5A80"   # bleu acier — sous-titres
+COL_CAPTION <- "#607D8B"   # gris bleuté — légende
 
 # thème appliqué à tous les ggplot du script
 theme_tp1 <- function(base_size = 12) {
@@ -31,17 +37,17 @@ theme_tp1 <- function(base_size = 12) {
       panel.grid.major   = element_line(color = COL_GRILLE, linewidth = 0.45),
       panel.grid.minor   = element_blank(),
       plot.title         = element_text(face = "bold", size = base_size + 1,
-                                        color = "#2E2319", margin = margin(b = 4)),
-      plot.subtitle      = element_text(color = "#6B5C4A", size = base_size - 1,
+                                        color = COL_TITRE, margin = margin(b = 4)),
+      plot.subtitle      = element_text(color = COL_SOUS, size = base_size - 1,
                                         margin = margin(b = 8)),
-      plot.caption       = element_text(color = "#9C8B7A", size = base_size - 3,
+      plot.caption       = element_text(color = COL_CAPTION, size = base_size - 3,
                                         hjust = 0, margin = margin(t = 6)),
-      axis.title         = element_text(color = "#4A3C2F", size = base_size - 1),
-      axis.text          = element_text(color = "#5C4D3E"),
+      axis.title         = element_text(color = COL_SOUS, size = base_size - 1),
+      axis.text          = element_text(color = "#2C3E50"),
       legend.background  = element_rect(fill = COL_FOND, color = NA),
       legend.key         = element_rect(fill = COL_FOND, color = NA),
-      strip.background   = element_rect(fill = "#EDE6DC", color = NA),
-      strip.text         = element_text(face = "bold", color = "#2E2319")
+      strip.background   = element_rect(fill = "#D6E4F7", color = NA),
+      strip.text         = element_text(face = "bold", color = COL_TITRE)
     )
 }
 
@@ -51,16 +57,20 @@ cat("\n Structure du dataset \n")
 cat("Dimensions :", nrow(data), "individus ×", ncol(data), "variables\n")
 cat("Variables   :", paste(names(data)[1:15], collapse = ", "), "...\n")
 
-data_resume <- data %>%
-  summarise(
-    n_individus  = n(),
-    n_menages    = n_distinct(hhid),
-    age_moyen    = round(mean(age, na.rm = TRUE), 1),
-    age_median   = median(age, na.rm = TRUE),
-    pct_masculin = round(mean(sexe == "Homme", na.rm = TRUE) * 100, 1),
-    pct_urbain   = round(mean(secteur == "Urbain", na.rm = TRUE) * 100, 1)
-  )
-cat("\nRésumé global :\n"); print(data_resume)
+# Résumé pondéré (estimations population)
+data_resume_pond <- data.frame(
+  n_individus  = nrow(data),
+  n_menages    = n_distinct(data$hhid),
+  pop_estimee  = round(sum(data$wt_wave4, na.rm = TRUE)),
+  age_moyen    = round(svymean(~age, plan_indiv, na.rm = TRUE)[1], 1),
+  age_median   = round(svyquantile(~age, plan_indiv, quantiles = 0.5,
+                                   na.rm = TRUE)[[1]][1], 1),
+  pct_masculin = round(svymean(~I(sexe == "Homme"), plan_indiv,
+                               na.rm = TRUE)[1] * 100, 1),
+  pct_urbain   = round(svymean(~I(secteur == "Urbain"), plan_indiv,
+                               na.rm = TRUE)[1] * 100, 1)
+)
+cat("\nRésumé global pondéré (estimations population) :\n"); print(data_resume_pond)
 
 # VÉRIFICATION DES DOUBLONS ET VALEURS MANQUANTES
 cat("\n Qualité des données \n")
@@ -88,71 +98,80 @@ vis_miss(data %>% select(age, sexe, secteur, lien_parente, zone_geo),
   theme(plot.title = element_text(face = "bold", size = 13))
 dev.off()
 
-# ANALYSE UNIVARIÉE DE L'ÂGE
-cat("\n Analyse univariée de l'âge \n")
+# ANALYSE UNIVARIÉE DE L'ÂGE (pondérée)
+cat("\n Analyse univariée de l'âge (résultats pondérés) \n")
 
-age_stats <- data %>%
-  filter(!is.na(age)) %>%
-  summarise(
-    Moyenne    = round(mean(age), 2),
-    Mediane    = median(age),
-    Ecart_type = round(sd(age), 2),
-    Min        = min(age),
-    Max        = max(age),
-    Q1         = quantile(age, .25),
-    Q3         = quantile(age, .75)
-  )
-cat("Statistiques descriptives de l'âge :\n"); print(age_stats)
+age_stats_pond <- data.frame(
+  Moyenne    = round(svymean(~age, plan_indiv, na.rm = TRUE)[1], 2),
+  Mediane    = round(svyquantile(~age, plan_indiv, quantiles = 0.5,
+                                 na.rm = TRUE)[[1]][1], 2),
+  Ecart_type = round(sqrt(svyvar(~age, plan_indiv, na.rm = TRUE)[1]), 2),
+  Q1         = round(svyquantile(~age, plan_indiv, quantiles = 0.25,
+                                 na.rm = TRUE)[[1]][1], 2),
+  Q3         = round(svyquantile(~age, plan_indiv, quantiles = 0.75,
+                                 na.rm = TRUE)[[1]][1], 2),
+  Min        = min(data$age, na.rm = TRUE),
+  Max        = max(data$age, na.rm = TRUE)
+)
+cat("Statistiques descriptives pondérées de l'âge :\n"); print(age_stats_pond)
+saveRDS(age_stats_pond, "data/processed/age_stats_pond.rds")
 
-# histogramme
-moy_age <- mean(data$age, na.rm = TRUE)
+# histogramme pondéré — barres proportionnelles au poids
+moy_age_pond <- age_stats_pond$Moyenne
 
-p_hist <- ggplot(data %>% filter(!is.na(age)), aes(x = age)) +
-  geom_histogram(binwidth = 5, fill = "#C0572B", color = COL_FOND,
+# Création d'un data frame pondéré pour ggplot
+data_age_pond <- data %>%
+  filter(!is.na(age), !is.na(wt_wave4)) %>%
+  select(age, wt_wave4)
+
+p_hist <- ggplot(data_age_pond, aes(x = age, weight = wt_wave4)) +
+  geom_histogram(binwidth = 5, fill = "#0077FF", color = COL_FOND,
                  alpha = 0.88, linewidth = 0.3) +
-  geom_vline(xintercept = moy_age,
+  geom_vline(xintercept = moy_age_pond,
              color = COL_ACCENT, linetype = "dashed", linewidth = 0.9) +
   annotate("label",
-           x = moy_age + 3, y = Inf,
+           x = moy_age_pond + 3, y = Inf,
            vjust = 1.4, hjust = 0,
-           label = paste0("Moy. = ", round(moy_age, 1), " ans"),
-           fill  = COL_FOND, color = "#8B5E2A",
+           label = paste0("Moy. pond. = ", round(moy_age_pond, 1), " ans"),
+           fill  = COL_FOND, color = "#BF360C",
            size  = 3.4, fontface = "bold", label.size = 0.2) +
   scale_x_continuous(breaks = seq(0, 100, 10)) +
   scale_y_continuous(labels = scales::comma) +
-  labs(title    = "Distribution de l'âge des membres des ménages",
-       subtitle = paste0("N = ", scales::comma(sum(!is.na(data$age))),
-                         " individus  |  Ligne pointillée = moyenne"),
+  labs(title    = "Distribution pondérée de l'âge des membres des ménages",
+       subtitle = paste0("Population estimée = ",
+                         scales::comma(round(sum(data$wt_wave4, na.rm=TRUE))),
+                         " | Ligne pointillée = moyenne pondérée"),
        x        = "Âge (années)",
-       y        = "Effectifs",
-       caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") +
+       y        = "Effectifs pondérés (population estimée)",
+       caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19) | Poids : wt_wave4") +
   theme_tp1(base_size = 12)
 
 ggsave("outputs/fig01_histogramme_age.png", p_hist,
        width = 10, height = 5.5, dpi = 150, bg = COL_FOND)
 cat("  fig01_histogramme_age.png\n")
 
-# boxplot de l'âge
-med_age <- median(data$age, na.rm = TRUE)
+# boxplot de l'âge (non pondéré pour la structure, note de pondération ajoutée)
+med_age_pond <- age_stats_pond$Mediane
 
 p_box_age <- ggplot(data %>% filter(!is.na(age)), aes(x = "", y = age)) +
-  geom_boxplot(fill = "#C0572B", color = "#7A3118",
+  geom_boxplot(fill = "#0077FF", color = "#003C8F",
                alpha = 0.72, width = 0.35,
-               outlier.color = "#B0927A", outlier.alpha = 0.4,
+               outlier.color = "#FF6D00", outlier.alpha = 0.5,
                outlier.size  = 0.7) +
-  geom_hline(yintercept = med_age,
+  geom_hline(yintercept = med_age_pond,
              color = COL_ACCENT, linetype = "dashed", linewidth = 0.85) +
   annotate("label",
-           x = 1.22, y = med_age,
-           label = paste0("Méd. = ", med_age, " ans"),
-           fill  = COL_FOND, color = "#8B5E2A",
+           x = 1.22, y = med_age_pond,
+           label = paste0("Méd. pond. = ", med_age_pond, " ans"),
+           fill  = COL_FOND, color = "#BF360C",
            size  = 3.3, fontface = "bold", label.size = 0.2) +
   scale_y_continuous(breaks = seq(0, 120, 10)) +
   labs(title    = "Boîte à moustaches de l'âge",
-       subtitle = paste0("Médiane = ", med_age, " ans | Distribution fortement asymétrique"),
+       subtitle = paste0("Médiane pondérée = ", med_age_pond,
+                         " ans | Distribution fortement asymétrique"),
        y        = "Âge (années)",
        x        = NULL,
-       caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") +
+       caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19) | Poids : wt_wave4") +
   theme_tp1(base_size = 12) +
   theme(axis.text.x         = element_blank(),
         panel.grid.major.x  = element_blank())
@@ -170,17 +189,23 @@ cat("  W =", round(sw$statistic, 5), "| p-value =", format(sw$p.value, scientifi
 cat("  Conclusion : Distribution",
     ifelse(sw$p.value < 0.05, "NON normale (p < 0.05)", "normale"), "\n")
 
-# pyramide des âges
-p_pyramide <- data %>%
-  filter(!is.na(age), !is.na(sexe), !is.na(grp_age)) %>%
+# pyramide des âges pondérée
+# On duplique les lignes selon les poids (arrondi) pour approcher la population
+set.seed(42)
+data_pyr <- data %>%
+  filter(!is.na(age), !is.na(sexe), !is.na(grp_age), !is.na(wt_wave4)) %>%
+  mutate(wt_int = pmax(1, round(wt_wave4 / 1000))) %>%  # normalisation pour éviter explosion mémoire
+  slice(rep(seq_len(n()), times = wt_int))
+
+p_pyramide <- data_pyr %>%
   age_pyramid(age_group = "grp_age",
               split_by   = "sexe",
               proportion = FALSE) +
-  scale_fill_manual(values = c("Homme" = "#C0572B", "Femme" = "#5B7A52"),
+  scale_fill_manual(values = c("Homme" = "#0077FF", "Femme" = "#00C853"),
                     name = "Sexe") +
-  labs(title    = "Pyramide des âges des membres des ménages",
-       subtitle = "Nigeria – GHSP-Panel Wave 4 (2018/19)",
-       x        = "Effectifs",
+  labs(title    = "Pyramide des âges pondérée (population estimée)",
+       subtitle = "Nigeria – GHSP-Panel Wave 4 (2018/19) | Poids : wt_wave4",
+       x        = "Effectifs pondérés",
        y        = "Groupe d'âge",
        caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") +
   theme_tp1(base_size = 11) +
@@ -191,32 +216,61 @@ ggsave("outputs/fig03_pyramide_ages.png", p_pyramide,
        width = 9, height = 8.5, dpi = 150, bg = COL_FOND)
 cat("  fig03_pyramide_ages.png\n")
 
-# LIEN DE PARENTÉ ET PROPORTIONS AVEC IC 95%
-cat("\n Lien de parenté \n")
+# LIEN DE PARENTÉ — PROPORTIONS PONDÉRÉES AVEC IC 95%
+cat("\n Lien de parenté (résultats pondérés) \n")
 
-# couleurs par catégorie de parenté
+# couleurs vives par catégorie de parenté
 pal_parente <- c(
-  "Chef de ménage" = "#C0572B",
-  "Conjoint(e)"    = "#5B7A52",
-  "Enfant"         = "#E8A045",
-  "Autre"          = "#9C8070"
+  "Chef de ménage" = "#0077FF",
+  "Conjoint(e)"    = "#00C853",
+  "Enfant"         = "#FF6D00",
+  "Autre"          = "#AA00FF"
 )
 
-p_parente <- ggplot(data,
-                    aes(x = fct_rev(fct_infreq(lien_parente)),
-                        fill = lien_parente)) +
+# Proportions pondérées via le plan de sondage
+prop_pond <- svymean(~lien_parente, plan_indiv, na.rm = TRUE)
+prop_df   <- as.data.frame(prop_pond)
+prop_df$lien_parente <- gsub("lien_parente", "", rownames(prop_df))
+
+# Effectifs pondérés estimés
+tot_pond <- svytotal(~lien_parente, plan_indiv, na.rm = TRUE)
+tot_df   <- as.data.frame(tot_pond)
+
+# IC 95% sur les proportions pondérées
+ci_pond <- confint(prop_pond, level = 0.95)
+
+resultat_final <- data.frame(
+  Categorie  = prop_df$lien_parente,
+  Effectif_pond = round(as.numeric(tot_df$total)),
+  Proportion = round(prop_df$mean * 100, 2),
+  IC_lower   = round(ci_pond[, 1] * 100, 2),
+  IC_upper   = round(ci_pond[, 2] * 100, 2)
+)
+cat("\nProportions pondérées avec IC 95% :\n"); print(resultat_final)
+saveRDS(resultat_final, "data/processed/proportions_IC.rds")
+
+# graphique barres pondéré
+data_parente_pond <- data %>%
+  filter(!is.na(lien_parente), !is.na(wt_wave4))
+
+p_parente <- ggplot(data_parente_pond,
+                    aes(x = fct_rev(fct_reorder(lien_parente,
+                                                wt_wave4, .fun = sum)),
+                        fill = lien_parente,
+                        weight = wt_wave4)) +
   geom_bar(alpha = 0.88, color = COL_FOND, linewidth = 0.3) +
   geom_text(stat  = "count",
-            aes(label = scales::comma(after_stat(count))),
+            aes(label = scales::comma(round(after_stat(count)))),
             hjust = -0.15, size = 3.5, fontface = "bold",
-            color = "#2E2319") +
+            color = COL_TITRE) +
   scale_fill_manual(values = pal_parente, guide = "none") +
   scale_y_continuous(expand = expansion(mult = c(0, 0.18)),
                      labels = scales::comma) +
   coord_flip() +
-  labs(title   = "Fréquence du lien de parenté avec le chef de ménage",
+  labs(title   = "Fréquence pondérée du lien de parenté avec le chef de ménage",
+       subtitle = "Effectifs estimés dans la population | Poids : wt_wave4",
        x       = NULL,
-       y       = "Effectifs",
+       y       = "Effectifs pondérés (population estimée)",
        caption = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") +
   theme_tp1(base_size = 12) +
   theme(panel.grid.major.y = element_blank())
@@ -225,46 +279,78 @@ ggsave("outputs/fig04_lien_parente.png", p_parente,
        width = 9, height = 5, dpi = 150, bg = COL_FOND)
 cat("  fig04_lien_parente.png\n")
 
-# proportions avec IC 95% exact (Clopper-Pearson)
-tab_effectifs <- table(data$lien_parente)
-tab_confiance <- lapply(tab_effectifs, function(x) {
-  exactci(x, n = sum(tab_effectifs), conf.level = 0.95)
-})
-resultat_final <- data.frame(
-  Categorie  = names(tab_effectifs),
-  Effectif   = as.numeric(tab_effectifs),
-  Proportion = round(as.numeric(tab_effectifs) / sum(tab_effectifs) * 100, 2),
-  IC_lower   = round(sapply(tab_confiance, function(x) x$conf.int[1]) * 100, 2),
-  IC_upper   = round(sapply(tab_confiance, function(x) x$conf.int[2]) * 100, 2)
-)
-cat("\nProportions avec IC 95% :\n"); print(resultat_final)
-saveRDS(resultat_final, "data/processed/proportions_IC.rds")
+# TAILLE DES MÉNAGES — TEST DE WILCOXON PONDÉRÉ
+cat("\n Taille des ménages par secteur (résultats pondérés) \n")
 
-# TAILLE DES MÉNAGES ET TEST DE WILCOXON
-cat("\n Taille des ménages par secteur \n")
-
-stats_menage <- base_menage %>%
-  group_by(secteur) %>%
-  summarise(
-    N          = n(),
-    Moyenne    = round(mean(taille), 2),
-    Mediane    = median(taille),
-    Q1         = quantile(taille, 0.25),
-    Q3         = quantile(taille, 0.75),
-    Ecart_type = round(sd(taille), 2),
-    Min        = min(taille),
-    Max        = max(taille)
+# Statistiques pondérées par secteur
+stats_menage <- data.frame(
+  secteur = c("Urbain", "Rural"),
+  N       = c(
+    sum(base_menage$secteur == "Urbain", na.rm = TRUE),
+    sum(base_menage$secteur == "Rural",  na.rm = TRUE)
+  ),
+  Moyenne = c(
+    round(svymean(~taille,
+                  subset(plan_menage, secteur == "Urbain"), na.rm=TRUE)[1], 2),
+    round(svymean(~taille,
+                  subset(plan_menage, secteur == "Rural"),  na.rm=TRUE)[1], 2)
+  ),
+  Mediane = c(
+    round(svyquantile(~taille, subset(plan_menage, secteur == "Urbain"),
+                      quantiles=0.5, na.rm=TRUE)[[1]][1], 2),
+    round(svyquantile(~taille, subset(plan_menage, secteur == "Rural"),
+                      quantiles=0.5, na.rm=TRUE)[[1]][1], 2)
+  ),
+  Q1 = c(
+    round(svyquantile(~taille, subset(plan_menage, secteur == "Urbain"),
+                      quantiles=0.25, na.rm=TRUE)[[1]][1], 2),
+    round(svyquantile(~taille, subset(plan_menage, secteur == "Rural"),
+                      quantiles=0.25, na.rm=TRUE)[[1]][1], 2)
+  ),
+  Q3 = c(
+    round(svyquantile(~taille, subset(plan_menage, secteur == "Urbain"),
+                      quantiles=0.75, na.rm=TRUE)[[1]][1], 2),
+    round(svyquantile(~taille, subset(plan_menage, secteur == "Rural"),
+                      quantiles=0.75, na.rm=TRUE)[[1]][1], 2)
+  ),
+  Ecart_type = c(
+    round(sqrt(svyvar(~taille, subset(plan_menage, secteur == "Urbain"),
+                      na.rm=TRUE)[1]), 2),
+    round(sqrt(svyvar(~taille, subset(plan_menage, secteur == "Rural"),
+                      na.rm=TRUE)[1]), 2)
+  ),
+  Min = c(
+    min(base_menage$taille[base_menage$secteur == "Urbain"], na.rm=TRUE),
+    min(base_menage$taille[base_menage$secteur == "Rural"],  na.rm=TRUE)
+  ),
+  Max = c(
+    max(base_menage$taille[base_menage$secteur == "Urbain"], na.rm=TRUE),
+    max(base_menage$taille[base_menage$secteur == "Rural"],  na.rm=TRUE)
   )
-cat("\nStatistiques par secteur :\n"); print(stats_menage)
+)
+cat("\nStatistiques pondérées par secteur :\n"); print(stats_menage)
 
-# test de Wilcoxon-Mann-Whitney
-urbain     <- base_menage %>% filter(secteur == "Urbain") %>% pull(taille)
-rural      <- base_menage %>% filter(secteur == "Rural")  %>% pull(taille)
-wilcox_res <- wilcox.test(urbain, rural, alternative = "two.sided",
+# test de Wilcoxon-Mann-Whitney (sur données avec poids comme fréquences approchées)
+urbain     <- base_menage %>% filter(secteur == "Urbain", !is.na(wt_wave4)) %>% pull(taille)
+rural      <- base_menage %>% filter(secteur == "Rural",  !is.na(wt_wave4)) %>% pull(taille)
+wgt_u      <- base_menage %>% filter(secteur == "Urbain", !is.na(wt_wave4)) %>% pull(wt_wave4)
+wgt_r      <- base_menage %>% filter(secteur == "Rural",  !is.na(wt_wave4)) %>% pull(wt_wave4)
+
+# Wilcoxon pondéré via répétition des observations (poids normalisés)
+wt_scale   <- min(c(wgt_u, wgt_r), na.rm=TRUE)
+rep_u      <- pmax(1, round(wgt_u / wt_scale))
+rep_r      <- pmax(1, round(wgt_r / wt_scale))
+urbain_rep <- rep(urbain, times = rep_u)
+rural_rep  <- rep(rural,  times = rep_r)
+# Sous-échantillonnage pour test (max 50 000 obs. chacun)
+set.seed(123)
+if (length(urbain_rep) > 50000) urbain_rep <- sample(urbain_rep, 50000)
+if (length(rural_rep)  > 50000) rural_rep  <- sample(rural_rep,  50000)
+wilcox_res <- wilcox.test(urbain_rep, rural_rep, alternative = "two.sided",
                           conf.int = TRUE, conf.level = 0.95)
 
 # taille d'effet r de rang
-N_total        <- length(urbain) + length(rural)
+N_total        <- length(urbain_rep) + length(rural_rep)
 Z              <- qnorm(wilcox_res$p.value / 2)
 r_rang         <- abs(Z) / sqrt(N_total)
 interpretation <- case_when(
@@ -273,7 +359,7 @@ interpretation <- case_when(
   r_rang < 0.5 ~ "Moyen",
   TRUE         ~ "Grand"
 )
-cat("\nTest de Wilcoxon-Mann-Whitney :\n")
+cat("\nTest de Wilcoxon-Mann-Whitney (pondéré) :\n")
 cat("  W =", wilcox_res$statistic, "| p =", format(wilcox_res$p.value, scientific=TRUE), "\n")
 cat("  r de rang =", round(r_rang, 4), "(", interpretation, ")\n")
 cat("  IC 95% : [", round(wilcox_res$conf.int[1],3), ";",
@@ -285,42 +371,45 @@ label_wilcox <- paste0(
   "\np = ", format(wilcox_res$p.value, scientific = TRUE, digits = 3),
   "\nr = ", round(r_rang, 3), " (", interpretation, ")"
 )
-moyennes <- base_menage %>%
-  group_by(secteur) %>%
-  summarise(moyenne = mean(taille))
+moyennes <- stats_menage %>%
+  mutate(secteur = factor(secteur, levels = c("Urbain","Rural"))) %>%
+  select(secteur, moyenne = Moyenne)
 
-# boxplot groupé
-p_boxplot_menage <- ggplot(base_menage,
-                           aes(x = secteur, y = taille, fill = secteur)) +
+# boxplot groupé pondéré
+p_boxplot_menage <- ggplot(base_menage %>% filter(!is.na(secteur), !is.na(wt_wave4)),
+                           aes(x = secteur, y = taille,
+                               fill = secteur, weight = wt_wave4)) +
   geom_boxplot(alpha = 0.72,
-               outlier.color = "#B0927A", outlier.size = 0.7,
-               outlier.alpha = 0.45, width = 0.45,
-               color = "#4A3C2F") +
-  geom_jitter(width = 0.14, alpha = 0.07, size = 0.55,
-              color = "#6B5C4A") +
+               outlier.color = COL_ACCENT, outlier.size = 0.7,
+               outlier.alpha = 0.55, width = 0.45,
+               color = COL_TITRE) +
+  geom_jitter(aes(weight = NULL),
+              width = 0.14, alpha = 0.07, size = 0.55,
+              color = COL_SOUS) +
   geom_point(data  = moyennes,
-             aes(x = secteur, y = moyenne),
+             aes(x = secteur, y = moyenne, weight = NULL),
              shape = 18, size = 4.5, color = COL_ACCENT) +
   geom_text(data  = moyennes,
             aes(x = secteur, y = moyenne,
-                label = paste0("Moy. = ", round(moyenne, 1))),
-            vjust = -0.9, color = "#8B5E2A",
+                label = paste0("Moy. pond. = ", round(moyenne, 1)),
+                weight = NULL),
+            vjust = -0.9, color = "#BF360C",
             size  = 3.5, fontface = "bold") +
   annotate("label",
-           x = 1.5, y = max(base_menage$taille) * 0.93,
+           x = 1.5, y = max(base_menage$taille, na.rm=TRUE) * 0.93,
            label = label_wilcox,
-           fill  = COL_FOND, color = "#5C4D3E",
+           fill  = COL_FOND, color = COL_SOUS,
            size  = 3.2, hjust = 0.5, fontface = "italic",
            label.size = 0.25) +
   scale_fill_manual(values = palette_secteur) +
   scale_y_continuous(breaks = seq(0, 35, by = 5)) +
   labs(
-    title    = "Taille des ménages selon le secteur (Urbain vs Rural)",
+    title    = "Taille des ménages selon le secteur (Urbain vs Rural) — pondéré",
     subtitle = paste0("n = ", scales::comma(nrow(base_menage)),
-                      " ménages  |  ◆ = Moyenne  |  Test Wilcoxon-Mann-Whitney"),
+                      " ménages  |  ◆ = Moyenne pondérée  |  Test Wilcoxon pondéré"),
     x        = NULL,
     y        = "Taille du ménage (nombre de membres)",
-    caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)"
+    caption  = "Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19) | Poids : wt_wave4"
   ) +
   theme_tp1(base_size = 12) +
   theme(legend.position      = "none",
@@ -337,43 +426,50 @@ saveRDS(list(stats     = stats_menage,
              interpret = interpretation),
         "data/processed/resultats_wilcoxon.rds")
 
-# TÂCHE 6 — TABLEAU GTSUMMARY STRATIFIÉ
-cat("\n Tableau gtsummary stratifié \n")
+# TABLEAU GTSUMMARY STRATIFIÉ PONDÉRÉ
+cat("\n Tableau gtsummary stratifié pondéré \n")
 
 data_tableau <- data_indiv %>%
-  filter(!is.na(secteur)) %>%
+  filter(!is.na(secteur), !is.na(wt_wave4)) %>%
   transmute(
     secteur       = secteur,
     age           = as.numeric(s1q4),
     sexe          = factor(as.numeric(s1q2), levels = c(1, 2),
                            labels = c("Masculin", "Féminin")),
-    taille_menage = taille_menage
+    taille_menage = taille_menage,
+    wt_wave4      = wt_wave4
   )
 
-tableau_gt <- data_tableau %>%
-  tbl_summary(
-    by      = secteur,
-    include = c(age, sexe, taille_menage),
-    statistic = list(
-      all_continuous()  ~ "{mean} ({sd})\nMéd. {median} [{p25} ; {p75}]",
-      all_categorical() ~ "{n} ({p}%)"
-    ),
-    label = list(
-      age           ~ "Âge (années)",
-      sexe          ~ "Sexe",
-      taille_menage ~ "Taille du ménage (membres)"
-    ),
-    digits       = list(all_continuous() ~ 1, all_categorical() ~ c(0, 1)),
-    missing      = "ifany",
-    missing_text = "Valeurs manquantes"
-  ) %>%
+# Plan de sondage pour gtsummary (plan_tableau)
+plan_tableau <- svydesign(
+  ids     = ~1,
+  weights = ~wt_wave4,
+  data    = data_tableau
+)
+
+tableau_gt <- tbl_svysummary(
+  data    = plan_tableau,
+  by      = secteur,
+  include = c(age, sexe, taille_menage),
+  statistic = list(
+    all_continuous()  ~ "{mean} ({sd})\nMéd. {median} [{p25} ; {p75}]",
+    all_categorical() ~ "{n_unweighted} ({p}%)"
+  ),
+  label = list(
+    age           ~ "Âge (années)",
+    sexe          ~ "Sexe",
+    taille_menage ~ "Taille du ménage (membres)"
+  ),
+  digits       = list(all_continuous() ~ 1, all_categorical() ~ c(0, 1)),
+  missing      = "ifany",
+  missing_text = "Valeurs manquantes"
+) %>%
   add_overall(last = FALSE, col_label = "**Total**") %>%
   add_p(
-    test = list(age ~ "wilcox.test", sexe ~ "chisq.test",
-                taille_menage ~ "wilcox.test"),
+    test = list(age ~ "svyranktest", sexe ~ "svychisq",
+                taille_menage ~ "svyranktest"),
     pvalue_fun = ~style_pvalue(.x, digits = 3)
   ) %>%
-  add_n() %>%
   modify_header(
     label   ~ "**Variable**",
     stat_0  ~ "**Total**\nN = {N}",
@@ -382,9 +478,9 @@ tableau_gt <- data_tableau %>%
     p.value ~ "**p-valeur**"
   ) %>%
   modify_spanning_header(c(stat_1, stat_2) ~ "**Secteur de résidence**") %>%
-  modify_caption("**Tableau 1. Caractéristiques sociodémographiques par secteur**
-   Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19)") %>%
-  modify_footnote(p.value ~ "Wilcoxon-Mann-Whitney (continu) ; Chi-deux (catégoriel)") %>%
+  modify_caption("**Tableau 1. Caractéristiques sociodémographiques pondérées par secteur**
+   Source : NBS Nigeria, GHSP-Panel Wave 4 (2018/19) | Poids : wt_wave4") %>%
+  modify_footnote(p.value ~ "Test de rang pondéré (svyranktest) ; Chi-deux pondéré (svychisq)") %>%
   bold_labels() %>%
   bold_p(t = 0.05)
 
@@ -393,5 +489,5 @@ tableau_gt %>%
   gt::gtsave("outputs/tableau_gtsummary.html")
 cat("  tableau_gtsummary.html\n")
 
-cat("\n Toutes les analyses terminées \n")
+cat("\n Toutes les analyses pondérées terminées \n")
 for (f in list.files("outputs/")) cat("  -", f, "\n")
