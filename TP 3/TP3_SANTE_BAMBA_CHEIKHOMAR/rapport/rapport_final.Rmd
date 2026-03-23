@@ -1,0 +1,281 @@
+---
+title: "TP3 – Accès aux services de santé et chocs sanitaires des ménages"
+subtitle: "Nigeria General Household Survey Panel (W1-W4, 2010-2018)"
+author:
+  - "Cheikh Ahmadou Bamba FALL"
+  - "Cheikh Omar TRAORE"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    reference_docx: NULL
+lang: fr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width = 9,
+  fig.height = 6
+)
+library(here)
+source(here("R", "fonctions.R"))
+```
+
+# Introduction
+
+Ce rapport présente les résultats du TP3 réalisé dans le cadre du cours de
+Statistique Descriptive à l'École Nationale de la Statistique et de l'Analyse
+Économique Pierre Ndiaye (ENSAE). L'objectif est d'analyser les épisodes de
+maladie, les types de soins consultés et les coûts de santé supportés par
+les ménages nigérians à partir des sections santé du Nigeria General Household
+Survey (GHS) Panel.
+
+Les analyses portent principalement sur la **vague 4 (2018)** et couvrent :
+
+- Les taux de morbidité par sexe et groupe d'âge
+- Les types de maladies les plus fréquentes
+- Le recours aux soins selon le type de prestataire
+- La distribution des dépenses de santé
+- Les disparités selon le niveau de richesse et la zone de résidence
+
+---
+
+# Données et Méthodologie
+
+## Source des données
+
+Les données proviennent du programme **LSMS-ISA** de la Banque Mondiale.
+Les sections santé du GHS Panel couvrent les épisodes de maladie survenus
+dans les 4 semaines précédant l'enquête.
+
+## Fichiers utilisés
+
+- `sect3a_harvestw4.dta` : maladies/blessures déclarées, type de maladie
+- `sect3b_harvestw4.dta` : consultations, dépenses de santé
+- `sect1_harvestw4.dta` : sexe, âge (jointure individus)
+- `secta_harvestw4.dta` : zone rurale/urbaine
+- `cons_agg_wave3_visit2.dta` : consommation totale par ménage (quintile)
+
+## Nettoyage des données
+
+```{r chargement, echo=TRUE}
+# Chargement des données nettoyées
+df_sante_a  <- readRDS(here("data", "processed", "df_sante_a_w4.rds"))
+df_sante_b  <- readRDS(here("data", "processed", "df_sante_b_w4.rds"))
+secta_w4    <- readRDS(here("data", "processed", "secta_w4.rds"))
+cons_agg_w4 <- readRDS(here("data", "processed", "cons_agg_w4.rds"))
+```
+
+---
+
+# Résultats
+
+## Taux de morbidité par sexe et groupe d'âge (Question 13)
+
+```{r morbidite-sexe, fig.cap="Taux de morbidité par sexe – W4"}
+knitr::include_graphics(here("output", "figures", "Q13_morbidite_sexe.png"))
+```
+
+```{r morbidite-age, fig.cap="Taux de morbidité par groupe d'âge – W4"}
+knitr::include_graphics(here("output", "figures", "Q13_morbidite_age.png"))
+```
+
+```{r tab-morbidite}
+freq_sexe <- read.csv(here("output", "tables", "Q13_morbidite_sexe.csv"))
+knitr::kable(freq_sexe %>%
+               mutate(prop    = round(prop * 100, 1),
+                      ic_bas  = round(ic_bas * 100, 1),
+                      ic_haut = round(ic_haut * 100, 1)) %>%
+               select(sexe, n, n_malade, prop, ic_bas, ic_haut),
+             col.names = c("Sexe", "Effectif", "Malades",
+                           "Taux (%)", "IC Bas (%)", "IC Haut (%)"),
+             caption = "Taux de morbidité par sexe avec IC à 95% – W4")
+```
+
+## Types de maladies déclarées (Question 14)
+
+```{r maladies, fig.cap="10 affections les plus fréquentes – W4"}
+knitr::include_graphics(here("output", "figures", "Q14_types_maladies.png"))
+```
+
+```{r tab-maladies}
+top10 <- read.csv(here("output", "tables", "Q14_top10_maladies.csv"))
+knitr::kable(top10 %>%
+               arrange(desc(n)) %>%
+               mutate(pct = round(n / sum(n) * 100, 1)),
+             col.names = c("Code maladie", "Catégorie", "Effectif", "Part (%)"),
+             caption = "Top 10 des affections déclarées – W4")
+```
+
+Les maladies infectieuses dominent largement les affections déclarées,
+ce qui reflète les conditions sanitaires et environnementales du Nigeria.
+
+## Recours aux soins par type de prestataire (Question 15)
+
+```{r prestataires, fig.cap="Recours aux soins par type de prestataire – W4"}
+knitr::include_graphics(here("output", "figures", "Q15_prestataires.png"))
+```
+
+```{r tab-presta}
+freq_presta <- read.csv(here("output", "tables", "Q15_prestataires.csv"))
+knitr::kable(freq_presta %>%
+               mutate(prop = round(n / sum(n) * 100, 1)) %>%
+               arrange(desc(n)),
+             col.names = c("Type de prestataire", "Effectif", "Proportion (%)"),
+             caption = "Fréquence du recours aux soins par prestataire – W4")
+```
+
+## Distribution des dépenses de santé (Question 16)
+
+```{r hist-dep, fig.cap="Distribution des dépenses de santé (échelle log) – W4"}
+knitr::include_graphics(here("output", "figures",
+                             "Q16_histogramme_depenses.png"))
+```
+
+```{r boxplot-dep, fig.cap="Dépenses de santé par prestataire – W4"}
+knitr::include_graphics(here("output", "figures",
+                             "Q16_boxplot_depenses_presta.png"))
+```
+
+```{r tab-decile}
+stats_decile <- read.csv(here("output", "tables",
+                              "Q16_stats_decile_depenses.csv"))
+knitr::kable(stats_decile,
+             col.names = c("Décile", "Valeur (FCFA)"),
+             caption = "Statistiques des dépenses de santé par décile – W4")
+```
+
+La distribution des dépenses de santé est fortement asymétrique à droite,
+avec une majorité de ménages ayant des dépenses faibles et quelques ménages
+supportant des dépenses très élevées.
+
+## Recours aux soins selon le quintile de consommation (Question 17)
+
+```{r recours-quintile, fig.cap="Recours aux soins par quintile de consommation – W4"}
+knitr::include_graphics(here("output", "figures", "Q17_recours_quintile.png"))
+```
+
+```{r chi2-quintile}
+tab_q17 <- read.csv(here("output", "tables",
+                         "Q17_contingence_recours_quintile.csv"))
+knitr::kable(tab_q17,
+             caption = "Tableau de contingence recours aux soins × quintile – W4")
+```
+
+```{r test-quintile}
+df_recours <- df_sante_b %>%
+  mutate(
+    consulte = case_when(
+      as.numeric(s3q50) != 5 ~ "Consulté",
+      as.numeric(s3q50) == 5 ~ "Non consulté",
+      TRUE                   ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(consulte))
+
+df_q17 <- df_recours %>%
+  left_join(cons_agg_w4 %>% select(hhid, totcons), by = "hhid") %>%
+  filter(!is.na(totcons)) %>%
+  mutate(quintile = paste0("Q", ntile(totcons, 5)))
+
+tab <- table(df_q17$quintile, df_q17$consulte)
+
+if (any(tab < 5)) {
+  test <- fisher.test(tab, simulate.p.value = TRUE)
+  cat("Test exact de Fisher (effectifs < 5)\n")
+  cat("p-valeur =", format(test$p.value, digits = 4), "\n")
+} else {
+  chi2 <- chisq.test(tab)
+  v_cramer <- sqrt(chi2$statistic /
+                     (sum(tab) * (min(dim(tab)) - 1)))
+  cat("Test du chi-deux\n")
+  cat("Chi2 =", round(chi2$statistic, 3), "\n")
+  cat("p-valeur =", format(chi2$p.value, digits = 4), "\n")
+  cat("V de Cramér =", round(v_cramer, 3), "\n")
+  cat("Conclusion :", ifelse(chi2$p.value < 0.05,
+      "Association significative entre recours aux soins et quintile (p < 0.05).",
+      "Pas d'association significative (p > 0.05)."))
+}
+```
+
+## Dépenses médianes de santé rural/urbain (Question 18)
+
+```{r violin, fig.cap="Dépenses de santé par zone rurale/urbaine – W4"}
+knitr::include_graphics(here("output", "figures",
+                             "Q18_violin_depenses_zone.png"))
+```
+
+```{r wilcox-zone}
+df_q18 <- df_sante_b %>%
+  filter(!is.na(s3q50)) %>%
+  mutate(depense = rowSums(across(starts_with("s3q51_")), na.rm = TRUE)) %>%
+  filter(depense > 0) %>%
+  mutate(zone_label = case_when(
+    as.numeric(zone) == 1 ~ "Urbain",
+    as.numeric(zone) == 2 ~ "Rural"
+  )) %>%
+  filter(!is.na(zone_label))
+
+wilcox_res <- wilcox.test(depense ~ zone_label, data = df_q18)
+
+stats_zone <- df_q18 %>%
+  group_by(zone_label) %>%
+  summarise(
+    n       = n(),
+    mediane = median(depense),
+    moyenne = round(mean(depense), 1),
+    .groups = "drop"
+  )
+
+knitr::kable(stats_zone,
+             col.names = c("Zone", "Effectif", "Médiane", "Moyenne"),
+             caption = "Dépenses de santé par zone – W4")
+
+cat("\nTest de Wilcoxon-Mann-Whitney\n")
+cat("W =", wilcox_res$statistic, "\n")
+cat("p-valeur =", format(wilcox_res$p.value, digits = 4), "\n")
+cat("Conclusion :", ifelse(wilcox_res$p.value < 0.05,
+    "Différence significative entre rural et urbain (p < 0.05).",
+    "Pas de différence significative (p > 0.05)."))
+```
+
+---
+
+# Conclusion
+
+Cette analyse de l'accès aux soins de santé des ménages nigérians révèle :
+
+1. **Morbidité** : Les taux de morbidité varient significativement selon
+le sexe et le groupe d'âge. Les personnes âgées et les enfants sont
+les plus vulnérables aux épisodes de maladie.
+
+2. **Types de maladies** : Les maladies infectieuses dominent les affections
+déclarées, reflétant les conditions environnementales et sanitaires du pays.
+
+3. **Recours aux soins** : Une part importante des malades ne consulte
+aucun prestataire, ce qui traduit des barrières financières et géographiques
+à l'accès aux soins.
+
+4. **Dépenses de santé** : La distribution des dépenses est très inégale.
+Les ménages les plus riches consultent davantage et dans des structures
+plus coûteuses que les ménages pauvres.
+
+5. **Disparités rural/urbain** : Les dépenses médianes de santé sont
+significativement différentes entre zones rurales et urbaines, avec les
+ménages urbains dépensant davantage pour leur santé.
+
+---
+
+# Références
+
+- World Bank LSMS-ISA. *Nigeria General Household Survey Panel 2010-2018*.
+  [https://microdata.worldbank.org](https://microdata.worldbank.org)
+- R Core Team (2025). *R: A language and environment for statistical computing*.
+- Wickham H. et al. (2019). *Welcome to the tidyverse*. Journal of Open Source Software.
