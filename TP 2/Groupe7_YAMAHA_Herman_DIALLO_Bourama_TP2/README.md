@@ -56,13 +56,13 @@ Ce projet s'inscrit dans le cadre du cours de **Projet Statistique sous R et Pyt
 Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP2/
 │
 ├── main.R                                          # Point d'entrée — orchestre les scripts
-├── Groupe7_YAMAHA_Herman_DIALLO_Bourama.Rproj
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama.Rproj      # Le ficher Rproj
 │
 ├── scripts/
 │   ├── 01_import_nettoyage.R                       # Import, jointure pondérations, construction niveau_educ
 │   └── 02_statistiques_graphiques.R                # Statistiques + graphiques + Excel
 │
-├── data/
+├── data/                                           # Ce dossier se crée automatiquement lors de l'exécution du main.R
 │   ├── raw/                                        # VIDE — fichiers téléchargés automatiquement depuis GitHub
 │   └── processed/                                  # Objets .rds intermédiaires (wt_wave4 inclus)
 │
