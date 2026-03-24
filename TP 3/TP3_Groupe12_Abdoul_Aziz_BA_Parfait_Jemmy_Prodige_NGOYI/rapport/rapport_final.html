@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr" xml:lang="fr"><head>
 
 <meta charset="utf-8">
 <meta name="generator" content="quarto-1.6.42">
@@ -8,7 +8,6 @@
 
 <meta name="author" content="Abdoul Aziz BA">
 <meta name="author" content="Parfait Jemmy Prodige NGOYI">
-<meta name="dcterms.date" content="2026-03-17">
 
 <title>Analyse 3 - Acces aux soins et depenses de sante</title>
 <style>
@@ -45,48 +44,58 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
   <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
+    <h2 id="toc-title">Table des matières</h2>
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
-  <li><a href="#methodologie" id="toc-methodologie" class="nav-link" data-scroll-target="#methodologie"><span class="header-section-number">2</span> Methodologie</a>
+  <li><a href="#méthodologie" id="toc-méthodologie" class="nav-link" data-scroll-target="#méthodologie"><span class="header-section-number">2</span> Méthodologie</a>
   <ul class="collapse">
-  <li><a href="#sources-de-donnees" id="toc-sources-de-donnees" class="nav-link" data-scroll-target="#sources-de-donnees"><span class="header-section-number">2.1</span> Sources de donnees</a></li>
+  <li><a href="#sources-de-données" id="toc-sources-de-données" class="nav-link" data-scroll-target="#sources-de-données"><span class="header-section-number">2.1</span> Sources de données</a></li>
   <li><a href="#variables-analysees" id="toc-variables-analysees" class="nav-link" data-scroll-target="#variables-analysees"><span class="header-section-number">2.2</span> Variables analysees</a></li>
   <li><a href="#methodes-statistiques" id="toc-methodes-statistiques" class="nav-link" data-scroll-target="#methodes-statistiques"><span class="header-section-number">2.3</span> Methodes statistiques</a></li>
   </ul></li>
-  <li><a href="#question-13---taux-de-morbidite" id="toc-question-13---taux-de-morbidite" class="nav-link" data-scroll-target="#question-13---taux-de-morbidite"><span class="header-section-number">3</span> Question 13 - Taux de morbidite</a>
+  <li><a href="#question-13---taux-de-morbidité" id="toc-question-13---taux-de-morbidité" class="nav-link" data-scroll-target="#question-13---taux-de-morbidité"><span class="header-section-number">3</span> Question 13 - Taux de morbidité</a>
   <ul class="collapse">
   <li><a href="#resultats" id="toc-resultats" class="nav-link" data-scroll-target="#resultats"><span class="header-section-number">3.1</span> Resultats</a></li>
-  <li><a href="#interpretation" id="toc-interpretation" class="nav-link" data-scroll-target="#interpretation"><span class="header-section-number">3.2</span> Interpretation</a></li>
+  <li><a href="#interprétation" id="toc-interprétation" class="nav-link" data-scroll-target="#interprétation"><span class="header-section-number">3.2</span> Interprétation</a></li>
   </ul></li>
-  <li><a href="#question-14---types-de-maladies-declarees" id="toc-question-14---types-de-maladies-declarees" class="nav-link" data-scroll-target="#question-14---types-de-maladies-declarees"><span class="header-section-number">4</span> Question 14 - Types de maladies declarees</a>
+  <li><a href="#question-14---types-de-maladies-déclarées" id="toc-question-14---types-de-maladies-déclarées" class="nav-link" data-scroll-target="#question-14---types-de-maladies-déclarées"><span class="header-section-number">4</span> Question 14 - Types de maladies déclarées</a>
   <ul class="collapse">
   <li><a href="#resultats-1" id="toc-resultats-1" class="nav-link" data-scroll-target="#resultats-1"><span class="header-section-number">4.1</span> Resultats</a></li>
-  <li><a href="#interpretation-1" id="toc-interpretation-1" class="nav-link" data-scroll-target="#interpretation-1"><span class="header-section-number">4.2</span> Interpretation</a></li>
+  <li><a href="#interprétation-1" id="toc-interprétation-1" class="nav-link" data-scroll-target="#interprétation-1"><span class="header-section-number">4.2</span> Interprétation</a></li>
   </ul></li>
   <li><a href="#question-15---recours-aux-soins" id="toc-question-15---recours-aux-soins" class="nav-link" data-scroll-target="#question-15---recours-aux-soins"><span class="header-section-number">5</span> Question 15 - Recours aux soins</a>
   <ul class="collapse">
   <li><a href="#resultats-2" id="toc-resultats-2" class="nav-link" data-scroll-target="#resultats-2"><span class="header-section-number">5.1</span> Resultats</a></li>
-  <li><a href="#interpretation-2" id="toc-interpretation-2" class="nav-link" data-scroll-target="#interpretation-2"><span class="header-section-number">5.2</span> Interpretation</a></li>
+  <li><a href="#interprétation-2" id="toc-interprétation-2" class="nav-link" data-scroll-target="#interprétation-2"><span class="header-section-number">5.2</span> Interprétation</a></li>
   </ul></li>
-  <li><a href="#question-16---distribution-des-depenses-de-sante" id="toc-question-16---distribution-des-depenses-de-sante" class="nav-link" data-scroll-target="#question-16---distribution-des-depenses-de-sante"><span class="header-section-number">6</span> Question 16 - Distribution des depenses de sante</a>
+  <li><a href="#question-16---distribution-des-dépenses-de-santé" id="toc-question-16---distribution-des-dépenses-de-santé" class="nav-link" data-scroll-target="#question-16---distribution-des-dépenses-de-santé"><span class="header-section-number">6</span> Question 16 - Distribution des dépenses de santé</a>
   <ul class="collapse">
   <li><a href="#resultats-3" id="toc-resultats-3" class="nav-link" data-scroll-target="#resultats-3"><span class="header-section-number">6.1</span> Resultats</a></li>
   <li><a href="#statistiques-par-decile" id="toc-statistiques-par-decile" class="nav-link" data-scroll-target="#statistiques-par-decile"><span class="header-section-number">6.2</span> Statistiques par decile</a></li>
-  <li><a href="#interpretation-3" id="toc-interpretation-3" class="nav-link" data-scroll-target="#interpretation-3"><span class="header-section-number">6.3</span> Interpretation</a></li>
+  <li><a href="#interprétation-3" id="toc-interprétation-3" class="nav-link" data-scroll-target="#interprétation-3"><span class="header-section-number">6.3</span> Interprétation</a></li>
   </ul></li>
   <li><a href="#question-17---recours-aux-soins-x-quintile" id="toc-question-17---recours-aux-soins-x-quintile" class="nav-link" data-scroll-target="#question-17---recours-aux-soins-x-quintile"><span class="header-section-number">7</span> Question 17 - Recours aux soins x Quintile</a>
   <ul class="collapse">
   <li><a href="#resultats-4" id="toc-resultats-4" class="nav-link" data-scroll-target="#resultats-4"><span class="header-section-number">7.1</span> Resultats</a></li>
-  <li><a href="#interpretation-4" id="toc-interpretation-4" class="nav-link" data-scroll-target="#interpretation-4"><span class="header-section-number">7.2</span> Interpretation</a></li>
+  <li><a href="#interprétation-4" id="toc-interprétation-4" class="nav-link" data-scroll-target="#interprétation-4"><span class="header-section-number">7.2</span> Interprétation</a></li>
   </ul></li>
-  <li><a href="#question-18---depenses-de-sante-rural-vs-urbain" id="toc-question-18---depenses-de-sante-rural-vs-urbain" class="nav-link" data-scroll-target="#question-18---depenses-de-sante-rural-vs-urbain"><span class="header-section-number">8</span> Question 18 - Depenses de sante Rural vs Urbain</a>
+  <li><a href="#question-18---depenses-de-santé-rural-vs-urbain" id="toc-question-18---depenses-de-santé-rural-vs-urbain" class="nav-link" data-scroll-target="#question-18---depenses-de-santé-rural-vs-urbain"><span class="header-section-number">8</span> Question 18 - Depenses de santé Rural vs Urbain</a>
   <ul class="collapse">
   <li><a href="#resultats-5" id="toc-resultats-5" class="nav-link" data-scroll-target="#resultats-5"><span class="header-section-number">8.1</span> Resultats</a></li>
-  <li><a href="#interpretation-5" id="toc-interpretation-5" class="nav-link" data-scroll-target="#interpretation-5"><span class="header-section-number">8.2</span> Interpretation</a></li>
+  <li><a href="#interprétation-5" id="toc-interprétation-5" class="nav-link" data-scroll-target="#interprétation-5"><span class="header-section-number">8.2</span> Interprétation</a></li>
   </ul></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">9</span> Conclusion</a></li>
+  <li><a href="#analyses-pondérées" id="toc-analyses-pondérées" class="nav-link" data-scroll-target="#analyses-pondérées"><span class="header-section-number">9</span> Analyses pondérées</a>
+  <ul class="collapse">
+  <li><a href="#q13-pondéré-taux-de-morbidité" id="toc-q13-pondéré-taux-de-morbidité" class="nav-link" data-scroll-target="#q13-pondéré-taux-de-morbidité"><span class="header-section-number">9.1</span> Q13 pondéré — Taux de morbidité</a></li>
+  <li><a href="#interprétation-q13-pondéré" id="toc-interprétation-q13-pondéré" class="nav-link" data-scroll-target="#interprétation-q13-pondéré"><span class="header-section-number">9.2</span> Interprétation Q13 pondéré</a></li>
+  <li><a href="#q15-pondéré-recours-aux-soins" id="toc-q15-pondéré-recours-aux-soins" class="nav-link" data-scroll-target="#q15-pondéré-recours-aux-soins"><span class="header-section-number">9.3</span> Q15 pondéré — Recours aux soins</a></li>
+  <li><a href="#interprétation-q15-pondéré" id="toc-interprétation-q15-pondéré" class="nav-link" data-scroll-target="#interprétation-q15-pondéré"><span class="header-section-number">9.4</span> Interprétation Q15 pondéré</a></li>
+  <li><a href="#q17-pondéré-recours-aux-soins-quintile" id="toc-q17-pondéré-recours-aux-soins-quintile" class="nav-link" data-scroll-target="#q17-pondéré-recours-aux-soins-quintile"><span class="header-section-number">9.5</span> Q17 pondéré — Recours aux soins × Quintile</a></li>
+  <li><a href="#interprétation-q17-pondéré" id="toc-interprétation-q17-pondéré" class="nav-link" data-scroll-target="#interprétation-q17-pondéré"><span class="header-section-number">9.6</span> Interprétation Q17 pondéré</a></li>
+  <li><a href="#q18-pondéré-dépenses-santé-rural-vs-urbain" id="toc-q18-pondéré-dépenses-santé-rural-vs-urbain" class="nav-link" data-scroll-target="#q18-pondéré-dépenses-santé-rural-vs-urbain"><span class="header-section-number">9.7</span> Q18 pondéré — Dépenses santé Rural vs Urbain</a></li>
+  <li><a href="#interprétation-q18-pondéré" id="toc-interprétation-q18-pondéré" class="nav-link" data-scroll-target="#interprétation-q18-pondéré"><span class="header-section-number">9.8</span> Interprétation Q18 pondéré</a></li>
+  </ul></li>
   </ul>
 </nav>
 </div>
@@ -103,7 +112,7 @@ ul.task-list li input[type="checkbox"] {
 <div class="quarto-title-meta">
 
     <div>
-    <div class="quarto-title-meta-heading">Authors</div>
+    <div class="quarto-title-meta-heading">Auteur·rice·s</div>
     <div class="quarto-title-meta-contents">
              <p>Abdoul Aziz BA </p>
              <p>Parfait Jemmy Prodige NGOYI </p>
@@ -111,9 +120,9 @@ ul.task-list li input[type="checkbox"] {
   </div>
     
     <div>
-    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-heading">Date de publication</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">March 17, 2026</p>
+      <p class="date">23 mars 2026</p>
     </div>
   </div>
   
@@ -127,35 +136,35 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="introduction" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
-<p>Ce rapport analyse les episodes de maladie, les types de soins consultes et les couts de sante supportes par les menages nigerians a partir du Nigeria General Household Survey (GHS) Panel Wave 4 (2018). Les donnees couvrent <strong>26 556 individus</strong> issus de menages urbains et ruraux.</p>
+<p>Ce rapport analyse les épisodes de maladie, les types de soins consultes et les couts de santé supportes par les menages nigerians a partir du Nigeria General Household Survey (GHS) Panel Wave 4 (2018). Les données couvrent <strong>26 556 individus</strong> issus de menages urbains et ruraux.</p>
 </section>
-<section id="methodologie" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> Methodologie</h1>
-<section id="sources-de-donnees" class="level2" data-number="2.1">
-<h2 data-number="2.1" class="anchored" data-anchor-id="sources-de-donnees"><span class="header-section-number">2.1</span> Sources de donnees</h2>
+<section id="méthodologie" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Méthodologie</h1>
+<section id="sources-de-données" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="sources-de-données"><span class="header-section-number">2.1</span> Sources de données</h2>
 <p>Le Nigeria GHS Panel est une enquete longitudinale conduite par le National Bureau of Statistics (NBS) du Nigeria en partenariat avec la Banque Mondiale (LSMS-ISA). La Wave 4 couvre la periode 2018-2019.</p>
 </section>
 <section id="variables-analysees" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="variables-analysees"><span class="header-section-number">2.2</span> Variables analysees</h2>
 <div class="cell">
 <div class="cell-output-display">
-<div id="ueunuznyxp" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#ueunuznyxp table {
+<div id="rmsjlnhvdb" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#rmsjlnhvdb table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#ueunuznyxp thead, #ueunuznyxp tbody, #ueunuznyxp tfoot, #ueunuznyxp tr, #ueunuznyxp td, #ueunuznyxp th {
+#rmsjlnhvdb thead, #rmsjlnhvdb tbody, #rmsjlnhvdb tfoot, #rmsjlnhvdb tr, #rmsjlnhvdb td, #rmsjlnhvdb th {
   border-style: none;
 }
 
-#ueunuznyxp p {
+#rmsjlnhvdb p {
   margin: 0;
   padding: 0;
 }
 
-#ueunuznyxp .gt_table {
+#rmsjlnhvdb .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -181,12 +190,12 @@ ul.task-list li input[type="checkbox"] {
   border-left-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_caption {
+#rmsjlnhvdb .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#ueunuznyxp .gt_title {
+#rmsjlnhvdb .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -198,7 +207,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-width: 0;
 }
 
-#ueunuznyxp .gt_subtitle {
+#rmsjlnhvdb .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -210,7 +219,7 @@ ul.task-list li input[type="checkbox"] {
   border-top-width: 0;
 }
 
-#ueunuznyxp .gt_heading {
+#rmsjlnhvdb .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -222,13 +231,13 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_bottom_border {
+#rmsjlnhvdb .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_col_headings {
+#rmsjlnhvdb .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -243,7 +252,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_col_heading {
+#rmsjlnhvdb .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -263,7 +272,7 @@ ul.task-list li input[type="checkbox"] {
   overflow-x: hidden;
 }
 
-#ueunuznyxp .gt_column_spanner_outer {
+#rmsjlnhvdb .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -275,15 +284,15 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 4px;
 }
 
-#ueunuznyxp .gt_column_spanner_outer:first-child {
+#rmsjlnhvdb .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#ueunuznyxp .gt_column_spanner_outer:last-child {
+#rmsjlnhvdb .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#ueunuznyxp .gt_column_spanner {
+#rmsjlnhvdb .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -295,11 +304,11 @@ ul.task-list li input[type="checkbox"] {
   width: 100%;
 }
 
-#ueunuznyxp .gt_spanner_row {
+#rmsjlnhvdb .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#ueunuznyxp .gt_group_heading {
+#rmsjlnhvdb .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -325,7 +334,7 @@ ul.task-list li input[type="checkbox"] {
   text-align: left;
 }
 
-#ueunuznyxp .gt_empty_group_heading {
+#rmsjlnhvdb .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -340,15 +349,15 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 
-#ueunuznyxp .gt_from_md > :first-child {
+#rmsjlnhvdb .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#ueunuznyxp .gt_from_md > :last-child {
+#rmsjlnhvdb .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#ueunuznyxp .gt_row {
+#rmsjlnhvdb .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -367,7 +376,7 @@ ul.task-list li input[type="checkbox"] {
   overflow-x: hidden;
 }
 
-#ueunuznyxp .gt_stub {
+#rmsjlnhvdb .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -380,7 +389,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ueunuznyxp .gt_stub_row_group {
+#rmsjlnhvdb .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -394,15 +403,15 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: top;
 }
 
-#ueunuznyxp .gt_row_group_first td {
+#rmsjlnhvdb .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#ueunuznyxp .gt_row_group_first th {
+#rmsjlnhvdb .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#ueunuznyxp .gt_summary_row {
+#rmsjlnhvdb .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -412,16 +421,16 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ueunuznyxp .gt_first_summary_row {
+#rmsjlnhvdb .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_first_summary_row.thick {
+#rmsjlnhvdb .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#ueunuznyxp .gt_last_summary_row {
+#rmsjlnhvdb .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -431,7 +440,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_grand_summary_row {
+#rmsjlnhvdb .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -441,7 +450,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ueunuznyxp .gt_first_grand_summary_row {
+#rmsjlnhvdb .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -451,7 +460,7 @@ ul.task-list li input[type="checkbox"] {
   border-top-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_last_grand_summary_row_top {
+#rmsjlnhvdb .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -461,11 +470,11 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_striped {
+#rmsjlnhvdb .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#ueunuznyxp .gt_table_body {
+#rmsjlnhvdb .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -474,7 +483,7 @@ ul.task-list li input[type="checkbox"] {
   border-bottom-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_footnotes {
+#rmsjlnhvdb .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -488,7 +497,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_footnote {
+#rmsjlnhvdb .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -497,7 +506,7 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ueunuznyxp .gt_sourcenotes {
+#rmsjlnhvdb .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -511,7 +520,7 @@ ul.task-list li input[type="checkbox"] {
   border-right-color: #D3D3D3;
 }
 
-#ueunuznyxp .gt_sourcenote {
+#rmsjlnhvdb .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -519,72 +528,72 @@ ul.task-list li input[type="checkbox"] {
   padding-right: 5px;
 }
 
-#ueunuznyxp .gt_left {
+#rmsjlnhvdb .gt_left {
   text-align: left;
 }
 
-#ueunuznyxp .gt_center {
+#rmsjlnhvdb .gt_center {
   text-align: center;
 }
 
-#ueunuznyxp .gt_right {
+#rmsjlnhvdb .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#ueunuznyxp .gt_font_normal {
+#rmsjlnhvdb .gt_font_normal {
   font-weight: normal;
 }
 
-#ueunuznyxp .gt_font_bold {
+#rmsjlnhvdb .gt_font_bold {
   font-weight: bold;
 }
 
-#ueunuznyxp .gt_font_italic {
+#rmsjlnhvdb .gt_font_italic {
   font-style: italic;
 }
 
-#ueunuznyxp .gt_super {
+#rmsjlnhvdb .gt_super {
   font-size: 65%;
 }
 
-#ueunuznyxp .gt_footnote_marks {
+#rmsjlnhvdb .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#ueunuznyxp .gt_asterisk {
+#rmsjlnhvdb .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#ueunuznyxp .gt_indent_1 {
+#rmsjlnhvdb .gt_indent_1 {
   text-indent: 5px;
 }
 
-#ueunuznyxp .gt_indent_2 {
+#rmsjlnhvdb .gt_indent_2 {
   text-indent: 10px;
 }
 
-#ueunuznyxp .gt_indent_3 {
+#rmsjlnhvdb .gt_indent_3 {
   text-indent: 15px;
 }
 
-#ueunuznyxp .gt_indent_4 {
+#rmsjlnhvdb .gt_indent_4 {
   text-indent: 20px;
 }
 
-#ueunuznyxp .gt_indent_5 {
+#rmsjlnhvdb .gt_indent_5 {
   text-indent: 25px;
 }
 
-#ueunuznyxp .katex-display {
+#rmsjlnhvdb .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#ueunuznyxp div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#rmsjlnhvdb div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -700,11 +709,11 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </section>
 <section id="methodes-statistiques" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="methodes-statistiques"><span class="header-section-number">2.3</span> Methodes statistiques</h2>
-<p>Les analyses suivantes ont ete realisees : Taux de morbidite avec intervalles de confiance a 95%, test du Chi-deux et V de Cramer pour les associations, test de Wilcoxon pour la comparaison de medianes, et visualisations : barplots, histogrammes, violin plots.</p>
+<p>Les analyses suivantes ont ete réalisées : Taux de morbidité avec intervalles de confiance a 95%, test du Chi-deux et V de Cramer pour les associations, test de Wilcoxon pour la comparaison de médianes, et visualisations : barplots, histogrammes, violin plots.</p>
 </section>
 </section>
-<section id="question-13---taux-de-morbidite" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Question 13 - Taux de morbidite</h1>
+<section id="question-13---taux-de-morbidité" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Question 13 - Taux de morbidité</h1>
 <section id="resultats" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="resultats"><span class="header-section-number">3.1</span> Resultats</h2>
 <div class="cell">
@@ -717,13 +726,13 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </div>
 </div>
 </section>
-<section id="interpretation" class="level2" data-number="3.2">
-<h2 data-number="3.2" class="anchored" data-anchor-id="interpretation"><span class="header-section-number">3.2</span> Interpretation</h2>
-<p>Le taux de morbidite global est de <strong>9.31%</strong>. Les femmes (<strong>11.1%</strong>) sont plus touchees que les hommes (<strong>7.4%</strong>). Le taux augmente avec l’age, passant de <strong>5.7%</strong> chez les 0-14 ans a <strong>24%</strong> chez les 65 ans et plus.</p>
+<section id="interprétation" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="interprétation"><span class="header-section-number">3.2</span> Interprétation</h2>
+<p>Le taux de morbidité global est de <strong>9.31%</strong>. Les femmes (<strong>11.1%</strong>) sont plus touchees que les hommes (<strong>7.4%</strong>). Le taux augmente avec l’age, passant de <strong>5.7%</strong> chez les 0-14 ans a <strong>24%</strong> chez les 65 ans et plus.</p>
 </section>
 </section>
-<section id="question-14---types-de-maladies-declarees" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Question 14 - Types de maladies declarees</h1>
+<section id="question-14---types-de-maladies-déclarées" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Question 14 - Types de maladies déclarées</h1>
 <section id="resultats-1" class="level2" data-number="4.1">
 <h2 data-number="4.1" class="anchored" data-anchor-id="resultats-1"><span class="header-section-number">4.1</span> Resultats</h2>
 <div class="cell">
@@ -736,9 +745,9 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </div>
 </div>
 </section>
-<section id="interpretation-1" class="level2" data-number="4.2">
-<h2 data-number="4.2" class="anchored" data-anchor-id="interpretation-1"><span class="header-section-number">4.2</span> Interpretation</h2>
-<p>Le paludisme est la maladie la plus frequente avec <strong>2 039 cas (41.7%)</strong>. Les douleurs corporelles arrivent en 2eme position (1 411 cas). Les maladies infectieuses dominent le profil epidemiologique du Nigeria.</p>
+<section id="interprétation-1" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="interprétation-1"><span class="header-section-number">4.2</span> Interprétation</h2>
+<p>Le paludisme est la maladie la plus fréquente avec <strong>2 039 cas (41.7%)</strong>. Les douleurs corporelles arrivent en 2eme position (1 411 cas). Les maladies infectieuses dominent le profil epidemiologique du Nigeria.</p>
 </section>
 </section>
 <section id="question-15---recours-aux-soins" class="level1" data-number="5">
@@ -755,13 +764,13 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </div>
 </div>
 </section>
-<section id="interpretation-2" class="level2" data-number="5.2">
-<h2 data-number="5.2" class="anchored" data-anchor-id="interpretation-2"><span class="header-section-number">5.2</span> Interpretation</h2>
+<section id="interprétation-2" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="interprétation-2"><span class="header-section-number">5.2</span> Interprétation</h2>
 <p>Le chimiste est le prestataire le plus consulte (<strong>41.7%</strong>), suivi du medecin (<strong>20.7%</strong>). <strong>14.1%</strong> des individus malades n’ont consulte personne, soulignant les barrieres d’acces aux soins.</p>
 </section>
 </section>
-<section id="question-16---distribution-des-depenses-de-sante" class="level1" data-number="6">
-<h1 data-number="6"><span class="header-section-number">6</span> Question 16 - Distribution des depenses de sante</h1>
+<section id="question-16---distribution-des-dépenses-de-santé" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Question 16 - Distribution des dépenses de santé</h1>
 <section id="resultats-3" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="resultats-3"><span class="header-section-number">6.1</span> Resultats</h2>
 <div class="cell">
@@ -779,7 +788,7 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Depenses de sante par decile (Naira)</caption>
+<caption>Depenses de santé par decile (Naira)</caption>
 <thead>
 <tr class="header">
 <th style="text-align: right;">decile</th>
@@ -865,9 +874,9 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </div>
 </div>
 </section>
-<section id="interpretation-3" class="level2" data-number="6.3">
-<h2 data-number="6.3" class="anchored" data-anchor-id="interpretation-3"><span class="header-section-number">6.3</span> Interpretation</h2>
-<p>Les depenses de sante presentent une distribution fortement asymetrique. La mediane est de <strong>3 650 Naira</strong> avec <strong>494 valeurs aberrantes</strong>. Les depenses d’hospitalisation sont plus dispersees que les consultations.</p>
+<section id="interprétation-3" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="interprétation-3"><span class="header-section-number">6.3</span> Interprétation</h2>
+<p>Les dépenses de santé presentent une distribution fortement asymetrique. La médiane est de <strong>3 650 Naira</strong> avec <strong>494 valeurs aberrantes</strong>. Les dépenses d’hospitalisation sont plus dispersees que les consultations.</p>
 </section>
 </section>
 <section id="question-17---recours-aux-soins-x-quintile" class="level1" data-number="7">
@@ -930,13 +939,13 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </div>
 </div>
 </section>
-<section id="interpretation-4" class="level2" data-number="7.2">
-<h2 data-number="7.2" class="anchored" data-anchor-id="interpretation-4"><span class="header-section-number">7.2</span> Interpretation</h2>
+<section id="interprétation-4" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="interprétation-4"><span class="header-section-number">7.2</span> Interprétation</h2>
 <p>Le test du Chi-deux est significatif (<strong>p = 0.003</strong>), indiquant une association entre le recours aux soins et le quintile de consommation. Le V de Cramer (<strong>0.056</strong>) revele une association faible. Les menages les plus pauvres ont legerement moins recours aux soins.</p>
 </section>
 </section>
-<section id="question-18---depenses-de-sante-rural-vs-urbain" class="level1" data-number="8">
-<h1 data-number="8"><span class="header-section-number">8</span> Question 18 - Depenses de sante Rural vs Urbain</h1>
+<section id="question-18---depenses-de-santé-rural-vs-urbain" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Question 18 - Depenses de santé Rural vs Urbain</h1>
 <section id="resultats-5" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="resultats-5"><span class="header-section-number">8.1</span> Resultats</h2>
 <div class="cell">
@@ -957,23 +966,130 @@ N = 2,744<span class="gt_footnote_marks" style="white-space:nowrap;font-style:it
 </div>
 </div>
 </section>
-<section id="interpretation-5" class="level2" data-number="8.2">
-<h2 data-number="8.2" class="anchored" data-anchor-id="interpretation-5"><span class="header-section-number">8.2</span> Interpretation</h2>
-<p>Le test de Wilcoxon (<strong>p = 0.794</strong>) ne montre pas de difference significative des depenses de sante entre zones rurales et urbaines. Le violin plot confirme des distributions similaires dans les deux zones.</p>
+<section id="interprétation-5" class="level2" data-number="8.2">
+<h2 data-number="8.2" class="anchored" data-anchor-id="interprétation-5"><span class="header-section-number">8.2</span> Interprétation</h2>
+<p>Le test de Wilcoxon (<strong>p = 0.794</strong>) ne montre pas de difference significative des dépenses de santé entre zones rurales et urbaines. Le violin plot confirme des distributions similaires dans les deux zones.</p>
 </section>
 </section>
-<section id="conclusion" class="level1" data-number="9">
-<h1 data-number="9"><span class="header-section-number">9</span> Conclusion</h1>
-<p>Cette analyse des donnees de sante du Nigeria GHS Panel Wave 4 revele :</p>
+<section id="analyses-pondérées" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Analyses pondérées</h1>
+<p>Les analyses précédentes ne tenaient pas compte du plan de sondage. Nous intégrons ici les pondérations pour obtenir des estimations représentatives de la population nigériane.</p>
+<section id="q13-pondéré-taux-de-morbidité" class="level2" data-number="9.1">
+<h2 data-number="9.1" class="anchored" data-anchor-id="q13-pondéré-taux-de-morbidité"><span class="header-section-number">9.1</span> Q13 pondéré — Taux de morbidité</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rapport_final_files/figure-html/q13-pond-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="interprétation-q13-pondéré" class="level2" data-number="9.2">
+<h2 data-number="9.2" class="anchored" data-anchor-id="interprétation-q13-pondéré"><span class="header-section-number">9.2</span> Interprétation Q13 pondéré</h2>
+<p>Le taux de morbidité pondéré global est de <strong>8.66%</strong> contre <strong>9.31%</strong> sans pondération. Les femmes restent plus touchées (<strong>10.4%</strong>) que les hommes (<strong>7.4%</strong>). Le taux augmente avec l’âge atteignant <strong>25.2%</strong> chez les 65 ans et plus.</p>
+</section>
+<section id="q15-pondéré-recours-aux-soins" class="level2" data-number="9.3">
+<h2 data-number="9.3" class="anchored" data-anchor-id="q15-pondéré-recours-aux-soins"><span class="header-section-number">9.3</span> Q15 pondéré — Recours aux soins</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rapport_final_files/figure-html/q15-pond-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="interprétation-q15-pondéré" class="level2" data-number="9.4">
+<h2 data-number="9.4" class="anchored" data-anchor-id="interprétation-q15-pondéré"><span class="header-section-number">9.4</span> Interprétation Q15 pondéré</h2>
+<p>Après pondération le chimiste reste le prestataire le plus consulté. Les estimations pondérées sont plus représentatives de la population nigériane que les fréquences brutes.</p>
+</section>
+<section id="q17-pondéré-recours-aux-soins-quintile" class="level2" data-number="9.5">
+<h2 data-number="9.5" class="anchored" data-anchor-id="q17-pondéré-recours-aux-soins-quintile"><span class="header-section-number">9.5</span> Q17 pondéré — Recours aux soins × Quintile</h2>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Tableau de contingence pondéré recours x quintile</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Non consulte</td>
+<td style="text-align: right;">37237345</td>
+<td style="text-align: right;">26796001</td>
+<td style="text-align: right;">22182645</td>
+<td style="text-align: right;">17094457</td>
+<td style="text-align: right;">10644168</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Consulte</td>
+<td style="text-align: right;">2772143</td>
+<td style="text-align: right;">2190515</td>
+<td style="text-align: right;">2320530</td>
+<td style="text-align: right;">2012905</td>
+<td style="text-align: right;">1502694</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Chi-deux pondéré: 7.048 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>p-value: 0 </code></pre>
+</div>
+</div>
+</section>
+<section id="interprétation-q17-pondéré" class="level2" data-number="9.6">
+<h2 data-number="9.6" class="anchored" data-anchor-id="interprétation-q17-pondéré"><span class="header-section-number">9.6</span> Interprétation Q17 pondéré</h2>
+<p>Le test du Chi-deux pondéré confirme l’association entre recours aux soins et quintile de consommation. Les estimations pondérées sont plus précises car elles tiennent compte du plan de sondage.</p>
+</section>
+<section id="q18-pondéré-dépenses-santé-rural-vs-urbain" class="level2" data-number="9.7">
+<h2 data-number="9.7" class="anchored" data-anchor-id="q18-pondéré-dépenses-santé-rural-vs-urbain"><span class="header-section-number">9.7</span> Q18 pondéré — Dépenses santé Rural vs Urbain</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rapport_final_files/figure-html/q18-pond-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Wilcoxon pondéré W: 0 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>p-value: 0.9825 </code></pre>
+</div>
+</div>
+</section>
+<section id="interprétation-q18-pondéré" class="level2" data-number="9.8">
+<h2 data-number="9.8" class="anchored" data-anchor-id="interprétation-q18-pondéré"><span class="header-section-number">9.8</span> Interprétation Q18 pondéré</h2>
+<p>Le test de Wilcoxon pondéré confirme l’absence de différence significative des dépenses de santé entre zones rurales et urbaines. Les résultats sont robustes après prise en compte des pondérations. # Conclusion</p>
+<p>Cette analyse des données de santé du Nigeria GHS Panel Wave 4 revele :</p>
 <ul>
-<li>Un taux de morbidite global de <strong>9.31%</strong>, plus eleve chez les femmes et les personnes agees</li>
+<li>Un taux de morbidité global de <strong>9.31%</strong>, plus eleve chez les femmes et les personnes agees</li>
 <li>Le <strong>paludisme</strong> comme principale affection (<strong>41.7%</strong> des cas)</li>
 <li>Le <strong>chimiste</strong> comme premier recours aux soins (<strong>41.7%</strong>)</li>
 <li><strong>14.1%</strong> des malades ne consultent personne</li>
 <li>Un lien significatif mais faible entre richesse et recours aux soins</li>
-<li>Pas de difference significative des depenses entre zones rurales et urbaines</li>
+<li>Pas de difference significative des dépenses entre zones rurales et urbaines</li>
 </ul>
 <p>Ces resultats soulignent la necessite de renforcer l’acces aux soins formels et de lutter contre le paludisme au Nigeria.</p>
+</section>
 </section>
 
 </main>
@@ -1021,12 +1137,12 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // flash "checked"
     button.classList.add('code-copy-button-checked');
     var currentTitle = button.getAttribute("title");
-    button.setAttribute("title", "Copied!");
+    button.setAttribute("title", "Copié");
     let tooltip;
     if (window.bootstrap) {
       button.setAttribute("data-bs-toggle", "tooltip");
       button.setAttribute("data-bs-placement", "left");
-      button.setAttribute("data-bs-title", "Copied!");
+      button.setAttribute("data-bs-title", "Copié");
       tooltip = new bootstrap.Tooltip(button, 
         { trigger: "manual", 
           customClass: "code-copy-button-tooltip",
