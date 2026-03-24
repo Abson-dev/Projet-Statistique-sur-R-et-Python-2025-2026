@@ -6,6 +6,7 @@
 
 library(haven)
 library(dplyr)
+library(sjlabelled)
 
 # --- Chargement -------------------------------------------
 sect1_w4 <- read_dta("data/raw/sect1_harvestw4.dta")
@@ -19,6 +20,7 @@ sum(is.na(sect1_w4$s1q2))
 table(secta_w4$zone)
 unique(secta_w4$zone)
 unique(sect1_w4$s1q3)
+get_label(secta_w4)
 
 # --- Nettoyage sect1 ---------------------------------------------------------
 
@@ -61,7 +63,7 @@ cat("Lignes après nettoyage :", nrow(sect1_clean), "\n")
 
 # --- Nettoyage secta (zone, état, LGA) ---------------------------------------
 secta_clean <- secta_w4 |>
-  select(hhid, zone, state, lga) |>
+  select(hhid, zone, state, lga, wt_wave4, sector) |>
   mutate(
     zone = factor(
       zone,
@@ -70,12 +72,14 @@ secta_clean <- secta_w4 |>
                  "Sud-Est","Sud-Sud","Sud-Ouest")
     ),
     
-    zone1 = case_when(
-      zone %in% c("Centre-Nord","Nord-Est","Nord-Ouest") ~ "Nord",
-      zone %in% c("Sud-Est","Sud-Sud","Sud-Ouest") ~ "Sud"
+    zone1 = factor(
+      sector,
+      levels = c(1,2),
+      labels = c("Urban","Rural")
     ),
     
-    zone1 = factor(zone1, levels = c("Nord","Sud"))
+    
+    poids_menage = as.numeric(wt_wave4)
   ) |>
   distinct(hhid, .keep_all = TRUE)
 
@@ -94,6 +98,8 @@ sum(is.na(taille_menage$taille_menage))
 data_tp1 <- sect1_clean |>
   left_join(secta_clean,   by = "hhid") |>
   left_join(taille_menage, by = "hhid")
+
+data_tp1 <- data_tp1 |> mutate(poids_individu = poids_menage*taille_menage)
 
 cat("Dimensions du fichier final :", dim(data_tp1), "\n")
 glimpse(data_tp1)

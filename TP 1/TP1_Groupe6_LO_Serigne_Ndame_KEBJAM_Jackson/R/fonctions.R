@@ -13,20 +13,26 @@ library(moments)
 #' @param var_name Nom affiché dans le tableau résultat
 #' @return data.frame une ligne avec toutes les stats
 # -----------------------------------------------------------------------------
-stats_descriptives <- function(x, var_name = "variable") {
-  x <- x[!is.na(x)]
+stats_descriptives <- function(x, poids, var_name = "variable") {
+  
+  data <- data.frame(x = x, w = poids) |>
+    dplyr::filter(!is.na(x), !is.na(w))
+  
+  m <- weighted.mean(data$x, data$w)
+  sd_w <- sqrt(weighted.mean((data$x - m)^2, data$w))
+  
   data.frame(
     variable   = var_name,
-    n          = length(x),
-    moyenne    = round(mean(x), 2),
-    mediane    = round(median(x), 2),
-    Q1         = round(quantile(x, 0.25), 2),
-    Q3         = round(quantile(x, 0.75), 2),
-    ecart_type = round(sd(x), 2),
-    CV_pct     = round(sd(x) / mean(x) * 100, 2),
-    asymetrie  = round(skewness(x), 3),
-    min        = round(min(x), 2),
-    max        = round(max(x), 2)
+    n          = sum(data$w),  # effectif pondéré
+    moyenne    = round(m, 2),
+    mediane    = round(Hmisc::wtd.quantile(data$x, weights = data$w, probs = 0.5), 2),
+    Q1         = round(Hmisc::wtd.quantile(data$x, weights = data$w, probs = 0.25), 2),
+    Q3         = round(Hmisc::wtd.quantile(data$x, weights = data$w, probs = 0.75), 2),
+    ecart_type = round(sd_w, 2),
+    CV_pct     = round(sd_w / m * 100, 2),
+    asymetrie  = round(moments::skewness(data$x), 3), # ⚠️ non pondéré (voir note)
+    min        = round(min(data$x), 2),
+    max        = round(max(data$x), 2)
   )
 }
 
@@ -46,7 +52,9 @@ effet_wilcoxon_r <- function(wilcox_result, n1, n2) {
   
   Z <- (W - mu) / sigma
   
-  r <- Z / sqrt(n1 + n2)
+  # Prendre la valeur absolue pour r
+  r <- abs(Z) / sqrt(n1 + n2)   # ← CORRECTION : r toujours positif
+  
   interpretation <- dplyr::case_when(
     r < 0.1 ~ "négligeable",
     r < 0.3 ~ "petit",
@@ -56,6 +64,22 @@ effet_wilcoxon_r <- function(wilcox_result, n1, n2) {
   cat("Taille d'effet r =", round(r, 3), "→ effet", interpretation, "\n")
   invisible(r)
 }
+
+# -----------------------------------------------------------------------------
+#' IC 95% de proportion par groupe (binom.test)
+calc_ic_proportion <- function(data, group_var, success_var) {
+  data |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(group_var))) |>
+    dplyr::summarise(
+      n_total  = dplyr::n(),
+      n_succes = sum(.data[[success_var]], na.rm = TRUE),
+      taux     = n_succes / n_total * 100,
+      ic_lo    = binom.test(n_succes, n_total)$conf.int[1] * 100,
+      ic_hi    = binom.test(n_succes, n_total)$conf.int[2] * 100,
+      .groups  = "drop"
+    )
+}
+
 
 # -----------------------------------------------------------------------------
 #' Sauvegarde un graphique ggplot dans output/figures/

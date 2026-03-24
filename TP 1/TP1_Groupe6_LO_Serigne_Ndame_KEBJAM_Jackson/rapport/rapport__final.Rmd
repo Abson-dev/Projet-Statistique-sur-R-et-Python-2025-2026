@@ -1,0 +1,396 @@
+---
+title: "TP1 — Profil démographique des ménages nigérians"
+author: "Groupe 6 : LO Serigne Ndame et KEBJAM Jackson, élève en ISE 1 — 2025-2026"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    fig_width: 10
+    fig_height: 6
+    df_print: paged
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+subtitle: Nigeria General Household Survey (GHS) Panel | Wave 4 (2018)
+header-includes: \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = F,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
+)
+
+# Packages
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(apyramid)
+library(naniar)
+library(gtsummary)
+library(rstatix)
+library(patchwork)
+library(moments)
+library(writexl)
+library(gt)
+library(survey)   # Pour les designs pondérés
+library(Hmisc)    # Pour wtd.mean, wtd.quantile
+
+setwd("C:/Users/kebja/Documents/KEBJAM/ISE1_2/10_R_ET_PYTHON(2)/Groupe6_LO_Serigne_Ndame_KEBJAM_Jackson")
+
+# Fonctions personnalisées
+source("R/fonctions.R")
+
+# Données nettoyées
+data_tp1      <- readRDS("data/processed/data_tp1_clean.rds")
+taille_menage <- readRDS("data/processed/taille_menage.rds")
+```
+
+---
+
+
+
+# Introduction
+
+Ce rapport analyse le profil démographique des ménages nigérians à partir de la vague 4 (2018) du Nigeria General Household Survey (GHS) Panel, programme LSMS-ISA de la Banque Mondiale. L'objectif est de décrire la composition des ménages enquêtés à travers les variables d'âge, de sexe, de lien de parenté avec le chef de ménage, et de comparer les disparités entre les grandes régions du pays. L'échantillon mobilisé comprend `r format(nrow(data_tp1), big.mark = " ")` observations individuelles, issues de `r format(n_distinct(data_tp1$hhid), big.mark = " ")` ménages, permettant une analyse robuste de la structure démographique nationale.
+
+
+# Exploration et qualité des données {#exploration}
+
+## Structure du fichier
+
+L'examen de la structure des données confirme la présence de toutes les variables nécessaires à l'analyse : identifiants ménage et individu, âge, sexe, lien de parenté, et zone géographique. Les types de variables sont correctement définis pour les traitements à venir.
+
+```{r structure}
+#glimpse(data_tp1)
+```
+
+## Valeurs manquantes
+
+La visualisation des valeurs manquantes révèle un taux de 12,5% d'âges non renseignés, concentrés sur certains ménages sans motif systématique apparent. Ce taux, bien que non négligeable, n'introduit pas de biais majeur pour les analyses comparatives.
+
+```{r manquants, fig.height=4, fig.width=7, fig.cap=" Carte des valeurs manquantes "}
+vis_miss(data_tp1, warn_large_data = FALSE)
+```
+
+
+## Vérification des doublons
+
+```{r doublons}
+doublons <- data_tp1 |>
+  group_by(hhid, indiv) |>
+  filter(n() > 1)
+
+cat("Nombre de doublons sur hhid + indiv_id :", nrow(doublons))
+```
+
+Aucun doublon n'est détecté sur la clé d'identification unique hhid + indiv. Chaque individu est donc représenté une seule fois dans la base, garantissant la fiabilité des effectifs.
+
+
+# Analyse univariée de l'âge {#age}
+
+## Statistiques descriptives
+
+L'âge moyen des membres des ménages est de 21,37 ans, avec une médiane nettement inférieure à 15 ans. Le coefficient de variation atteint 85% , traduisant une forte hétérogénéité de la structure par âge au sein de la population enquêtée.
+
+```{r stats-age}
+stats_age <- stats_descriptives(data_tp1$age, data_tp1$poids_individu, "Âge")
+knitr::kable(stats_age, 
+             caption = "Tableau 2 — Statistiques descriptives de l'âge des membres ",
+             digits  = 2)
+```
+
+
+
+## Histogramme et boîte à moustaches
+
+L'histogramme présente un pic marqué dans la tranche des 5-10 ans, suivi d'une décroissance progressive. Le boxplot place la médiane à 18 ans et révèle de nombreuses valeurs extrêmes au-delà de 70 ans, illustrant la cohabitation multi-générationnelle caractéristique des ménages nigérians.
+
+```{r graphiques-hist, fig.height=2.5, fig.width=7, fig.cap=" Distribution de l'âge (histogramme)", fig.pos='H'}
+p_hist <- ggplot(data_tp1[!is.na(data_tp1$age), ], aes(x = age, weight = poids_individu)) +
+  geom_histogram(binwidth = 5, fill = "#2166ac", color = "white", alpha = 0.85) +
+  labs(
+    subtitle    = "Distribution de l'âge des membres des ménages (2018)",
+    x        = "Âge (années)", y = "Effectif"
+  ) +
+  theme_minimal(base_size = 13)
+
+p_hist
+```
+
+```{r graphiques-age, fig.height=3, fig.width=7, fig.cap=" Distribution de l'âge (boxplot)", fig.pos='H'}
+p_box <- ggplot(data_tp1[!is.na(data_tp1$age), ], aes(x = age, weight = poids_individu)) +
+  geom_boxplot(fill = "#4dac26", alpha = 0.7,
+               outlier.colour = "red", outlier.size = 1.5) +
+  labs(subtitle = "Boxplot de l'âge", y = "Âge (années)") +
+  theme_minimal(base_size = 13)
+
+p_box
+```
+
+
+## Test de normalité Shapiro-Wilk
+
+Le test de Shapiro-Wilk effectué sur un échantillon aléatoire de 5 000 individus rejette l'hypothèse de normalité (W = 0,898 ; p < 0,001). Cette non-normalité justifie le recours aux tests non paramétriques pour l'ensemble des comparaisons inter-groupes.
+
+```{r shapiro}
+set.seed(42)
+n_dispo    <- sum(!is.na(data_tp1$age))
+age_sample <- sample(na.omit(data_tp1$age), min(5000, n_dispo))
+shapiro_res <- shapiro.test(age_sample)
+
+cat("W =", round(shapiro_res$statistic, 4), 
+    "| p-value =", format(shapiro_res$p.value, scientific = TRUE, digits = 3))
+```
+
+
+# Pyramide des âges par sexe {#pyramide}
+
+La pyramide des âges présente une base très large qui se rétrécit rapidement, caractéristique d'une population jeune en forte croissance démographique. La tranche des 0-14 ans constitue la part la plus importante de la population enquêtée, tandis que les individus de 60 ans et plus sont très faiblement représentés, conformément à l'espérance de vie nationale au Nigéria (54,18 ans en 2018). La répartition hommes/femmes reste presque équilibrée à tous les âges.
+
+```{r pyramide, fig.height=5, fig.width=7, fig.cap=" Pyramide des âges par sexe (groupes quinquennaux) GHS Nigeria 2018", fig.pos='H'}
+data_pyramide <- data_tp1 |>
+  filter(!is.na(sexe), !is.na(groupe_age))
+
+age_pyramid(
+  data      = data_pyramide,
+  age_group = "groupe_age",
+  split_by  = "sexe",
+) +
+  labs(
+    subtitle    = "Pyramide des âges — GHS Nigeria  (2018)",
+    x        = "Effectif", y = "Groupe d'âge", fill = "Sexe"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+
+
+# Lien de parenté avec le chef de ménage {#parente}
+
+## Fréquences et intervalles de confiance à 95 %
+
+Les enfants constituent la catégorie dominante avec 62,9% des membres, confirmant la structure démographique jeune observée précédemment. Les  conjoints représentent 15,4% des individus, suivis des chefs de ménage avec 13,3% , tandis que les autres membres de la famille élargie totalisent 8,3% de l'échantillon.
+
+```{r lien-freq}
+# Calcul des proportions pondérées
+freq_lien <- data_tp1 |>
+  filter(!is.na(lien_parente)) |>
+  group_by(lien_parente) |>
+  summarise(
+    effectif_pondere = sum(poids_individu, na.rm = TRUE),  # Somme des poids
+    .groups = "drop"
+  ) |>
+  mutate(
+    proportion = effectif_pondere / sum(effectif_pondere) * 100,
+    proportion_brute = effectif_pondere / sum(effectif_pondere) * 100  # à conserver
+  ) |>
+  arrange(desc(proportion))
+
+# Nombre total pondéré
+total_pondere <- sum(freq_lien$effectif_pondere)
+
+# Calcul des intervalles de confiance avec pondération
+# Méthode : approximation normale avec effet de sondage
+freq_lien <- freq_lien |>
+  mutate(
+    # Erreur standard de la proportion pondérée
+    se = sqrt(proportion/100 * (1 - proportion/100) / total_pondere),
+    # IC à 95% avec approximation normale
+    ic_lo = (proportion - 1.96 * se * 100) |> pmax(0),
+    ic_hi = (proportion + 1.96 * se * 100) |> pmin(100)
+  )
+
+# Affichage du tableau
+knitr::kable(
+  freq_lien |>
+    mutate(
+      effectif_pondere = round(effectif_pondere, 0),
+      proportion = round(proportion, 1),
+      ic_lo = round(ic_lo, 1),
+      ic_hi = round(ic_hi, 1)
+    ) |>
+    select(lien_parente, effectif_pondere, proportion, ic_lo, ic_hi),
+  col.names = c("Lien de parenté", "Effectif pondéré", "Proportion (%)", 
+                "IC 95% borne inf.", "IC 95% borne sup."),
+  caption = "Tableau 3 — Répartition des membres par lien de parenté avec IC à 95% (pondéré)"
+)
+```
+
+## Diagramme en barres horizontales
+
+La hiérarchie des liens de parenté montre que le noyau familial restreint (chef, conjoint et enfants) regroupe plus de 90% des individus. Cette répartition est caractéristique des ménages ouest-africains, où la cellule familiale de base cohabite fréquemment avec des membres de la famille élargie.
+
+```{r lien-plot, fig.height=2, fig.width=6, fig.cap=" Lien de parenté avec le chef de ménage (ordonné par fréquence)"}
+ggplot(freq_lien, aes(x = reorder(lien_parente, proportion, weight = poids_individu), y = proportion)) +
+  geom_col(fill = "blue", alpha = 0.8) +
+  geom_errorbar(aes(ymin = ic_lo, ymax = ic_hi), width = 0.2, color = "black") +
+  geom_text(aes(label = paste0(round(proportion, 1), "%")),
+            hjust = -0.2, size = 4) +
+  coord_flip() +
+  labs(
+    subtitle = "Lien de parenté avec le chef de ménage — IC 95%",
+    x = NULL, y = "Proportion (%)"
+  ) +
+  theme_minimal(base_size = 10)
+```
+
+
+# Taille des ménages selon le zones {#taille}
+
+Afin de permettre les comparaisons statistiques, les six zones géopolitiques du Nigeria ont été regroupées en deux grandes régions : le Nord (Nord-Ouest, Nord-Est, Nord-Centre) et le Sud (Sud-Ouest, Sud-Est, Sud-Sud). Ce regroupement offre une puissance statistique suffisante pour les tests tout en préservant la lisibilité des résultats.
+
+
+
+```{r  taille-plot1,echo=FALSE, include=TRUE, fig.height=3, fig.width=6, fig.cap=" Distribution de la taille des ménages selon la zone de résidence ", fig.pos='H'}
+taille_zone <- taille_menage |>
+  left_join(data_tp1 |> distinct(hhid, zone, poids_menage), by = "hhid") |>
+  filter(!is.na(zone))
+
+ggplot(taille_zone, aes(x = zone, weight = poids_menage, y = taille_menage, fill = zone)) +
+  geom_boxplot(alpha = 0.75, outlier.colour = "red", outlier.size = 1.5) +
+  scale_fill_manual(values = c("Centre-Nord" = "yellow", "Nord-Est" = "blue", "Nord-Ouest" = "#762a83", "Sud-Est"= "green", "Sud-Sud" = "#102a03", "Sud-Ouest" = "#1b7837")) +
+  labs(
+    subtitle = "Taille des ménages selon la zone de résidence",
+    x = NULL, y = "Nombre de membres"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+```
+
+## Boxplot comparatif
+
+La distribution de la taille des ménages diffère sensiblement entre les deux milieux. La médiane s'établit à 6 personnes dans le milieu rural contre 5 personnes dans le milieu urbain.
+
+```{r  taille-plot,echo=FALSE, include=TRUE, fig.height=3, fig.width=6, fig.cap=" Distribution de la taille des ménages selon la zone de résidence ", fig.pos='H'}
+taille_zone1 <- taille_menage |>
+  left_join(data_tp1 |> distinct(hhid, zone1, poids_menage), by = "hhid") |>
+  filter(!is.na(zone1))
+
+ggplot(taille_zone1, aes(x = zone1, weight = poids_menage, y = taille_menage, fill = zone1)) +
+  geom_boxplot(alpha = 0.75, outlier.colour = "red", outlier.size = 1.5) +
+  scale_fill_manual(values = c("Rural" = "blue", "Urban"= "green")) +
+  labs(
+    subtitle = "Taille des ménages selon la zone de résidence",
+    x = NULL, y = "Nombre de membres"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+```
+
+## Test de Wilcoxon-Mann-Whitney
+ 
+ H0 : les distributions des deux groupes sont identiques
+ 
+ H1 : les distributions sont différentes
+ 
+```{r wilcoxon}
+wilcox_res <- wilcox.test(taille_menage ~ zone1, data = taille_zone1, exact = FALSE)
+
+n_rural  <- sum(taille_zone1$zone1 == "Rural",  na.rm = TRUE)
+n_urbain <- sum(taille_zone1$zone1 == "Urban", na.rm = TRUE)
+r_effet  <- effet_wilcoxon_r(wilcox_res, n_rural, n_urbain)
+
+cat("Test de Wilcoxon-Mann-Whitney\n")
+cat("W =", wilcox_res$statistic,
+    "| p-value =", format(wilcox_res$p.value, scientific = TRUE, digits = 3), "\n")
+cat("Taille d'effet r =", round(r_effet, 3))
+```
+
+Le test de Wilcoxon confirme une différence hautement significative entre les deux régions (W = 4 139 322 ; p < 0,001). La taille d'effet (r = 0,117) indique un effet petit.
+
+# Tableau récapitulatif par zone {#tableau}
+
+Le tableau comparatif Nord/Sud synthétise les principales différences démographiques :
+
+- Âge : la population du Sud (médiane 21 ans) est significativement plus âgée que celle du Nord (médiane 16 ans), avec p < 0,001
+
+- Sexe : la répartition hommes/femmes est équilibrée dans les deux régions, sans différence significative (p = 0,4)
+
+- Taille du ménage : les ménages dans le milieu rural sont significativement plus grands (médiane 10) que ceux dans le milieu urbain (médiane 8), avec p = 0,001
+
+```{r gtsummary, echo=FALSE, include=TRUE}
+# Charger les packages
+library(gtsummary)
+library(survey)
+
+# ============================================================
+# 1. PRÉPARATION DES DONNÉES - FILTRER TOUS LES NA
+# ============================================================
+
+data_tableau <- data_tp1 |>
+  mutate(
+    # Variable de zone (rural/urbain)
+    zone = zone1,
+    # S'assurer que sexe est un facteur
+    sexe = factor(sexe, levels = c("Homme", "Femme")),
+    # S'assurer que la taille du ménage est numérique
+    taille_menage = as.numeric(taille_menage)
+  ) |>
+  # Filtrer TOUS les NA pour les variables d'intérêt ET les poids
+  filter(
+    !is.na(zone),
+    !is.na(age),
+    !is.na(sexe),
+    !is.na(taille_menage),
+    !is.na(poids_individu)   # ← AJOUT : filtrer les poids manquants
+  )
+
+# Vérifier qu'il n'y a plus de NA
+cat("NA restants dans poids_individu:", sum(is.na(data_tableau$poids_individu)), "\n")
+cat("Effectif final:", nrow(data_tableau), "\n")
+
+# ============================================================
+# 2. TABLEAU AVEC gtsummary ET PONDÉRATION
+# ============================================================
+
+# Créer un design d'enquête pour les individus
+design_individus <- svydesign(
+  ids = ~hhid,                    # Grappe = ménage
+  weights = ~poids_individu,      # Poids des individus
+  data = data_tableau,
+  nest = TRUE
+)
+
+# Tableau avec pondération
+tableau_demo_pondere <- tbl_svysummary(
+  design_individus,
+  by = zone,
+  include = c(age, sexe, taille_menage),
+  label = list(
+    age ~ "Âge (années)",
+    sexe ~ "Sexe",
+    taille_menage ~ "Taille du ménage"
+  ),
+  statistic = list(
+    all_continuous() ~ "{mean} ({sd}) | médiane : {median} [{p25}, {p75}]",
+    all_categorical() ~ "{n} ({p}%)"
+  ),
+  missing = "ifany"
+) |>
+  add_p() |>           # Tests pondérés (svychisq, svyttest)
+  add_overall() |>     # Colonne Total
+  bold_labels() |>     # Labels en gras
+  modify_caption("**Tableau 1 — Statistiques démographiques par zone (pondéré)**")
+
+# Afficher
+tableau_demo_pondere
+```
+
+---
+
+# Conclusion {#conclusion}
+
+L'analyse révèle une population jeune (âge médian 15 ans) dominée par les enfants (62%) , avec des disparités régionales significatives : les ménages du rural sont plus grands (10 personnes) que les ménage du milieu urbain (8 personnes) et plus jeunes que ceux du milieu urbain (p < 0,001).
+
+
