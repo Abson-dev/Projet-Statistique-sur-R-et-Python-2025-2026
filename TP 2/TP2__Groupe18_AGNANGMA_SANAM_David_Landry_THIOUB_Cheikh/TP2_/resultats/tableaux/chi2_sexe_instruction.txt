@@ -1,0 +1,6 @@
+
+	Pearson's Chi-squared test
+
+data:  tab_contingence
+X-squared = 87.092, df = 4, p-value < 2.2e-16
+
