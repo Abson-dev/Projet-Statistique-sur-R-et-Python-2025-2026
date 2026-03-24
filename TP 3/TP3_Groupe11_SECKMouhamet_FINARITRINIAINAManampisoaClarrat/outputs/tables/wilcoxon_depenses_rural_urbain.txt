@@ -1,7 +1,0 @@
-
-	Wilcoxon rank sum test with continuity correction
-
-data:  dep_sante_totale by sector
-W = 1193038, p-value = 0.004665
-alternative hypothesis: true location shift is not equal to 0
-
