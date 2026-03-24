@@ -1,5 +1,4 @@
-# TP 3 :  Accès aux services de santé et chocs sanitaires des 
-ménages  
+# TP 3 :  Accès aux services de santé et chocs sanitaires des ménages  
 
 Ce TP est pour le compte du cours intitulé **Projet Statistique avec R & Python**, dispensé par M. Aboubacar HEMA qui est research scientist à IFPRI.
 
@@ -63,9 +62,9 @@ GROUPE16_TP3_LESLYE_NKWA_KEITA_LANCINA/
 │   ├── raw
 ├── docs/
 │   ├── LSMS_Integrated_Panel_Survey_Report-14-27.pdf   # Rapport officiel page 14 à 21
-│   ├── rapport.docx
+│   ├── rapport.docx   # Rapport final
 │   ├── rapport.Rmd
-│   ├── reference.docx # styles prédéfinis
+│   ├── reference.docx  # styles prédéfinis
 ├── outputs/
 │   ├── figures
 │   ├── tables
