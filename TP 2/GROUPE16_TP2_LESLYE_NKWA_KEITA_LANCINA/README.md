@@ -4,19 +4,19 @@ Ce TP est pour le compte du cours intitulé **Projet Statistique avec R & Python
 
 **Auteurs**: Nkwa Tsamo Lelsye et KEITA Lancina, ISE1
 
-## Source de données
+## 1.Source de données
 
 Les données mobilisées sont les bases `sect2_harvestw4.dta` , `sect1_harvestw4.dta` et `secta_harvestw4.dta`. Toutes provienent du **Nigeria General Household Survey Panel Wave 4 (2018-2019)**, collectées par le National Bureau of Statistics (NBS) en collaboration avec la Banque Mondiale (programme LSMS-ISA).
 
 Pour des soucis de légèreté, les données ont été placées dans le `gitignore`.
 Vous pouvez accéder aux données via le catalogue  <https://microdata.worldbank.org/index.php/catalog/3557> de la banque mondiale.
 
-## Objectifs de ce TP
+## 2.Objectifs de ce TP
 
 1. Etudier le niveau d’éducation de la population nigériane en incluant les pondérations. 
 2. Etudier le taux de scolarisation de la meme facon et produire la heatmap des taux d'analphabétisme par État.
 
-## Reproductibilité
+## 3.Reproductibilité
 ### Étape 1 : Cloner le dépôt
 
 ```bash
@@ -53,7 +53,7 @@ Ce script :
 - Exécute `analyses.R` : analyses statistiques, tests, visualisations
 - Termine par Knit le `rapport.Rmd` en word complet et stylisé selon les conventions des instituts nationaux.
 
-## Structure locale du projet 
+## 4.Structure locale du projet 
 ```
 GROUPE16_TP2_LESLYE_NKWA_KEITA_LANCINA/
 ├── data/
@@ -80,10 +80,10 @@ GROUPE16_TP2_LESLYE_NKWA_KEITA_LANCINA/
 ├── TP2_REPRISE.Rproj
 ├── README.md
 ```
-## Key Messages
+## 5.Key Messages
 
 Les résultats princpaux sont dans la section *Messages clés* du rapport.docx
 
-## Crédit
+## 6.Crédit
 
 ENSAE de Dakar.
