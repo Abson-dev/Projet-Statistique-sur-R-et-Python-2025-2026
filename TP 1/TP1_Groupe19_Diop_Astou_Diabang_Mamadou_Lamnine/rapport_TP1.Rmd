@@ -1,0 +1,373 @@
+---
+title: ""
+output:
+  officedown::rdocx_document:
+    reference_docx: null
+    page_size:
+      width: 8.27
+      height: 11.69
+    page_margins:
+      top: 1.0
+      bottom: 1.0
+      left: 1.18
+      right: 1.18
+---
+
+```{r setup, include=FALSE}
+library(officedown)
+library(officer)
+library(flextable)
+library(knitr)
+
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  dpi = 150
+)
+
+# Interligne 1.5 pour tout le document
+knitr::opts_knit$set(officedown.line_spacing = 1.5)
+
+IMG <- "images"
+img <- function(f) file.path(IMG, f)
+```
+
+```{r pg-ansd}
+flextable(data.frame(x = "ANSD")) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("Agence Nationale de la Statistique et de la Démographie",
+             props = fp_text(bold = TRUE, color = "#1F4E79",
+                             font.size = 14, font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  border_remove() |>
+  delete_part(part = "header") |>
+  width(width = 5.9) |>
+  padding(padding.top = 2, padding.bottom = 2, part = "body") |>
+  set_table_properties(layout = "fixed")
+```
+
+```{r logo-ansd, fig.width=1.25, fig.height=1.13, fig.align='center'}
+include_graphics(img("image1.png"))
+```
+
+```{r pg-ensae}
+flextable(data.frame(x = "ENSAE")) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("École Nationale de la Statistique et de l'Analyse Économique",
+             props = fp_text(bold = TRUE, color = "#1F4E79",
+                             font.size = 14, font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  border_remove() |>
+  delete_part(part = "header") |>
+  width(width = 5.9) |>
+  padding(padding.top = 2, padding.bottom = 2, part = "body") |>
+  set_table_properties(layout = "fixed")
+```
+
+```{r logo-ensae, fig.width=1.78, fig.height=1.32, fig.align='center'}
+include_graphics(img("image2.png"))
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+```{r bloc-titre}
+ft_titre <- flextable(data.frame(x = c("t", "b", "s1", "s2"))) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("Traitement statistique avec R",
+             props = fp_text(bold = TRUE, color = "white",
+                             font.size = 22, font.family = "Arial")))) |>
+  compose(i = 2, j = 1, value = as_paragraph(
+    as_chunk("  TP1  ",
+             props = fp_text(bold = TRUE, color = "#1F3864",
+                             font.size = 12, font.family = "Arial",
+                             shading.color = "#BDD7EE")))) |>
+  compose(i = 3, j = 1, value = as_paragraph(
+    as_chunk("Analyse du profil démographique des ménages nigérians :",
+             props = fp_text(color = "white", font.size = 13,
+                             font.family = "Arial")))) |>
+  compose(i = 4, j = 1, value = as_paragraph(
+    as_chunk("une exploration descriptive à partir des données du GHS Panel",
+             props = fp_text(color = "white", font.size = 13,
+                             font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  bg(i = c(1, 2, 3, 4), bg = "#1F3864", part = "body") |>
+  bg(i = 2, bg = "#1F3864", part = "body") |>
+  border_remove() |>
+  width(width = 5.9) |>
+  delete_part(part = "header") |>
+  padding(i = 1, padding.top = 20, padding.bottom = 8, part = "body") |>
+  padding(i = 2, padding.top = 6, padding.bottom = 6, part = "body") |>
+  padding(i = 3, padding.top = 8, padding.bottom = 4, part = "body") |>
+  padding(i = 4, padding.top = 4, padding.bottom = 20, part = "body") |>
+  set_table_properties(layout = "fixed")
+ft_titre
+```
+
+&nbsp;
+
+&nbsp;
+
+```{r bloc-auteurs}
+bord <- fp_border(color = "#1F3864", width = 1)
+ft_aut <- flextable(data.frame(x = 1:4)) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("Auteurs : Diop Astou & Mamadou Lamine Diabang",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  compose(i = 2, j = 1, value = as_paragraph(
+    as_chunk("Filière : ISE1 – CL",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  compose(i = 3, j = 1, value = as_paragraph(
+    as_chunk("Professeur : Monsieur Aboubacar Hema",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  compose(i = 4, j = 1, value = as_paragraph(
+    as_chunk("Année académique : 2025/2026",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  border_outer(border = bord, part = "body") |>
+  border_inner_h(border = bord, part = "body") |>
+  width(width = 5.9) |>
+  delete_part(part = "header") |>
+  padding(padding.top = 8, padding.bottom = 8, part = "body") |>
+  set_table_properties(layout = "fixed")
+ft_aut
+```
+
+`r run_pagebreak()`
+
+**Introduction**
+
+L'analyse du profil démographique des ménages constitue une étape essentielle dans la compréhension des dynamiques socio-économiques d'une population. Les caractéristiques démographiques influencent fortement les comportements économiques, les conditions de vie et les perspectives de développement.
+
+Dans ce travail pratique, nous exploitons les données issues du **Nigeria General Household Survey Panel (GHS Panel)** couvrant quatre vagues d'enquête : **Wave 1 (2010), Wave 2 (2012), Wave 3 (2015) et Wave 4 (2018)**.
+
+Plusieurs variables démographiques sont mobilisées dans cette étude, notamment :
+
+- **l'âge des individus ;**
+- **le sexe ;**
+- **le statut matrimonial ;**
+- **le lien de parenté avec le chef de ménage ;**
+- **la taille du ménage ;**
+- **le milieu de résidence (urbain ou rural).**
+
+L'objectif de ce travail est d'analyser les principales caractéristiques démographiques des ménages nigérians ainsi que leur évolution au cours des différentes vagues de l'enquête.
+
+**I. Vérification de la qualité des variables**
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r heatmap-na, fig.width=3.09, fig.height=2.38}
+include_graphics(img("image3.png"))
+```
+
+`r run_columnbreak()`
+
+Avant d'entreprendre l'analyse statistique, il est nécessaire de vérifier la qualité des variables utilisées. Cette étape permet d'identifier d'éventuelles valeurs manquantes ou incohérentes susceptibles d'affecter la fiabilité des résultats.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+`r run_pagebreak()`
+
+**II. Analyse des profils démographiques en 2018**
+
+**1) Analyse descriptive univariée**
+
+**Distribution de l'âge**
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r age-histo-box, fig.width=3.09, fig.height=3.30}
+include_graphics(img("image4.png"))
+```
+
+`r run_columnbreak()`
+
+Le graphique met en évidence une forte concentration des individus dans les classes d'âge les plus jeunes.
+
+La moyenne d'âge est d'environ 23 ans tandis que la médiane est d'environ 17 ans. Le fait que la moyenne soit supérieure à la médiane indique une distribution asymétrique vers la droite. Cela signifie que la population comprend un grand nombre de jeunes individus et un nombre relativement plus faible d'individus très âgés.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Structure par sexe**
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r camembert-sexe, fig.width=3.09, fig.height=2.47}
+include_graphics(img("image5_camembert.png"))
+```
+
+`r run_columnbreak()`
+
+*L'analyse de la structure par sexe permet d'évaluer l'équilibre démographique entre les hommes et les femmes dans la population étudiée. Les résultats indiquent une répartition relativement équilibrée entre les deux sexes.*
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Distribution du statut matrimonial**
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r statut-mat, fig.width=3.09, fig.height=2.35}
+include_graphics(img("image6_hist.png"))
+```
+
+`r run_columnbreak()`
+
+On observe généralement que les catégories correspondant aux individus célibataires et mariés représentent les proportions les plus importantes de la population.
+
+Les catégories correspondant aux individus divorcés ou veufs apparaissent généralement moins représentées.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Distribution du lien de parenté avec le chef de ménage**
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r lien-barplot, fig.width=3.09, fig.height=2.61}
+include_graphics(img("image7_barplot.png"))
+```
+
+`r run_columnbreak()`
+
+L'analyse du lien de parenté permet de comprendre la structure interne des ménages. Les résultats montrent que les enfants du chef de ménage représentent une proportion importante des individus vivant dans les ménages.
+
+Cela reflète l'importance des relations intergénérationnelles dans la composition des ménages.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**2) Analyse bivariée**
+
+**Sexe et âge : pyramide des âges**
+
+La pyramide des âges permet d'examiner simultanément la distribution de la population selon l'âge et le sexe.
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r pyramide-w4, fig.width=3.09, fig.height=3.38}
+include_graphics(img("image8.png"))
+```
+
+`r run_columnbreak()`
+
+La forme de la pyramide observée confirme la présence d'une base relativement large, indiquant une forte proportion de jeunes individus dans la population.
+
+La comparaison entre les deux côtés de la pyramide montre que la distribution par sexe reste relativement équilibrée à la plupart des âges, même si de légères différences peuvent apparaître dans certaines classes d'âge.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Taille des ménages et milieu de résidence**
+
+L'analyse conjointe de la taille des ménages et du milieu de résidence permet d'identifier d'éventuelles différences entre les zones urbaines et rurales.
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r violin-taille, fig.width=3.09, fig.height=3.98}
+include_graphics(img("image9_violin.png"))
+```
+
+`r run_columnbreak()`
+
+Le graphique suggère que les ménages vivant en milieu rural ont tendance à présenter des tailles plus élevées que ceux résidant en milieu urbain. Cette différence peut s'expliquer par plusieurs facteurs, notamment la prévalence des structures familiales élargies en zone rurale ainsi que la présence d'activités économiques agricoles nécessitant parfois une main-d'œuvre familiale plus importante.
+
+À l'inverse, les ménages urbains sont souvent plus restreints, ce qui peut être lié au coût de la vie plus élevé dans les villes ainsi qu'à des modes de vie différents.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+`r run_pagebreak()`
+
+**III. Évolution des caractéristiques démographiques entre W1, W2, W3 et W4**
+
+**1) Évolution de la distribution des âges**
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r pyramides-4-vagues, fig.width=3.09, fig.height=4.45}
+include_graphics(img("image10.png"))
+```
+
+`r run_columnbreak()`
+
+L'analyse de l'évolution de la distribution des âges au cours des différentes vagues de l'enquête permet d'identifier certaines tendances démographiques.
+
+Le graphique montre que la structure d'âge de la population reste globalement stable entre les différentes vagues. La population demeure majoritairement jeune, ce qui confirme la persistance d'une dynamique démographique caractérisée par une forte proportion d'individus appartenant aux classes d'âge les plus basses.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Évolution du taux de féminisation selon le milieu**
+
+L'analyse du taux de féminisation permet d'examiner l'évolution de la proportion de femmes dans la population selon le milieu de résidence.
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r evol-feminisation, fig.width=3.09, fig.height=2.50}
+include_graphics(img("image11.png"))
+```
+
+`r run_columnbreak()`
+
+Les résultats montrent que les proportions d'hommes et de femmes restent relativement stables au fil des vagues de l'enquête. Cependant, de légères variations peuvent apparaître entre les zones urbaines et rurales.
+
+Ces différences peuvent refléter certains phénomènes migratoires, notamment les migrations internes liées aux opportunités économiques.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Évolution du statut matrimonial**
+
+L'évolution du statut matrimonial au cours des différentes vagues permet d'observer les transformations dans les structures familiales.
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r evol-statut-mat, fig.width=3.09, fig.height=1.60}
+include_graphics(img("image12.png"))
+```
+
+`r run_columnbreak()`
+
+On constate que la distribution des différentes catégories matrimoniales reste globalement stable dans le temps, ce qui suggère une certaine continuité dans les comportements matrimoniaux au sein de la population étudiée.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+**Évolution du lien de parenté**
+
+L'évolution du lien de parenté permet d'examiner si la composition interne des ménages a connu des transformations au cours du temps.
+
+```{r evol-lien, fig.width=5.61, fig.height=2.22, fig.align='center'}
+include_graphics(img("image13.png"))
+```
+
+Les résultats montrent que la structure des ménages reste relativement stable entre les différentes vagues de l'enquête. Les catégories correspondant aux chefs de ménage et aux enfants demeurent les plus représentées.
+
+**Évolution de la taille médiane des ménages selon le milieu**
+
+L'évolution de la taille médiane des ménages permet d'examiner les changements dans les structures familiales.
+
+<!---BLOCK_MULTICOL_START--->
+
+```{r evol-taille, fig.width=3.09, fig.height=1.54}
+include_graphics(img("image14.png"))
+```
+
+`r run_columnbreak()`
+
+Le graphique suggère que la taille médiane des ménages varie légèrement au cours du temps. Toutefois, les différences entre les zones urbaines et rurales semblent persister, les ménages ruraux conservant généralement une taille plus importante que les ménages urbains.
+
+<!---BLOCK_MULTICOL_STOP{widths: [3.09, 2.52], space: 0.3, sep: false}--->
+
+
+**Conclusion**
+
+L'analyse du profil démographique des ménages nigérians met en évidence plusieurs caractéristiques importantes de la population étudiée.
+
+La structure d'âge révèle une population relativement jeune, caractérisée par une forte proportion d'individus appartenant aux classes d'âge les plus basses. La distribution par sexe apparaît globalement équilibrée, tandis que l'analyse du statut matrimonial et du lien de parenté met en évidence la diversité des structures familiales.
+
+Enfin, l'analyse de l'évolution des caractéristiques démographiques entre les différentes vagues de l'enquête montre que la structure générale de la population reste relativement stable au cours du temps.
+
+Ces résultats constituent une base importante pour des analyses plus approfondies portant sur les conditions de vie, la pauvreté ou encore les dynamiques économiques des ménages.
