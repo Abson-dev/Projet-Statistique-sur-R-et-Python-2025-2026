@@ -1,0 +1,155 @@
+---
+title: "Profil démographique des ménages nigérians"
+author: "Parfait Jemmy Prodige NGOYI, Analyste statisticien"
+date: "`r Sys.Date()`"
+output: word_document
+---
+Note: Tous les résultats présentés dans ce rapport sont obtenus après traitement des données.
+
+I. ANALYSE UNIVARIEE DE L'AGE DES MEMBRES
+
+```{r}
+stats_age
+```
+Interpretation: 
+
+L’âge moyen des individus est de 23,97 ans, soit environ 24 ans. L’âge médian est de 18 ans, ce qui signifie que la moitié des individus ont moins de 18 ans. Le premier quartile (Q1) est de 8 ans, indiquant que 25% des individus ont moins de 8 ans. Le troisième quartile (Q3) est de 36 ans, ce qui implique que 75% des individus ont moins de 36 ans. Enfin, le coefficient de variation (CV) de 0,822, soit 82,2%, traduit une dispersion très élevée des âges autour de la moyenne.
+
+```{r}
+ggplot(data_clean, aes(x = s1q4)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "black") +
+  labs(
+    title = "Distribution de l'âge",
+    x = "Âge",
+    y = "Effectif"
+  ) +
+  theme_minimal()
+```
+Interpretation:
+
+L’histogramme montre que la classe d’âge 10‑15 ans compte plus de 4500 individus, ce qui en fait la classe modale. On observe également que la distribution des âges est étalée à droite, avec un changement de tendance notable à partir de la classe 30‑35 ans. Cela signifie que les individus de moins de 30 ans sont plus nombreux que ceux âgés de 30 ans et plus.
+
+```{r}
+ggplot(data_clean, aes(y = s1q4)) +
+  geom_boxplot(fill = "orange") +
+  labs(
+    title = "Boxplot de l'âge",
+    y = "Âge"
+  ) +
+  theme_minimal()
+```
+Interpretation:
+
+On observe une série de points isolés au-dessus de la moustache supérieure, commençant vers 80 ans et montant jusqu'à 100 ans.
+
+Ces "outliers" indiquent la présence de personnes âgées et de centenaires qui, bien que réels, sont statistiquement éloignés du reste du groupe.
+
+Test de normalité de Shapiro-Wilk
+
+Note: la taille des données étant supérieure à 5000, R ne permet pas d'effectuer ce test. Nous avons  fait un échantillonnage aleatoire de 5000 individus, avec remise.
+
+```{r}
+shapiro.test(sample_data)
+```
+Interpretation : 
+
+Comme la pvalue est inférieur à 0,05, alors on rejette l'hypothese nulle (H0). La distribution de l'age ne suit pas une loi normale.
+
+II. Pyramide des ages
+
+```{r}
+ggplot(pyramid_data, aes(x=age_group,na.rm=TRUE,y=effectif,fill=sexe))+
+  geom_bar(stat="identity")+
+  coord_flip() +
+  labs(
+    title = "Pyramide des âges-Vague4",
+    x="Groupes d'âge",
+    y="Effectif"
+  )+
+  theme_minimal()
+```
+Interpretation:
+
+La pyramide des âges révèle une structure démographique particulièrement jeune, avec une base élargie concentrant la majorité des effectifs entre 0 et 20 ans. Cette configuration traduit une diminution régulière des cohortes à mesure que l'âge progresse. Par ailleurs, l'examen de la structure par sexe montre un équilibre global (sex-ratio proche de l'unité) dans la quasi-totalité des classes d'âge. Les faibles disparités observées suggèrent l'absence de biais de représentativité ou de phénomènes migratoires/mortalité asymétriques majeurs entre hommes et femmes.
+
+III. Frequence avec lien de parenté
+```{r}
+ggplot(freq_data, aes(x= reorder(lien_parente,proportion),y=proportion)) +
+  geom_bar(stat="identity",fill = "steelblue") +
+  geom_errorbar(aes(ymin=ic_inf,ymax=ic_sup),width=0.2) +
+  geom_text(aes(label=scales::percent(proportion,accuracy=1)),
+            hjust=-0.1,size=3)+ 
+  coord_flip()+
+  labs(
+    title="Lien de parenté avec le chef de ménage",
+    x="Modalités",
+    y="Proportion"
+  ) +
+  theme_minimal()
+```
+Interpretation:
+
+Le graphique met en évidence la répartition des individus selon leur lien de parenté avec le chef de ménage. On observe que la modalité « Enfant » est largement majoritaire, représentant environ 55 % de l’effectif total. Cette forte proportion traduit une structure des ménages caractérisée par une présence importante d’enfants à charge.
+
+Les chefs de ménage constituent la deuxième catégorie avec 19 %, suivis des conjoints (16 %). Ces proportions sont cohérentes avec la structure classique des ménages, où un chef et éventuellement un conjoint encadrent plusieurs enfants.
+
+Enfin, la catégorie « Autres », qui regroupe des liens de parenté plus éloignés (autres membres de la famille ou personnes non apparentées), reste minoritaire avec 10 %.
+
+Dans l’ensemble, cette distribution met en évidence une organisation familiale dominée par des ménages de type nucléaire élargi, avec une forte dépendance démographique liée à la proportion élevée d’enfants.
+
+Comparaison de la taille moyenne des ménages entre zones rurales et urbaines
+```{r}
+ggplot(data_clean,aes(x=sector,y=taille_men,fill=sector))+
+  geom_boxplot(alpha=0.6)+
+  stat_summary(fun=mean,geom="point",color="red",size=3) + #moyenne
+  labs(
+    title = "Distribution de la taille des ménages par zone",
+    x="Zone",
+    y="Taille du ménage"
+  )+
+  theme_minimal()+
+  scale_fill_manual(values= c("Urbain"="steelblue","Rural"="orange"))
+
+```
+
+Interpretation:
+Les points rouges indiquent que la taille moyenne des ménages en zone rurale est nettement supérieure à celle observée en zone urbaine. Cet écart suggère une prédominance de structures familiales élargies en milieu rural, potentiellement liées à la cohabitation multigénérationnelle ou à une fécondité plus élevée.
+
+Médiane : La position de la ligne médiane, plus haute en zone rurale, confirme que plus de la moitié des ménages ruraux affichent une taille structurellement plus importante que leurs homologues urbains.
+
+2. Dispersion et valeurs extrêmes
+Étirement de la distribution : La "boîte" (l'écart interquartile) du milieu rural est située vers des valeurs plus élevées et présente une plus grande amplitude. Cela traduit une hétérogénéité plus forte dans la composition des foyers ruraux.
+
+Valeurs atypiques (Outliers) : La présence de nombreux points au-delà des moustaches supérieures, dans les deux zones, met en évidence l'existence de ménages de taille exceptionnelle (familles très nombreuses ou complexes), dépassant largement les standards de la distribution.
+
+Test de robustesse
+```{r}
+wilcox_test <- wilcox.test(taille_men ~ sector,
+                           data = data_clean,
+                           conf.int = TRUE,
+                           conf.level = 0.95)
+print(wilcox_test)
+```
+Interpretation:
+Le test de Wilcoxon-Mann-Whitney confirme de manière éclatante les observations visuelles faites sur le boxplot.Significativité statistique ($p < 0,001$) : La p-value étant largement inférieure au seuil de 5% (et même de 0,1%), nous rejetons l'hypothèse nulle ($H_0$) d'égalité des distributions. Il existe une différence hautement significative entre la taille des ménages urbains et ruraux au Sénégal.Sens de la différence (Location shift) : L'estimation de la différence de localisation (environ -1) indique qu'un ménage pris au hasard en zone urbaine a une probabilité très élevée d'être plus petit d'au moins une unité (une personne) par rapport à un ménage rural.
+
+Taille d'effet
+
+```{r}
+
+effect_size <- data_clean %>%
+  wilcox_effsize(taille_men ~ sector)
+effect_size
+```
+Interpretation :
+Bien que le test de Wilcoxon ait révélé une différence statistiquement significative entre les milieux urbain et rural, l'analyse de l'ampleur de cet effet et de sa variance apporte des nuances cruciales :Faible magnitude de l'effet : La mesure de l'ampleur (magnitude) est qualifiée de "small" (faible). Cela signifie que, même si la différence existe bel et bien statistiquement, son impact pratique sur la structure des ménages reste limité à l'échelle individuelle.Pouvoir explicatif réduit ($R^2$) : Le coefficient de détermination ($r = 0,162 \implies R^2 \approx 0,026$) indique que seulement 2,6 % de la variance de la taille des ménages est expliquée par le milieu de résidence (urbain vs rural).Prédominance d'autres facteurs : Inversement, 97,4 % de la variabilité de la taille des ménages dépend d'autres facteurs non capturés par la simple zone d'habitation. Des variables telles que le niveau d'instruction du chef de ménage, le niveau de revenu, l'ethnie ou les pratiques culturelles jouent probablement un rôle bien plus prépondérant.Synthèse : En conclusion, si le milieu de résidence influence la taille du ménage, il n'en constitue pas le facteur déterminant. La zone d'habitation n'est qu'une composante mineure d'un système complexe de variables socio-économiques régissant la composition des foyers au Sénégal.
+
+
+Tableau recapitulatif
+```{r}
+tableau_csv
+```
+
+Interpretation:
+
+1. L'Âge : Une jeunesse accentuée en milieu ruralMédiane et dispersion : L'âge médian global est de 18 ans, ce qui confirme une population extrêmement jeune.Comparaison Urbain/Rural ($p < 0,001$) : On observe un léger décalage : la médiane est de 19 ans en ville contre 17 ans à la campagne. Bien que l'écart semble faible (2 ans), la p-value très significative indique que la structure par âge est statistiquement plus jeune en milieu rural. L'écart interquartile (8-35 ans en rural) montre une concentration massive de la population dans les premières tranches d'âge.2. Le Sexe : Une parité quasi parfaiteÉquilibre ($p = 0,5$) : C'est un résultat très important pour la validité de votre échantillon. Avec une p-value de 0,5, nous ne pouvons pas rejeter l'hypothèse d'égalité des proportions. La répartition des sexes est équilibrée (50% d'hommes et 50% de femmes) tant au niveau global que par zone de résidence. Cela renforce la fiabilité de vos futures modélisations (PPI, Random Forest), car il n'y a pas de biais de genre lié à la zone d'habitation.3. La Taille du ménage : Une différence significative mais à nuancerMédiane ($p < 0,001$) : La taille médiane des ménages est de 7 membres en milieu rural contre 6 en milieu urbain.Lien avec vos analyses précédentes : Cette différence est statistiquement très significative. Cependant, comme vous l'avez noté plus haut, bien que le test rejette l'égalité, l'ampleur de l'effet reste modeste (magnitude "small"). La variabilité au sein de chaque zone (5-10 en rural vs 4-8 en urbain) est plus importante que la différence entre les deux zones.
