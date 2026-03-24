@@ -1,0 +1,253 @@
+---
+title: "Profil démographique des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel Wave 4 (2018-2019)"
+author:
+  - "Nkwa T. Leslye & Keita Lancina"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+lang: fr
+output:
+  word_document:
+    reference_docx: reference.docx
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  out.width = "95%",
+  dpi       = 180
+)
+
+library(tidyverse)
+library(knitr)
+library(flextable)
+library(gtsummary)
+library(scales)
+library(srvyr)
+library(moments)
+library(here)
+
+options(scipen = 999)
+
+source_ghs <- "Source : GHS Panel W4 (2018-2019), NBS Nigeria / World Bank LSMS-ISA. Calculs des auteurs."
+
+sect1_clean  <- readRDS(here("data", "processed", "sect1_clean.rds"))
+menages      <- readRDS(here("data", "processed", "menages.rds"))
+plan_sondage <- readRDS(here("data", "processed", "plan_sondage.rds"))
+plan_menages <- readRDS(here("data", "processed", "plan_menages.rds"))
+stats_age    <- readRDS(here("data", "processed", "stats_age.rds"))
+stats_taille <- readRDS(here("data", "processed", "stats_taille.rds"))
+res_wilcox   <- readRDS(here("data", "processed", "wilcox_taille.rds"))
+
+
+age_vec <- sect1_clean$age[!is.na(sect1_clean$age)]
+
+fmt <- function(x, d = 1) {
+  format(round(x, d), big.mark = " ", decimal.mark = ",",
+         nsmall = d, scientific = FALSE, trim = TRUE)
+}
+
+med_age    <- round(stats_age$mediane)
+med_rural  <- round(stats_taille$mediane[stats_taille$milieu == "Rural"])
+med_urbain <- round(stats_taille$mediane[stats_taille$milieu == "Urbain"])
+moy_rural  <- round(stats_taille$moyenne[stats_taille$milieu == "Rural"], 1)
+moy_urbain <- round(stats_taille$moyenne[stats_taille$milieu == "Urbain"], 1)
+r_effet    <- res_wilcox$effet$effsize
+pct_enfant <- mean(sect1_clean$parente == "Enfant", na.rm = TRUE) * 100
+
+```
+
+# Messages clés
+
+**Structure démographique.** La population nigériane est très jeune, avec un âge médian de `r med_age` ans, reflet d'une fécondité élevée. En effet, on a un Indice Synthétique de Fécondité(ISF) avoisinant 5,3 en 2018 selon le rapport Demographic and Health Survey Nigeria. La répartition par sexe, quant à elle, est quasi équilibrée puisque la population révèle environ 50 % d'hommes et 50 % de femmes, et elle est stable quelle que soit la zone de résidence.
+
+**Composition des ménages.** Les enfants constituent `r fmt(pct_enfant)` % des membres, soit plus de la moitié de la population enquêtée. La taille moyenne des ménages est de `r moy_rural` membres en milieu rural et `r moy_urbain` en milieu urbain, une taiile cohérente avec les chiffres officiels du rapport NBS/World Bank (5,9 et 4,8 respectivement).
+
+**Disparités rural-urbain.** Les ménages ruraux sont significativement plus grands que les ménages urbains. Le test de Wilcoxon-Mann-Whitney est hautement significatif (p < 0,001) mais la taille d'effet reste petite (r = `r fmt(r_effet, 3)`), le milieu n'expliquant qu'environ `r fmt(r_effet^2 * 100, 1)` % de la variabilité de la taille des ménages.
+
+**Pondération.** Toutes les statistiques sont calculées avec les poids de sondage `wt_wave4` (poids sectionnaux de la W4), qui corrigent la surreprésentation des ménages ruraux. La somme de ces poids représente l'ensemble des ménages nigérians en 2018 approximant 27 millions.
+
+# Introduction
+
+Le Nigeria comptait environ 200 millions d’habitants en 2018, ce qui en fait le pays le plus peuplé d’Afrique. Sa population est caractérisée par un nombre élevé de naissances, une mortalité infantile encore importante et une population très jeune. Ces éléments sont typiques d’un pays au début de sa transition démographique. Comprendre cette structure est essentiel pour mieux orienter les politiques publiques, notamment en matière d’éducation, de santé et de protection sociale.
+
+Ce rapport étudie le profil démographique des ménages nigérians à partir des données du Nigeria General Household Survey Panel Wave 4 (2018-2019), collectées par le National Bureau of Statistics en collaboration avec la Banque mondiale. L’analyse se distingue par l’utilisation des poids de sondage, qui permettent de représenter l’ensemble de la population nigériane, et pas seulement les ménages de l’échantillon.
+
+
+# Exploration et qualité des données
+
+
+Le fichier `sect1_harvestw4.dta` contient 30 337 individus répertoriés lors de la visite Post-Harvest de la vague 4. L'échantillon analytique comprend `r format(nrow(sect1_clean), big.mark = " ")` membres issus de `r format(n_distinct(sect1_clean$hhid), big.mark = " ")` ménages, en appliquant le filtre `s1q4a == 1 | is.na(s1q4a)`. Ce filtre retient les membres résidents actifs (`s1q4a = 1`) et les 790 membres avec données complètes mais dont la case `s1q4a` n'a pas été cochée par l'enquêteur (erreur CAPI documentée dans le DDI disponible dans le dossier `docs`). Ces 790 individus apparaissent dans `sect2_harvestw4` (éducation, n = 26 557), confirmant leur présence lors de l'interview. Cet effectif est aligné sur celui utilisé dans le rapport officiel NBS/World Bank. La vérification de la clé composite (`hhid`, `indiv`) donne 0 doublon.
+
+
+Les 45 ménages présents dans `secta_harvestw4.dta` mais absents de `sect1` correspondent à une attrition totale documentée (`interview_result` ≠ 1) : 19 ménages introuvables (`interview_result = 5`), 12 durablement indisponibles (`interview_result = 4`), 14 refus (`interview_result = 3`). Leur proportion (0,9 %) est négligeable et ils ont déjà été absorbés dans la construction des poids `wt_wave4`.
+
+&nbsp;
+
+```{r fig-na, fig.cap="Carte des valeurs manquantes sur les variables clés. Les NA résiduels sur sexe et parenté concernent les 790 individus avec s1q4a manquant dont certaines variables complémentaires ne sont pas renseignées."}
+knitr::include_graphics(here("outputs", "figures", "fig00_diagnostic_NA.png"))
+```
+
+# Distribution de l'âge
+
+## Statistiques descriptives
+
+```{r tab-age}
+tab_age <- data.frame(
+  Statistique = c("N valide", "Moyenne", "Médiane", "Q1", "Q3",
+                  "Écart-type", "CV (%)", "Asymétrie"),
+  Brut = c(
+    format(length(age_vec), big.mark = " "),
+    fmt(mean(age_vec, na.rm = TRUE)),
+    fmt(median(age_vec, na.rm = TRUE), 0),
+    fmt(quantile(age_vec, 0.25, na.rm = TRUE), 0),
+    fmt(quantile(age_vec, 0.75, na.rm = TRUE), 0),
+    fmt(sd(age_vec, na.rm = TRUE)),
+    fmt(sd(age_vec, na.rm = TRUE) / mean(age_vec, na.rm = TRUE) * 100),
+    fmt(skewness(age_vec, na.rm = TRUE), 4)
+  ),
+  Pondere = c(
+    format(as.integer(stats_age$N), big.mark = " "),
+    fmt(stats_age$moyenne),
+    fmt(stats_age$mediane, 0),
+    fmt(stats_age$q1_q25, 0),
+    fmt(stats_age$q3_q75, 0),
+    fmt(stats_age$ecart_type),
+    fmt(stats_age$ecart_type / stats_age$moyenne * 100),
+    fmt(stats_age$asymetrie, 4)
+  ),
+  check.names = FALSE
+)
+names(tab_age) <- c("Statistique", "Brut (non pondéré)", "Pondéré (wt_wave4)")
+
+flextable(tab_age) |>
+  set_caption("Statistiques descriptives de l'âge, comparaison brut vs pondéré") |>
+  theme_booktabs() |> autofit() |> bold(part = "header") |>
+  fontsize(size = 9, part = "all") |>
+  font(fontname = "Palatino Linotype", part = "all")
+```
+
+&nbsp;
+L'âge médian pondéré est de `r med_age` ans, confirmant que la moitié de la population nigériane a moins de `r med_age` ans. L'asymétrie positive (coefficient = `r fmt(stats_age$asymetrie, 2)`) indique une distribution étalée vers les âges élevés. La comparaison brut/pondéré montre des écarts faibles, ce qui s'explique par le fait que l'âge n'est pas le critère de stratification de l'échantillon.
+
+## Distribution et test de normalité
+
+
+
+```{r fig-age-combine, fig.cap="Analyse univariée de l'âge. Gauche : distribution par classes quinquennales (bleu UNICEF) avec médiane (trait pointillé bleu nuit) et moyenne (trait pointillé rouge). Centre : boîte à moustaches avec la moyenne en losange rouge. Droite : QQ-plot confirmant l'écart à la normalité aux deux extrémités de la distribution.",out.width="100%"}
+knitr::include_graphics(here("outputs", "figures", "fig_01_02_combined.png"))
+```
+
+```{r shapiro, include=FALSE}
+set.seed(2070)
+sw <- shapiro.test(sample(age_vec, 5000))
+```
+
+Le test de Shapiro-Wilk (W = `r fmt(sw$statistic, 4)`, p < 0,001) rejette l'hypothèse de normalité. La statistique W = `r fmt(sw$statistic, 4)` traduit un écart substantiel à la normalité, et la p-value inférieure à 0,001 indique que cet écart ne peut pas être attribué au hasard. 
+Avec un coefficient d'asymétrie de `r fmt(stats_age$asymetrie, 2)`, la distribution est fortement étalée vers les âges élevés, profil attendu dans une population à forte fécondité où les jeunes enfants sont massivement surreprésentés.
+
+Le QQ-plot confirme ce diagnostic visuellement : les points s'écartent de la droite théorique aux deux extrémités. Cette non-normalité justifie le recours aux tests non paramétriques pour toutes les comparaisons ultérieures en particulier le test de Wilcoxon-Mann-Whitney qui, travaillant sur les rangs des observations, reste valide quelle que soit la forme de la distribution sous-jacente.
+
+# Pyramide des âges par sexe
+
+```{r fig-pyramide, fig.cap="Pyramide des âges par sexe, effectifs pondérés (wt_wave4, poids ménage appliqué aux individus). Ratio de dépendance juvénile cohérent avec le rapport officiel (1,1 en rural, 0,9 en urbain)."}
+knitr::include_graphics(here("outputs", "figures", "fig03_pyramide_ages.png"))
+```
+
+La pyramide présente une forme triangulaire expansive typique d'un pays en début de transition démographique : plus de 42 % de la population a moins de 15 ans contre 5 % au-delà de 65 ans, cohérent avec le ratio de dépendance juvénile de 1,1 en rural et 0,9 en urbain (NBS/World Bank, 2019). L'espérance de vie de 62 ans en 2018 (Banque Mondiale) explique le rétrécissement rapide au-delà de 50 ans.
+
+La classe [5,10) présente une barre anormalement longue, ce qui renvoie au phénomène nommé *age heaping* : faute d'acte de naissance, les répondants arrondissent l'âge des enfants vers le multiple de 5 le plus proche. Au Nigeria, l'enregistrement des naissances couvre moins de 30 % des enfants (NBS/MICS), ce qui rend ce biais structurel (Dahiru & Dikko, 2013 ; Lyons-Amos & Stones, 2017 : https://doi.org/10.1186/s13104-017-3091-x).
+
+La symétrie hommes-femmes est globalement préservée, à l'exception d'un excédent féminin dans les tranches 25-40 ans reflétant une mobilité masculine plus forte (NBS/World Bank, 2019). L'étranglement dans cette même tranche traduit aussi l'attrition sélective : les membres absents (`s1q4a = 2`) y sont surreprésentés, entraînant une légère sous-estimation de la population jeune adulte mobile.
+
+# Composition des ménages par lien de parenté
+
+```{r fig-parente, fig.cap="Répartition des membres par lien de parenté, proportions pondérées (wt_wave4)."}
+knitr::include_graphics(here("outputs", "figures", "fig04_parente_barplot.png"))
+```
+
+Les enfants constituent `r fmt(pct_enfant)` % des membres, proportion nettement supérieure à la moyenne subsaharienne (~50 %), reflet direct de l'ISF élevé du Nigeria (5,3 enfants par femme selon le DHS 2018). Les chefs de ménage représentent environ 19 % des membres et les conjoints 16 %, soit une structure nucléaire dominante qui coexiste avec des ménages élargis. La catégorie Autre (petits-enfants, frères et sœurs, famille étendue) représente environ 9 % de l'échantillon, témoignant de la persistance des structures familiales étendues en Afrique subsaharienne.
+
+# Comparaison rural-urbain de la taille des ménages
+
+## Statistiques descriptives par milieu
+
+```{r tab-taille}
+tab_t <- stats_taille |>
+  mutate(across(c(moyenne, mediane, q1_q25, q3_q75, ecart_type), \(x) round(x, 2))) |>
+  select(Milieu = milieu, N = N, Moyenne = moyenne,
+         Médiane = mediane, Q1 = q1_q25, Q3 = q3_q75, `Écart-type` = ecart_type)
+
+flextable(tab_t) |>
+  set_caption("Taille des ménages par milieu,  statistiques pondérées (wt_wave4, niveau ménage). Référence officielle NBS/WB : moyenne 5,9 (rural) et 4,8 (urbain).") |>
+  theme_booktabs() |> autofit() |> bold(part = "header") |>
+  fontsize(size = 9, part = "all") |>
+  font(fontname = "Palatino Linotype", part = "all")
+```
+
+La taille moyenne pondérée est de `r moy_rural` membres en milieu rural et `r moy_urbain` en milieu urbain, des chiffres très proches des références officielles du rapport NBS/World Bank (5,9 et 4,8 respectivement), ce qui valide la qualité de notre pondération. L'écart systématique entre moyenne et médiane ( la médiane étant inférieure de presque un membre à la moyenne dans les deux milieux ) traduit une asymétrie positive de la distribution. En effet, la majorité des ménages sont de taille modeste (3 à 5 membres), mais une minorité sont de grands ménages polygames ou multigénérationnels, pouvant compter 10 à 20 membres qui tire ainsi la moyenne vers le haut sans affecter la médiane. 
+
+
+Dans ce contexte, la médiane est l'indicateur de tendance centrale le plus représentatif de la situation typique d'un ménage nigérian, tandis que la moyenne reflète davantage le poids démographique des grandes familles rurales qui concentrent une part importante de la population totale.
+
+## Visualisation et test statistique
+
+```{r fig-boxplot, fig.cap="Taille des ménages par milieu de résidence. Vert (Rural, FAO/IFPRI) et gris (Urbain, ONU-HABITAT)."}
+knitr::include_graphics(here("outputs", "figures", "fig05_boxplot_taille_menage.png"))
+```
+
+La taille d'effet r = `r fmt(r_effet, 3)` est petite au sens de Cohen (1988); le seuil de 0,1 étant considéré comme petit, 0,3 comme moyen et 0,5 comme grand. Le milieu de résidence n'explique donc que `r fmt(r_effet^2 * 100, 1)` % de la variabilité de la taille des ménages, ce qui signifie que les `r fmt((1 - r_effet^2) * 100, 1)` % restants *sont déterminés par d'autres facteurs* comme la zone géopolitique, la religion, le niveau d'éducation du chef de ménage, la pratique de la polygamie et le statut économique. Autrement dit, savoir qu'un ménage est rural plutôt qu'urbain ne suffit pas à prédire sa taille car c'est un facteur parmi d'autres dans un système explicatif complexe.
+
+# Tableau de synthèse stratifié par milieu
+
+```{r tab-gtsummary}
+readRDS(here("data", "processed", "tab_demo_word.rds"))
+```
+&nbsp;
+
+Ce tableau, produit avec `tbl_svysummary` en tenant compte du plan de sondage complexe, montre que la population rurale est plus jeune de 3 ans en médiane que la population urbaine (p < 0,001), cohérent avec un ISF rural plus élevé (6,0 contre 4,1 en urbain selon le DHS Nigeria 2018). La répartition par sexe ne varie pas significativement selon le milieu (p = 0,4), le sex-ratio étant biologiquement stable dans les deux zones. Les médianes de taille du ménage affichées ici,  7 membres en rural et 6 en urbain  sont supérieures à celles calculées au niveau ménage dans la section précédente (5 et 4 respectivement). 
+
+Ce décalage est attendu et s'explique par *le biais de taille de Kish (1965)* : dans une analyse conduite au niveau individu, chaque membre d'un ménage de 10 personnes contribue 10 observations contre une seule pour un ménage de 2 personnes, ce qui surreprésente mécaniquement les grands ménages et tire les estimations vers le haut.
+
+# Discussion
+
+## Confrontation avec le rapport officiel NBS/World Bank (2019)
+
+Les résultats de cette analyse sont largement cohérents avec ceux du rapport officiel de l'enquête. La taille moyenne des ménages (`r moy_rural` en rural, `r moy_urbain` en urbain) correspond aux chiffres officiels (5,9 et 4,8), l'écart s'expliquant par le passage de la moyenne à la médiane en présence d'une distribution asymétrique. Le ratio de dépendance juvénile, reflété dans la base large de la pyramide des âges (plus de 42 % de moins de 15 ans), est cohérent avec le ratio officiel de 1,1 en rural et 0,9 en urbain.
+
+
+## Limites méthodologiques
+
+Le GHS Panel W4 exclut par construction les zones rurales de Borno et certaines zones urbaines inaccessibles pour raisons sécuritaires. Les résultats pondérés représentent donc le Nigeria accessible en 2018-2019, et non l'ensemble du territoire. Cette limite est explicitement documentée dans le Basic Information Document de l'enquête.
+
+Aussi,l'attrition entre les vagues (membres avec `s1q4a = 2` exclus, soit 12,5 % du roster) pourrait sous-estimer la migration masculine dans la tranche 20-35 ans, visible dans l'étranglement de la pyramide des âges. Le poids de sondage `wt_wave4` est un poids ménage appliqué à tous les membres du ménage. En l'absence de poids individuel dans ce dataset, c'est l'approximation standard, qui reste valide pour les indicateurs de structure démographique.
+
+## Implications pour les politiques publiques
+
+La forte charge démographique juvénile en milieu rural impose des priorités d'investissement différenciées. La cohorte des 0-14 ans représente près de 46 % de la population rurale, ce qui appelle un renforcement urgent des infrastructures scolaires rurales. L'extension de la couverture sanitaire maternelle et infantile est également prioritaire dans un contexte où la mortalité infantile demeurait à 69 pour mille en 2018. Les ménages ruraux de grande taille, souvent polygames et agricoles, constituent des cibles prioritaires pour les programmes de sécurité alimentaire et de protection sociale. 
+
+# Conclusion
+
+Parvenu au terme de ce premier travail sur le profil démographique des ménages nigérians, on retient ceci:  le Nigeria est un pays jeune, très jeune. Un Nigérian sur deux a moins de `r med_age` ans, plus de la moitié des membres des ménages sont des enfants, et les ménages ruraux , plus grands, plus jeunes, plus chargés en dépendants , vivent une réalité démographique sensiblement différente de celle des ménages urbains, même si cette différence reste modeste une fois qu'on la mesure rigoureusement. Les chiffres que nous obtenons, construits à partir des poids de sondage pour représenter l'ensemble des ménages nigérians et non simplement notre échantillon, sont cohérents avec ceux du rapport officiel NBS/World Bank. Ce portrait démographique, aussi sobre soit-il, est le point de départ pour comprendre les défis auxquels ce pays fait face.
+
+# Références bibliographiques
+
+[1]Dahiru, T., & Dikko, H. G. (2013). Digit preference in Nigerian censuses data of 1991 and 2006. *Epidemiology Biostatistics Public Health*, 10(2).
+
+[2]Lyons-Amos, M., & Stones, T. (2017). Trends in Demographic and Health Survey data quality: an analysis of age heaping over time in 34 countries in Sub Saharan Africa between 1987 and 2015. *BMC Research Notes*, 10, 760. https://doi.org/10.1186/s13104-017-3091-x
+
+[3]National Bureau of Statistics Nigeria & World Bank (2019). *Nigeria General Household Survey Panel Wave 4 (2018-2019)*. LSMS-ISA. DOI: 10.48529/1hgw-dq47
+
+[4]National Population Commission & ICF (2019). *Nigeria Demographic and Health Survey 2018*. Abuja/Rockville.
+
+[5]Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences* (2nd ed.). Lawrence Erlbaum.
+
+[6]Kish, L. (1965). *Survey Sampling*. John Wiley & Sons.
+
+
+                Superviseur : M. Aboubacar HEMA, IFPRI Research Scientist

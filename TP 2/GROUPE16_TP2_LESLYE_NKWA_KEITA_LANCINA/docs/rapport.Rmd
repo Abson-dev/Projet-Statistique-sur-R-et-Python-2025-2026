@@ -1,0 +1,233 @@
+---
+title: "Éducation et alphabétisation des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel Wave 4 (2018-2019)"
+author:
+  - "Nkwa T. Leslye & Keita Lancina"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+lang: fr
+output:
+  word_document:
+    reference_docx: reference.docx
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  out.width = "95%",
+  dpi       = 180
+)
+
+library(tidyverse)
+library(knitr)
+library(flextable)
+library(gtsummary)
+library(scales)
+library(srvyr)
+library(here)
+
+options(scipen = 999)
+
+source_ghs <- "Source : GHS Panel W4 (2018-2019), NBS Nigeria / World Bank LSMS-ISA. Calculs des auteurs."
+
+df_educ      <- readRDS(here("data", "processed", "df_educ_clean.rds"))
+plan_educ    <- readRDS(here("data", "processed", "plan_educ.rds"))
+freq_niv     <- readRDS(here("data", "processed", "freq_niv_pond.rds"))
+taux_scol    <- readRDS(here("data", "processed", "taux_scol.rds"))
+heatmap_data <- readRDS(here("data", "processed", "heatmap_data.rds"))
+tests_sexe   <- readRDS(here("data", "processed", "tests_sexe.rds"))
+tests_age    <- readRDS(here("data", "processed", "tests_age_educ.rds"))
+chi2_scol    <- readRDS(here("data", "processed", "chi2_scol.rds"))
+
+fmt <- function(x, d = 1) {
+  format(round(x, d), big.mark = " ", decimal.mark = ",",
+         nsmall = d, scientific = FALSE, trim = TRUE)
+}
+
+# Indicateurs clés
+n_educ <- nrow(df_educ)
+n_menages <- n_distinct(df_educ$hhid)
+n_elig <- sum(!is.na(df_educ$niveau_educ))
+pct_aucun <- freq_niv$pct[freq_niv$niveau_educ == "Aucun"]
+pct_primaire <- freq_niv$pct[freq_niv$niveau_educ == "Primaire"]
+pct_secondaire <- freq_niv$pct[freq_niv$niveau_educ == "Secondaire"]
+pct_coranique <- freq_niv$pct[freq_niv$niveau_educ == "Coranique/Adulte"]
+pct_tertiaire <- freq_niv$pct[freq_niv$niveau_educ == "Tertiaire"]
+v_cramer <- tests_sexe$v_cramer
+taux_urbain <- round(taux_scol$taux[taux_scol$milieu == "Urbain"], 1)
+taux_rural  <- round(taux_scol$taux[taux_scol$milieu == "Rural"], 1)
+top_analph <- heatmap_data |> arrange(desc(taux_pct)) |> head(5) |>
+  mutate(state_label = str_remove(as.character(state_label), "^\\d+\\.\\s*"))
+bottom_analph <- heatmap_data |> arrange(taux_pct) |> head(3) |>
+  mutate(state_label = str_remove(as.character(state_label), "^\\d+\\.\\s*"))
+```
+
+# Messages clés
+
+**Capital humain.** Le niveau d'éducation de la population nigériane reste dominé par le cycle primaire (`r pct_primaire` % des membres éligibles), tandis que `r pct_aucun` % n'ont aucune instruction formelle. Le tertiaire ne concerne que `r pct_tertiaire` % de la population. L'éducation coranique représente `r pct_coranique` % et reflète l'importance du système éducatif islamique dans le Nord du pays.
+
+**Inégalités de genre.** L'association entre sexe et niveau d'éducation est statistiquement significative (chi-deux de Rao-Scott, p < 0,001) avec un V de Cramér de `r fmt(v_cramer, 3)`, indiquant une association faible à modérée. Les femmes sont nettement surreprésentées dans la catégorie sans instruction, un écart caractéristique des inégalités de genre en Afrique subsaharienne.
+
+**Scolarisation des 6-17 ans.** Le taux de scolarisation pondéré atteint `r taux_urbain` % en milieu urbain et `r taux_rural` % en milieu rural. L'écart est statistiquement significatif (p < 0,001) mais modeste en amplitude, témoignant des progrès de la politique Universal Basic Education (UBE) lancée en 2004.
+
+**Fracture Nord-Sud.** La géographie de l'analphabétisme suit la fracture géopolitique nigériane : les États du Nord-Ouest (`r top_analph$state_label[1]` : `r top_analph$taux_pct[1]` %, `r top_analph$state_label[2]` : `r top_analph$taux_pct[2]` %) concentrent les taux les plus élevés d'adultes sans instruction, tandis que les États du Sud (`r bottom_analph$state_label[1]` : `r bottom_analph$taux_pct[1]` %, `r bottom_analph$state_label[2]` : `r bottom_analph$taux_pct[2]` %) affichent les taux les plus faibles.
+
+**Pondération.** Toutes les statistiques sont calculées avec les poids de sondage `wt_wave4`. Les intervalles de confiance et les tests statistiques tiennent compte du plan de sondage complexe (stratifié, en grappes). La somme des poids représente environ 149 millions d'individus, cohérent avec la population nigériane en 2018.
+
+# Introduction
+
+L'éducation est le principal levier de développement humain. Au Nigeria, pays le plus peuplé d'Afrique avec environ 200 millions d'habitants en 2018, les défis éducatifs restent considérables malgré les progrès réalisés depuis la mise en place de la politique Universal Basic Education (UBE) en 2004. L'UNESCO estimait en 2018 que le Nigeria comptait le plus grand nombre d'enfants non scolarisés au monde, soit environ 10,5 millions.
+
+Ce rapport analyse les niveaux d'instruction et les taux d'alphabétisation des membres des ménages nigérians à partir du module éducation (section 2) du Nigeria General Household Survey Panel Wave 4 (2018-2019). L'analyse se distingue par l'utilisation systématique des poids de sondage `wt_wave4` et par la prise en compte du plan de sondage complexe pour les tests statistiques (chi-deux de Rao-Scott au lieu du chi-deux classique), ce qui permet de généraliser les résultats à l'ensemble de la population nigériane.
+
+# Exploration et qualité des données
+
+## Fichiers mobilisés et population analytique
+
+Le fichier `sect2_harvestw4.dta` contient 26 557 lignes correspondant aux membres pour lesquels le module éducation a été ouvert lors de la visite Post-Harvest. Ce module est administré aux membres de 3 ans et plus (`s2aq2 == 1`), les 1 768 enfants de moins de 3 ans ayant `s2aq2 == 2` et des valeurs manquantes structurelles sur toutes les variables éducation.
+
+L'échantillon analytique comprend `r format(n_educ, big.mark = " ")` membres résidents actifs issus de `r format(n_menages, big.mark = " ")` ménages, obtenus par jointure de `sect1_harvestw4` (filtre `s1q4a == 1 | is.na(s1q4a)`, identique au TP1) et `sect2_harvestw4` sur la clé composite `hhid + indiv`. Les poids de sondage proviennent de `secta_harvestw4`. Parmi ces membres, `r format(n_elig, big.mark = " ")` ont un niveau d'éducation renseigné.
+
+Les 45 ménages présents dans `secta_harvestw4` mais absents de `sect1` et `sect2` correspondent à une attrition totale documentée : 19 ménages introuvables, 12 durablement indisponibles, 14 refus. Leur proportion (0,9 %) est négligeable et ils sont déjà absorbés dans la construction des poids `wt_wave4`.
+
+## Qualité des données et valeurs manquantes
+
+Les valeurs manquantes sur `s2aq9` (niveau d'éducation) s'expliquent intégralement par la logique interne du questionnaire CAPI : 1 768 enfants de moins de 3 ans (filtre d'entrée `s2aq2 == 2` non franchi) et 5 518 membres jamais scolarisés (`s2aq6 == 2`, saut logique programmé). On a Zéro vraie non-réponse a été identifiée, ce qui confirme la qualité de collecte excellente sur cette variable et l'absence de données manquantes aléatoires (MCAR ou MAR).
+
+&nbsp;
+
+```{r fig-na, fig.cap="Carte des valeurs manquantes sur les variables clés du TP2. Les NA sont structurels (logique du questionnaire CAPI) et non aléatoires : les trois premières colonnes partagent exactement le même motif de NA."}
+knitr::include_graphics(here("outputs", "figures", "fig00_diagnostic_NA.png"))
+```
+
+## Note sur le seuil d'éligibilité
+
+Le module éducation de la W4 a élargi le seuil d'éligibilité à 3 ans et plus, contre 5 ans et plus dans les vagues précédentes (W1-W3). Le rapport officiel NBS/World Bank (2019) calcule ses indicateurs de literacy sur les 5 ans+ pour maintenir la comparabilité inter-vagues. Notre analyse utilise le seuil natif de la W4 (3 ans+) pour les analyses générales, et des sous-populations spécifiques (adultes 18+, enfants 6-17 ans) pour les analyses ciblées, ce qui neutralise l'effet de ce changement de seuil. Cette différence sera prise en compte dans le TP10 (analyse inter-vagues).
+
+# Distribution du niveau d'éducation
+
+```{r fig-niv-educ, fig.cap="Distribution pondérée du niveau d'éducation complété. Barres horizontales avec IC 95% issus du plan de sondage complexe. Palette séquentielle violet UNESCO (plus foncé = niveau plus élevé)."}
+knitr::include_graphics(here("outputs", "figures", "fig01_niveau_educ_distribution.png"))
+```
+
+Le primaire domine (`r pct_primaire` %) : une grande partie des Nigérians ont fréquenté l'école sans dépasser le cycle primaire, point d'arrêt naturel lié aux coûts de transition vers le secondaire et à la distance aux établissements. Un quart des membres éligibles (`r pct_aucun` %) n'a aucun niveau d'instruction formelle. L'éducation coranique (`r pct_coranique` %) reflète l'importance du système éducatif islamique dans le Nord du Nigeria et a été maintenue comme catégorie distincte : l'assimiler à « Aucun » serait statistiquement et culturellement inexact, puisqu'il s'agit d'un système éducatif parallèle structuré.
+
+Le rapport officiel NBS/World Bank (Table 2.4) indique une moyenne nationale de 5,5 années de scolarisation pour les 3 ans et plus, avec de fortes disparités régionales : 1,1 année dans le Nord-Central pour les 3-9 ans contre 11,3 années dans le Sud pour les 20-30 ans. Ces chiffres sont cohérents avec la distribution que nous observons, où le primaire (6 années) concentre le tiers de la population.
+
+# Niveau d'éducation par sexe
+
+```{r fig-sexe, fig.cap="Barplot 100% empilé du niveau d'éducation par sexe chez les adultes 18+. Proportions pondérées. Chi-deux de Rao-Scott adapté au plan de sondage complexe."}
+knitr::include_graphics(here("outputs", "figures", "fig02_niveau_educ_sexe.png"))
+```
+
+L'association entre sexe et niveau d'éducation est significative (chi-deux de Rao-Scott, F = 64,3, p < 0,001) mais d'ampleur faible à modérée (V de Cramér = `r fmt(v_cramer, 3)`). Le chi-deux de Rao-Scott a été utilisé à la place du chi-deux classique de Pearson car celui-ci ne tient pas compte du plan de sondage complexe (stratification et clustering), ce qui conduirait à sous-estimer la variance et à surestimer la significativité.
+
+Le V de Cramér est calculé sans pondération car il n'existe pas de version pondérée standardisée de cet indicateur. C'est une approximation acceptable pour une mesure de taille d'effet.
+
+La différence la plus marquée se situe au niveau sans instruction : les femmes y sont nettement surreprésentées par rapport aux hommes, un écart caractéristique des inégalités de genre en Afrique subsaharienne (UNGEI, 2020). Au secondaire, les hommes dominent mais l'écart se réduit dans les cohortes récentes, signe d'une progression féminine cohérente avec les tendances documentées par le DHS Nigeria 2018.
+
+Le rapport officiel (Table 2.5) confirme cette asymétrie : le taux de literacy national est de 68,6 % (5 ans+), mais avec un écart marqué entre hommes et femmes, particulièrement dans la tranche 65+ (61,8 % hommes vs 27,5 % femmes).
+
+# Distribution de l'âge par niveau d'éducation
+
+```{r fig-age-educ, fig.cap="Boxplots de l'âge par niveau d'éducation chez les adultes 18+. Niveaux ordonnés par âge médian croissant. Test de Kruskal-Wallis non paramétrique."}
+knitr::include_graphics(here("outputs", "figures", "fig03_age_niveau_educ.png"))
+```
+
+Le test de Kruskal-Wallis rejette massivement l'hypothèse d'homogénéité des distributions d'âge entre niveaux (H = `r fmt(tests_age$kw$statistic, 1)`, p < 0,001). Le post-hoc de Dunn avec correction de Bonferroni montre que toutes les paires de niveaux diffèrent significativement, à l'exception de Technique/Prof vs Tertiaire (p ajusté = 1, non significatif), ce qui est logique puisque ces deux filières recrutent dans les mêmes tranches d'âge.
+
+Le niveau sans instruction concentre les adultes les plus âgés, reflétant le manque d'accès à l'école formelle des générations antérieures à l'expansion scolaire post-indépendance (1960-1990). Le secondaire présente la médiane d'âge la plus basse parmi les niveaux non tertiaires, signe que les scolarisés récents atteignent plus souvent ce cycle que les générations précédentes, lesquelles s'arrêtaient davantage au primaire. Ce gradient générationnel est cohérent avec l'augmentation progressive du nombre moyen d'années de scolarisation documentée dans la Table 2.4 du rapport officiel.
+
+# Scolarisation des 6-17 ans par milieu
+
+```{r fig-scol, fig.cap="Taux de scolarisation pondéré des 6-17 ans par milieu de résidence, avec IC 95% issus du plan de sondage complexe. Couleurs : vert FAO (rural), gris HABITAT (urbain)."}
+knitr::include_graphics(here("outputs", "figures", "fig04_scolarisation_milieu.png"))
+```
+
+Les taux de scolarisation pondérés sont élevés dans les deux milieux (`r taux_urbain` % en urbain, `r taux_rural` % en rural), témoignant des progrès notables depuis la politique Universal Basic Education de 2004. L'écart rural-urbain est statistiquement significatif (chi-deux de Rao-Scott, F = 14,1, p < 0,001) mais reste modeste en amplitude (~4 points).
+
+**Confrontation avec le rapport officiel.** Le rapport NBS/World Bank (Table 2.6) indique un *attendance rate* de 78,5 % nationalement pour les enfants 5-14 ans, avec un écart urbain 91,2 % / rural 74,2 %. Nos taux sont supérieurs pour deux raisons complémentaires. Premièrement, notre tranche d'âge (6-17 ans, imposée par le sujet du TP) est plus large : les adolescents de 15-17 ans en milieu urbain sont très souvent scolarisés, ce qui tire le taux vers le haut. Deuxièmement, notre variable (`s2aq13a`) mesure l'inscription en 2018/2019, tandis que le rapport officiel utilise l'*attendance* (présence effective à l'école), qui est structurellement inférieure à l'inscription. Ces deux écarts méthodologiques sont documentés et attendus.
+
+# Taux d'analphabétisme par État
+
+```{r fig-heatmap, fig.cap="Carte choroplèthe du taux pondéré d'adultes 18+ sans instruction par État nigérian. Palette séquentielle lilas-violet UNESCO. Plus la teinte est foncée, plus le taux est élevé."}
+knitr::include_graphics(here("outputs", "figures", "fig05_carte_analphabetisme.png"))
+```
+
+La géographie de l'analphabétisme suit la fracture Nord-Sud nigériane. Les États du Nord-Ouest et du Nord-Est dominent : `r top_analph$state_label[1]` (`r top_analph$taux_pct[1]` %), `r top_analph$state_label[2]` (`r top_analph$taux_pct[2]` %), `r top_analph$state_label[3]` (`r top_analph$taux_pct[3]` %). Ces régions sont historiquement marquées par la prédominance de l'éducation coranique sur le système formel et par des taux de pauvreté plus élevés (NBS Poverty Report, 2020). Les États du Sud affichent les taux les plus bas : `r bottom_analph$state_label[1]` (`r bottom_analph$taux_pct[1]` %), `r bottom_analph$state_label[2]` (`r bottom_analph$taux_pct[2]` %), avec des économies plus diversifiées et une tradition d'alphabétisation plus ancienne.
+
+Le rapport officiel (Table 2.5) confirme cette géographie : les zones Sud enregistrent des taux de literacy autour de 80 % (South East 79,9 %, South West 81,7 %), tandis que le Nord-Ouest affiche le taux le plus faible à 66,2 %. Cette disparité persistante justifie des politiques éducatives différenciées par zone géopolitique.
+
+# Tableau de synthèse stratifié par milieu
+
+```{r tab-gtsummary}
+readRDS(here("data", "processed", "tab_educ_word.rds"))
+```
+
+&nbsp;
+
+Ce tableau, produit avec `tbl_svysummary` en tenant compte du plan de sondage complexe, confirme les disparités rural-urbain sur toutes les dimensions éducatives simultanément (toutes p < 0,001). Le milieu urbain devance le rural sur l'alphabétisation, le niveau d'éducation et la scolarisation actuelle.
+
+Le rapport officiel (Table 2.5) corrobore ce constat : le taux de literacy est de 81,2 % en urbain contre 63,7 % en rural, soit un écart de 17,5 points. Ce tableau récapitulatif constitue la pièce maîtresse du rapport en synthétisant l'ensemble des inégalités éducatives en une seule vue.
+
+# Discussion
+
+## Confrontation avec le rapport officiel NBS/World Bank (2019)
+
+Les résultats de cette analyse sont cohérents avec les statistiques du rapport officiel GHS Panel Survey Report 2019, publié par le NBS en collaboration avec la Banque mondiale. Trois points de comparaison sont particulièrement éclairants.
+
+Sur l'alphabétisation, le rapport officiel indique un taux national de 68,6 % pour les personnes de 5 ans et plus. Notre analyse utilise le seuil natif de la W4 (3 ans+), ce qui inclut des enfants de 3-4 ans quasi tous analphabètes et dilue mécaniquement le taux. Le rapport officiel a choisi le seuil de 5 ans pour maintenir la comparabilité avec les vagues précédentes, où le module éducation ne s'ouvrait qu'à cet âge. Nos analyses ciblées sur les sous-populations spécifiques (adultes 18+, enfants 6-17) ne sont pas affectées par cette différence de seuil.
+
+Sur la scolarisation, nos taux (92,5 % urbain, 88,2 % rural pour les 6-17 ans) sont supérieurs à ceux du rapport officiel (91,2 % urbain, 74,2 % rural pour les 5-14 ans). L'écart s'explique par la tranche d'âge plus large et par la mesure utilisée (inscription vs fréquentation effective).
+
+Sur la fracture géographique, nos résultats par État sont parfaitement alignés avec la hiérarchie régionale du rapport officiel : le Nord-Ouest au bas du classement, le Sud-Ouest et le Sud-Est en tête.
+
+## Choix méthodologiques et limites
+
+Le plan de sondage complexe est pris en compte via `srvyr::as_survey_design()` avec stratification (`strata`), clustering (`cluster = ea`) et pondération (`wt_wave4`). Les tests de Rao-Scott remplacent les chi-deux classiques pour éviter la surestimation de la significativité. Le V de Cramér, seul indicateur non pondéré, reste une approximation acceptable pour une mesure de taille d'effet.
+
+Le poids `wt_wave4` est un poids ménage appliqué à chaque membre. En l'absence de poids individuel dans ce dataset, c'est l'approximation standard utilisée par le NBS lui-même pour les indicateurs de structure éducative. La somme des poids (~149 millions) est cohérente avec la population nigériane en 2018.
+
+Le GHS Panel W4 exclut par construction certaines zones rurales de Borno et des zones urbaines inaccessibles pour raisons sécuritaires (insurrection Boko Haram). Les résultats représentent donc le Nigeria accessible en 2018-2019, et non l'ensemble du territoire. Cette limite est explicitement documentée dans le Basic Information Document de l'enquête.
+
+Le recodage du niveau d'éducation en 6 catégories à partir des 35 codes originaux de `s2aq9` suit la structure du système éducatif nigérian (6-3-3-4). La catégorie « Coranique/Adulte » est maintenue distincte de « Aucun » car elle représente un système éducatif parallèle réel, majoritaire dans le Nord, et non une absence d'instruction.
+
+## Implications pour les politiques publiques
+
+La persistance d'un quart de la population sans instruction formelle, concentré dans le Nord, appelle un renforcement ciblé des programmes d'alphabétisation adulte dans ces zones. L'écart de genre en éducation, bien que modéré au niveau national (V de Cramér = `r fmt(v_cramer, 3)`), masque des disparités régionales importantes : dans les États du Nord-Ouest, la proportion de femmes sans instruction dépasse celle des hommes de manière considérable. L'intégration de l'éducation coranique dans le système formel, via les programmes Tsangaya Almajiri Integration, représente un levier prometteur pour réduire cet écart.
+
+Les taux de scolarisation élevés (proche de 90 % même en rural) témoignent d'un progrès réel en termes d'accès. Le défi se déplace désormais vers la qualité de l'enseignement et la rétention au-delà du primaire, puisque le secondaire ne concerne que `r pct_secondaire` % de la population et le tertiaire seulement `r pct_tertiaire` %.
+
+# Conclusion
+
+Ce deuxième travail sur le capital humain des ménages nigérians révèle une situation éducative nuancée. Si les taux de scolarisation des 6-17 ans témoignent de progrès réels depuis la politique UBE de 2004, le stock de capital humain adulte reste marqué par des inégalités profondes : entre genres, entre milieux de résidence, et surtout entre régions. La fracture Nord-Sud, structurelle et persistante, constitue le défi éducatif majeur du Nigeria. Le gradient générationnel visible dans les boxplots ( les jeunes adultes sont significativement plus éduqués que leurs aînés ) offre néanmoins un signal encourageant de progrès en cours.
+
+Les résultats pondérés produits ici, représentatifs de l'ensemble des ménages nigérians accessibles en 2018-2019 et cohérents avec le rapport officiel NBS/World Bank, fournissent une base factuelle solide pour orienter les politiques éducatives différenciées que la diversité nigériane exige.
+
+# Références bibliographiques
+
+[1] National Bureau of Statistics Nigeria & World Bank (2019). *Nigeria General Household Survey Panel Wave 4 (2018-2019) — Survey Report*. LSMS-ISA.
+
+[2] National Bureau of Statistics Nigeria & World Bank (2019). *Nigeria General Household Survey Panel Wave 4 — Basic Information Document*. LSMS-ISA. DOI: 10.48529/1hgw-dq47
+
+[3] National Population Commission & ICF (2019). *Nigeria Demographic and Health Survey 2018*. Abuja/Rockville.
+
+[4] UNESCO Institute for Statistics (2019). *Education and Literacy Data — Nigeria*. UIS.Stat.
+
+[5] United Nations Girls' Education Initiative (2020). *Gender Report: A New Generation — 25 Years of Efforts for Gender Equality in Education*. UNESCO.
+
+[6] FAO (2018). *The State of Food and Agriculture: Migration, Agriculture and Rural Development*. Rome.
+
+[7] NBS Nigeria (2020). *2019 Poverty and Inequality in Nigeria*. National Bureau of Statistics.
+
+[8] Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences* (2nd ed.). Lawrence Erlbaum.
+
+[9] Rao, J. N. K. & Scott, A. J. (1981). The analysis of categorical data from complex sample surveys: chi-squared tests for goodness of fit and independence in two-way tables. *Journal of the American Statistical Association*, 76(374), 221-230.
+
+
+                Superviseur : M. Aboubacar HEMA, IFPRI Research Scientist
