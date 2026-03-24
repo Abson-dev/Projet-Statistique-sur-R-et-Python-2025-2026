@@ -1,0 +1,799 @@
+---
+title: "Analyse 2 - Éducation et alphabétisation des membres des ménages"
+author: "Ahmed Firhoun OUMAROU SOULEYE & Gérald Guerngué ADDJITA"
+date: "2026-03-12"
+output:
+  word_document: 
+    reference_docx: "style/template.docx"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+```{r}
+packages <- c("haven", "dplyr", "ggplot2", "forcats", "rstatix",
+              "ggpubr", "gtsummary", "viridis", "patchwork",
+              "scales", "tidyr", "stringr", "moments", "gt",
+              "survey", "srvyr")   # ← ajout
+
+installed <- rownames(installed.packages())
+to_install <- packages[!packages %in% installed]
+if (length(to_install) > 0) {
+  install.packages(to_install, dependencies = TRUE,
+                   repos = "https://cran.rstudio.com/")
+}
+invisible(lapply(packages, library, character.only = TRUE))
+```
+
+```{r}
+
+# ── Palette et thème ──────────────────────────────────────────
+pal_educ <- c(
+  "Aucun"             = "#E17055",
+  "Primaire"          = "#FDCB6E",
+  "Junior Secondary"  = "#00CEC9",
+  "Senior Secondary"  = "#0984E3",
+  "Tertiaire"         = "#6C5CE7"
+)
+
+theme_moderne <- theme_minimal(base_size = 13) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 16,
+                                    color = "#2D3436",
+                                    margin = margin(b = 8)),
+    plot.subtitle    = element_text(size = 12, color = "#636E72",
+                                    margin = margin(b = 12)),
+    plot.caption     = element_text(size = 9, color = "#B2BEC3",
+                                    hjust = 1),
+    axis.title       = element_text(face = "bold", size = 11,
+                                    color = "#2D3436"),
+    axis.text        = element_text(size = 10, color = "#636E72"),
+    panel.grid.major = element_line(color = "#F0F0F0",
+                                    linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    plot.background  = element_rect(fill = "#FAFAFA", color = NA),
+    panel.background = element_rect(fill = "#FFFFFF", color = NA),
+    legend.position  = "bottom",
+    legend.title     = element_text(face = "bold", size = 10),
+    strip.text       = element_text(face = "bold", size = 11),
+    plot.margin      = margin(15, 15, 10, 15)
+  )
+theme_set(theme_moderne)
+```
+### 7. Charger sect2_harvestw4 et sect1_harvestw4. Joindre les deux fichiers sur hhid + indiv_id. Inspecter les valeurs manquantes du niveau d'éducation.
+#### Objectif : Charger les fichiers sect2_harvestw4.dta (informations sur l'éducation) et sect1_harvestw4.dta (informations démographiques), les fusionner par l'identifiant unique hhid et indiv, puis vérifier la présence de valeurs manquantes dans les variables clés de l'éducation.
+
+Résultats :
+
+sect2 contient 26 557 lignes, sect1 30 337 lignes.
+
+Après jointure, le fichier conserve 26 557 lignes, sans doublon sur la clé.
+
+Les variables s2aq5 (sait lire/écrire ?) et s2aq6 (a déjà été à l'école ?) présentent 6,7 % de valeurs manquantes (1 768 observations).
+
+Les variables s2aq9 (niveau d’éducation atteint), s2aq10 (dernière classe suivie) et s2aq13a (fréquente actuellement l’école) ont 27,4 % de valeurs manquantes (7 286 observations).
+#### 7.a. Charger les données.
+```{r}
+sect2 <- read_dta("../data/raw/sect2_harvestw4.dta")
+sect1 <- read_dta("../data/raw/sect1_harvestw4.dta")
+
+cat("► sect2 :", nrow(sect2), "×", ncol(sect2), "\n")
+cat("► sect1 :", nrow(sect1), "×", ncol(sect1), "\n")
+```
+
+#### 7.b. Vérification des doublons
+```{r}
+sect1_reduit <- sect1 %>%
+  select(
+    hhid, indiv,
+    sexe    = s1q2,
+    age     = s1q4,
+    zone_ru = sector,
+    etat    = state,
+    ea      = ea,          # ← unité primaire de sondage
+    strata  = strata,      # ← strate
+    wt      = wt_wave4     # ← poids Wave 4
+  )
+cat("► Doublons hhid+indiv sect1 :",
+    sect1_reduit %>%
+      group_by(hhid, indiv) %>%
+      filter(n() > 1) %>% nrow(), "\n")
+```
+
+#### 7.c. Jointure sur hhid+indiv
+```{r}
+data_educ <- sect2 %>%
+  left_join(sect1_reduit, by = c("hhid", "indiv"))
+
+cat("► Dimensions après jointure :", nrow(data_educ),
+    "×", ncol(data_educ), "\n")
+cat("► Âge non manquant :", sum(!is.na(data_educ$age)), "\n")
+cat("► Sexe non manquant :", sum(!is.na(data_educ$sexe)), "\n")
+cat("► Zone_ru non manquante :",
+    sum(!is.na(data_educ$zone_ru)), "\n")
+```
+##### 7.d. Plan de sondage
+```{r}
+# ── Plan de sondage ───────────────────────────────────────────
+plan_sondage <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~wt,
+  data    = data_educ,
+  nest    = TRUE
+)
+
+# Sous-plan pour les adultes 18+ (utilisé en Q9, Q10, Q12)
+plan_adultes <- subset(plan_sondage,
+                        !is.na(age) & age >= 18 &
+                        !is.na(niveau_educ) & !is.na(sexe))
+
+# Sous-plan pour les enfants 6-17 ans (utilisé en Q11)
+plan_enfants <- subset(plan_sondage,
+                        !is.na(age) & age >= 6 & age <= 17 &
+                        !is.na(s2aq13a) & !is.na(zone_ru))
+```
+
+#### 7.d. Valeurs manquantes
+```{r}
+cat("\n► Valeurs manquantes — variables éducation clés :\n")
+miss_educ <- data_educ %>%
+  select(s2aq5, s2aq6, s2aq9, s2aq10, s2aq13a) %>%
+  summarise(across(everything(), ~sum(is.na(.)))) %>%
+  pivot_longer(everything(),
+               names_to  = "Variable",
+               values_to = "N_manquants") %>%
+  mutate(Proportion = round(N_manquants / nrow(data_educ) * 100, 2))
+print(miss_educ)
+```
+
+### 8. Construire une variable ordonnée niveau_educ à 5 catégories (Aucun, Primaire, Junior Secondary, Senior Secondary, Tertiaire) à partir de s2bq1. Calculer les fréquences et proportions, visualiser avec un barplot horizontal coloré par catégorie.
+
+#### 8.a. Recodage de s2aq9 (Niveau d'éducation)
+```{r}
+# 0           -> Aucun
+# 1-3         -> Pré-primaire / Aucun (regroupé avec Aucun)
+# 11-16       -> Primaire
+# 21-23       -> Junior Secondary
+# 24-28       -> Senior Secondary
+# 31-35,41,43 -> Tertiaire
+# 51-52,61    -> Coranique / Adulte (regroupé avec Aucun)
+# 321         -> Secondary Voc/Tech (-> Senior Secondary)
+# 322,411,412 -> Tertiary Voc/Tech  (-> Tertiaire)
+# 421-424     -> Université         (-> Tertiaire)
+
+data_educ <- data_educ %>%
+  mutate(
+    niveau_educ = case_when(
+      # Aucune instruction formelle
+      s2aq9 == 0                       ~ "Aucun",
+      s2aq9 %in% c(1, 2, 3)            ~ "Aucun",
+      s2aq9 %in% c(51, 52, 61)         ~ "Aucun",
+      # Primaire (classes 1 à 6)
+      s2aq9 %in% c(11,12,13,14,15,16)  ~ "Primaire",
+      # Junior Secondary (JSS 1-3)
+      s2aq9 %in% c(21, 22, 23)         ~ "Junior Secondary",
+      # Senior Secondary (SSS 1-3 + Lower/Upper 6)
+      s2aq9 %in% c(24,25,26,27,28)     ~ "Senior Secondary",
+      s2aq9 == 321                      ~ "Senior Secondary",
+      # Tertiaire (tout niveau post-secondaire)
+      s2aq9 %in% c(31,33,34,35)        ~ "Tertiaire",
+      s2aq9 %in% c(41, 43)             ~ "Tertiaire",
+      s2aq9 %in% c(322, 411, 412)      ~ "Tertiaire",
+      s2aq9 %in% c(421,422,423,424)    ~ "Tertiaire",
+      TRUE                              ~ NA_character_
+    ),
+    niveau_educ = factor(niveau_educ,
+      levels  = c("Aucun", "Primaire", "Junior Secondary",
+                  "Senior Secondary", "Tertiaire"),
+      ordered = TRUE),
+    educ_num = as.numeric(niveau_educ)
+  )
+```
+#### 8.b. Fréquences et proportions
+```{r}
+# Fréquences pondérées (estimations représentatives)
+freq_educ_svy <- svymean(~niveau_educ,
+                          design = subset(plan_sondage,
+                                          !is.na(niveau_educ)),
+                          na.rm  = TRUE)
+
+freq_educ <- as.data.frame(freq_educ_svy) %>%
+  tibble::rownames_to_column("niveau_educ") %>%
+  rename(prop = mean, se = SE) %>%
+  mutate(
+    niveau_educ = factor(
+      gsub("niveau_educ", "", niveau_educ),
+      levels  = c("Aucun", "Primaire", "Junior Secondary",
+                  "Senior Secondary", "Tertiaire"),
+      ordered = TRUE),
+    pct_label = paste0(round(prop * 100, 1), "%")
+  )
+
+# Effectifs non pondérés pour information
+n_total_obs <- sum(!is.na(data_educ$niveau_educ))
+cat("► N observations (non pondéré) :", n_total_obs, "\n")
+cat("\n► Distribution pondérée du niveau d'éducation :\n")
+print(select(freq_educ, niveau_educ, prop))
+```
+#### 8.c. Barplot horizontal
+```{r}
+p_educ_freq <- ggplot(freq_educ,
+  aes(x = fct_rev(niveau_educ),
+      y = prop * 100, fill = niveau_educ)) +
+  geom_col(width = 0.72, alpha = 0.93,
+           show.legend = FALSE) +
+  geom_text(aes(label = pct_label),
+            hjust = -0.08, size = 3.8,
+            fontface = "bold", color = "#2D3436") +
+  scale_fill_manual(values = pal_educ) +
+  scale_y_continuous(
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, max(freq_educ$prop * 100) * 1.40),
+    expand = c(0, 0)
+  ) +
+  coord_flip() +
+  labs(
+    title    = "Distribution du niveau d'éducation atteint",
+    subtitle = paste0("Nigeria GHS Panel — Wave 4 (2018) | N = ",
+                      format(sum(freq_educ$n), big.mark = " ")),
+    x        = NULL, y = "Proportion (%)",
+    caption  = "Source : World Bank LSMS-ISA | sect2_harvestw4"
+  ) +
+  theme(panel.grid.major.y = element_blank())
+p_educ_freq
+```
+  La population adulte nigériane étudiée a majoritairement un niveau d’éducation faible : plus de la moitié (54,2 %) n’a aucune instruction ou seulement le primaire. Le secondaire supérieur concerne un quart des adultes, et l’enseignement supérieur reste peu répandu (10,8 %). Ces chiffres reflètent les défis d’accès à l’éducation dans le pays.
+
+### 9. Comparer la distribution du niveau d'éducation entre hommes et femmes (adultes 18+): graphique en barres 100% empilées côte à côte, test du chi-deux sur le tableau de contingence, V de Cramér.
+Objectif : Comparer la distribution du niveau d’éducation entre hommes et femmes adultes à l’aide d’un tableau de contingence, d’un test du χ² et du V de Cramér, et visualiser avec un diagramme en barres 100 % empilées.
+
+Résultats :
+
+-L’échantillon compte 5 431 hommes et 4 914 femmes.
+
+-Le tableau croisé montre des écarts : par exemple, 574 femmes (11,7 %) sont sans instruction contre 502 hommes (9,2 %) ; 1 214 hommes (22,4 %) ont un niveau tertiaire contre 858 femmes (17,5 %).
+
+-Le test du χ² est très significatif (χ² = 116,9, ddl = 4, p < 2,5·10⁻²⁴), rejetant l’indépendance entre sexe et niveau d’éducation.
+
+-Le V de Cramér vaut 0,106, ce qui indique une association faible mais statistiquement significative.
+
+-Le graphique en barres empilées confirme visuellement que les hommes sont légèrement sur‑représentés dans les niveaux secondaire supérieur et tertiaire, tandis que les femmes le sont davantage dans les catégories « Aucun » et « Primaire ».
+
+#### 9.a. Répartion par sexe des adultes
+```{r}
+adultes <- data_educ %>%
+  filter(!is.na(age), age >= 18,
+         !is.na(niveau_educ), !is.na(sexe)) %>%
+  mutate(
+    sexe_label = factor(sexe,
+      levels = c(1, 2),
+      labels = c("Hommes", "Femmes"))
+  )
+
+cat("► N adultes 18+ :", nrow(adultes), "\n")
+cat("► Répartition par sexe :\n")
+print(table(adultes$sexe_label))
+
+```
+#### 9.b. Tableau de contingence
+```{r}
+tab_sexe_educ <- table(adultes$sexe_label,
+                       adultes$niveau_educ)
+
+tab_sexe_educ <- tab_sexe_educ[,
+  colSums(tab_sexe_educ) > 0, drop = FALSE]
+
+cat("\n► Tableau de contingence Sexe × Niveau d'éducation :\n")
+print(addmargins(tab_sexe_educ))
+```
+#### 9.c. Test de Chi-deux et V de Cramer
+```{r}
+chi2_test  <- suppressWarnings(chisq.test(tab_sexe_educ))
+min_expect <- min(chi2_test$expected)
+cat("\n► Effectif attendu minimum :", round(min_expect, 2), "\n")
+
+if (min_expect < 5) {
+  fisher_t  <- fisher.test(tab_sexe_educ,
+                            simulate.p.value = TRUE,
+                            B = 10000)
+  p_val_t9  <- fisher_t$p.value
+  test_nom9 <- "Fisher exact"
+  cat("→ Fisher exact : p =",
+      format(p_val_t9, digits = 4), "\n")
+} else {
+  p_val_t9  <- chi2_test$p.value
+  test_nom9 <- "Chi-deux"
+  cat("► Chi-deux : χ² =",
+      round(chi2_test$statistic, 3),
+      "| p =", format(p_val_t9, digits = 4), "\n")
+}
+```
+```{r}
+n_chi    <- sum(tab_sexe_educ)
+chi2_val <- suppressWarnings(
+  chisq.test(tab_sexe_educ)$statistic)
+
+if (!is.nan(chi2_val) && !is.na(chi2_val) && chi2_val > 0) {
+  v_cramer <- round(
+    sqrt(chi2_val / (n_chi * (min(dim(tab_sexe_educ)) - 1))),
+    4)
+} else {
+  v_cramer <- NA_real_
+}
+cat("► V de Cramér =",
+    ifelse(is.na(v_cramer),
+           "Non calculable", v_cramer), "\n")
+if (!is.na(v_cramer)) {
+  cat("->", case_when(
+    v_cramer < 0.10 ~ "Association très faible",
+    v_cramer < 0.20 ~ "Association faible",
+    v_cramer < 0.40 ~ "Association modérée",
+    TRUE            ~ "Association forte"), "\n")
+}
+```
+#### 9.d. Barplot 100% empilé
+```{r}
+data_100 <- adultes %>%
+  count(sexe_label, niveau_educ) %>%
+  group_by(sexe_label) %>%
+  mutate(prop  = n / sum(n),
+         label = ifelse(prop > 0.03,
+                        paste0(round(prop*100, 0), "%"), "")) %>%
+  ungroup()
+
+annot_t9 <- paste0(
+  test_nom9, " : p = ",
+  format(p_val_t9, digits = 3),
+  if (!is.na(v_cramer))
+    paste0(" | V Cramér = ", v_cramer) else "")
+
+p_sexe_educ <- ggplot(data_100,
+  aes(x = sexe_label, y = prop, fill = niveau_educ)) +
+  geom_col(position = "fill", width = 0.60,
+           alpha = 0.93) +
+  geom_text(aes(label = label),
+            position = position_fill(vjust = 0.5),
+            size = 3.8, fontface = "bold",
+            color = "white") +
+  scale_fill_manual(values = pal_educ,
+                    name   = "Niveau d'éducation") +
+  scale_y_continuous(labels = percent_format()) +
+  annotate("text", x = 1.5, y = 1.06,
+           label = annot_t9, size = 3.5,
+           color = "#636E72", fontface = "italic",
+           hjust = 0.5) +
+  labs(
+    title    = "Niveau d'éducation par sexe — Adultes 18+",
+    subtitle = paste0("Barres 100% empilées | N = ",
+                      format(nrow(adultes), big.mark = " "),
+                      " | Nigeria GHS Panel Wave 4 (2018)"),
+    x = NULL, y = "Proportion (%)",
+    caption = "Source : World Bank LSMS-ISA"
+  ) +
+  guides(fill = guide_legend(nrow = 2)) +
+  theme(legend.position = "bottom")
+p_sexe_educ
+```
+### 10.  Analyser la relation entre âge et niveau d'éducation: boxplot du niveau d'éducation (axe y numérique ou ordonné) par groupe d'âge (18-30, 31-45, 46-60, 60+). Kruskal-Wallis + post-hoc Dunn.
+Objectif : Analyser l’évolution du niveau d’éducation avec l’âge en regroupant les adultes en quatre classes d’âge (18‑30, 31‑45, 46‑60, 60+). Utiliser un test de Kruskal‑Wallis (non paramétrique) suivi de comparaisons multiples de Dunn, et représenter par un boxplot.
+
+Résultats :
+
+-Effectifs : 4075 (18‑30), 3271 (31‑45), 1994 (46‑60), 1005 (60+).
+
+-Le test de Kruskal‑Wallis est très significatif (H = 438,3, p < 10⁻⁹⁴), indiquant des différences entre groupes d’âge.
+
+-Tous les tests post‑hoc de Dunn sont significatifs (p ajusté < 0,001), confirmant que chaque groupe diffère des autres.
+
+-Statistiques descriptives (sur une échelle numérique de 1 à 5) :
+-Le boxplot montre une diminution régulière du niveau d’éducation avec l’âge : les jeunes adultes ont en moyenne un niveau proche du secondaire supérieur, tandis que les personnes âgées de plus de 60 ans se situent entre le primaire et le secondaire inférieur.
+
+#### 10.a. Effectifs des adultes par groupe d'âge
+```{r}
+
+adultes_age <- adultes %>%
+  filter(!is.na(age)) %>%
+  mutate(
+    groupe_age = cut(age,
+      breaks = c(18, 30, 45, 60, Inf),
+      labels = c("18-30 ans", "31-45 ans",
+                 "46-60 ans", "60+ ans"),
+      right  = FALSE)
+  ) %>%
+  filter(!is.na(groupe_age))
+
+cat("► Effectifs par groupe d'âge :\n")
+print(table(adultes_age$groupe_age))
+```
+#### 10.b. Tests de Kruskal-Wallis
+```{r}
+eff_groupes <- adultes_age %>%
+  count(groupe_age) %>%
+  filter(n >= 2)
+
+cat("► Groupes avec N ≥ 2 :",
+    paste(eff_groupes$groupe_age, collapse = ", "), "\n")
+
+adultes_kw <- adultes_age %>%
+  filter(groupe_age %in% eff_groupes$groupe_age) %>%
+  droplevels()
+
+if (length(unique(adultes_kw$groupe_age)) >= 2) {
+  kw_test <- kruskal.test(educ_num ~ groupe_age,
+                           data = adultes_kw)
+  cat("\n► Test de Kruskal-Wallis :\n")
+  cat("   H =", round(kw_test$statistic, 3),
+      "| ddl =", kw_test$parameter,
+      "| p =", format(kw_test$p.value, digits = 4), "\n")
+  cat("   →", ifelse(kw_test$p.value < 0.05,
+                     "Différence significative (p < 0.05)",
+                     "Pas de différence significative"), "\n")
+
+  if (kw_test$p.value < 0.05 &&
+      length(unique(adultes_kw$groupe_age)) >= 3) {
+    dunn_res <- dunn_test(adultes_kw,
+                           educ_num ~ groupe_age,
+                           p.adjust.method = "bonferroni")
+    cat("\n► Post-hoc Dunn (Bonferroni) :\n")
+    print(select(dunn_res, group1, group2,
+                 statistic, p.adj, p.adj.signif))
+  } else {
+    cat("   → Post-hoc non nécessaire\n")
+  }
+} else {
+  cat("⚠ Pas assez de groupes valides pour Kruskal-Wallis\n")
+  kw_test <- list(statistic = NA, parameter = NA,
+                  p.value   = NA)
+}
+```
+
+#### 10.c. Statistiques par groupe d'âge
+```{r}
+stats_age_educ <- adultes_age %>%
+  group_by(groupe_age) %>%
+  summarise(
+    N   = n(),
+    Moy = round(mean(educ_num, na.rm = TRUE), 2),
+    Méd = round(median(educ_num, na.rm = TRUE), 2),
+    ET  = round(sd(educ_num, na.rm = TRUE), 2),
+    .groups = "drop"
+  )
+cat("\n► Statistiques par groupe d'âge :\n")
+print(stats_age_educ)
+```
+#### 10.d. Boxplot
+```{r}
+couleurs_age <- c("18-30 ans" = "#4ECDC4",
+                  "31-45 ans" = "#45B7D1",
+                  "46-60 ans" = "#FF8C42",
+                  "60+ ans"   = "#FF6B6B")
+
+p_age_educ <- ggplot(adultes_age,
+  aes(x = groupe_age, y = educ_num, fill = groupe_age)) +
+  geom_boxplot(width = 0.55, outlier.shape = 21,
+               outlier.size = 2, outlier.alpha = 0.5,
+               linewidth = 0.8) +
+  stat_summary(fun = mean, geom = "point",
+               shape = 23, size = 4,
+               color = "white", fill = "#2D3436") +
+  scale_fill_manual(values = couleurs_age, guide = "none") +
+  scale_y_continuous(
+    breaks = 1:5,
+    labels = c("Aucun","Primaire","Junior\nSec.",
+               "Senior\nSec.","Tertiaire"),
+    limits = c(0.5, 5.8)
+  ) +
+  annotate("text", x = 2, y = 5.6,
+           label = paste0(
+             "Kruskal-Wallis H = ",
+             ifelse(is.na(kw_test$statistic), "N/A",
+                    round(kw_test$statistic, 2)),
+             " | p = ",
+             ifelse(is.na(kw_test$p.value), "N/A",
+                    format(kw_test$p.value, digits = 3))),
+           size = 3.8, color = "#636E72",
+           fontface = "italic") +
+  labs(
+    title    = "Niveau d'éducation selon le groupe d'âge",
+    subtitle = "Adultes 18+ | ◆ = Moyenne | Nigeria GHS Panel W4",
+    x = "Groupe d'âge", y = "Niveau d'éducation",
+    caption = "Source : World Bank LSMS-ISA"
+  )
+p_age_educ
+```
+
+### 11.  Comparer le taux de scolarisation des 6-17 ans entre zones rurales et urbaines (sect2a + 
+secta): tableau de contingence, test du chi-deux, graphique en barres groupées avec IC à 95%.
+
+```{r}
+cat("► Vérification colonne zone_ru :",
+    sum(!is.na(data_educ$zone_ru)), "valeurs non manquantes\n")
+cat("► Modalités de zone_ru :\n")
+print(table(data_educ$zone_ru, useNA = "always"))
+
+enfants <- data_educ %>%
+  filter(!is.na(age), age >= 6, age <= 17,
+         !is.na(s2aq13a),
+         !is.na(zone_ru)) %>%
+  mutate(
+    scolarise  = factor(s2aq13a,
+      levels = c(1, 2),
+      labels = c("Scolarisé", "Non scolarisé")),
+    zone_label = factor(zone_ru,
+      levels = c(1, 2),
+      labels = c("Rural", "Urbain"))
+  ) %>%
+  filter(!is.na(scolarise), !is.na(zone_label))
+
+cat("► N enfants 6-17 ans :", nrow(enfants), "\n")
+```
+#### 11.a. Tableau de contingence
+```{r}
+
+tab_scol <- table(enfants$zone_label, enfants$scolarise)
+cat("\n► Tableau Scolarisation × Zone :\n")
+print(addmargins(tab_scol))
+
+```
+#### 11.b. Test 
+Objectif : Comparer le taux de scolarisation des enfants en âge scolaire entre zones rurales et urbaines. Construire un tableau de contingence, effectuer un test du χ², et représenter les proportions avec leur intervalle de confiance à 95 %.
+
+Résultats :
+
+-Effectifs : 2315 enfants ruraux, 5515 urbains.
+Taux de scolarisation :
+
+-Rural : 92,3 % (IC 95 % : [91,1 % – 93,3 %])
+
+-Urbain : 88,5 % (IC 95 % : [87,6 % – 89,3 %])
+
+-Le test du χ² est significatif (χ² = 24,6, p = 6,9·10⁻⁷), mais la différence absolue est faible (environ 4 points de pourcentage).
+
+-Le graphique avec barres et intervalles de confiance montre que le taux rural est légèrement supérieur au taux urbain, les intervalles ne se chevauchant pas.
+```{r}
+chi2_scol  <- suppressWarnings(chisq.test(tab_scol))
+min_exp_s  <- min(chi2_scol$expected)
+cat("► Effectif attendu minimum :", round(min_exp_s, 2), "\n")
+
+if (min_exp_s < 5) {
+  fish_s    <- fisher.test(tab_scol)
+  p_scol    <- fish_s$p.value
+  test_scol <- "Fisher exact"
+} else {
+  p_scol    <- chi2_scol$p.value
+  test_scol <- "Chi-deux"
+  cat("► Chi-deux : χ² =",
+      round(chi2_scol$statistic, 3),
+      "| p =", format(p_scol, digits = 4), "\n")
+}
+cat("►", test_scol, ": p =",
+    format(p_scol, digits = 4), "\n")
+```
+
+#### 11.c. Proportion avec IC à 95%
+```{r}
+
+taux_scol <- enfants %>%
+  group_by(zone_label) %>%
+  summarise(
+    n_total = n(),
+    n_scol  = sum(scolarise == "Scolarisé"),
+    taux    = n_scol / n_total,
+    ic_inf  = binom.test(n_scol, n_total)$conf.int[1],
+    ic_sup  = binom.test(n_scol, n_total)$conf.int[2],
+    .groups = "drop"
+  )
+
+cat("\n► Taux de scolarisation par zone :\n")
+print(taux_scol %>%
+        mutate(across(c(taux, ic_inf, ic_sup),
+                      ~paste0(round(.x * 100, 1), "%"))))
+```
+
+#### 11.d. 
+```{r}
+p_scol <- ggplot(taux_scol,
+  aes(x = zone_label, y = taux * 100,
+      fill = zone_label)) +
+  geom_col(width = 0.55, alpha = 0.92,
+           show.legend = FALSE) +
+  geom_errorbar(
+    aes(ymin = ic_inf * 100, ymax = ic_sup * 100),
+    width = 0.22, linewidth = 1.1, color = "#2D3436"
+  ) +
+  geom_text(
+    aes(label = paste0(round(taux * 100, 1), "%")),
+    vjust = -2.4, fontface = "bold",
+    size = 5, color = "#2D3436"
+  ) +
+  scale_fill_manual(
+    values = c("Rural" = "#96CEB4", "Urbain" = "#45B7D1")
+  ) +
+  scale_y_continuous(
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, 110), expand = c(0, 0)
+  ) +
+  annotate("text", x = 1.5, y = 103,
+           label = paste0(test_scol, " : p = ",
+                          format(p_scol, digits = 3)),
+           size = 4, color = "#636E72",
+           fontface = "italic") +
+  labs(
+    title    = "Taux de scolarisation des enfants 6-17 ans",
+    subtitle = "Rural vs Urbain | Barres d'erreur = IC 95%\nNigeria GHS Panel Wave 4 (2018)",
+    x = "Zone de résidence",
+    y = "Taux de scolarisation (%)",
+    caption = "Source : World Bank LSMS-ISA | sect2_harvestw4"
+  )
+p_scol
+```
+### 12.  Heatmap (geom_tile) croisant État nigérian (state) et niveau d'éducation: part d'adultes sans instruction par État, colorée par quintile. 
+Objectif : Visualiser la proportion d’adultes n’ayant jamais été scolarisés (niveau « Aucun ») dans chaque État nigérian, en utilisant une échelle de couleur (quintiles) et en faisant varier la taille des points selon le nombre d’adultes enquêtés.
+
+Résultats :
+
+-Les États sont classés par ordre décroissant de pourcentage d’adultes sans instruction.
+
+Les cinq États avec les taux les plus élevés sont :
+
+-Zamfara : 79,0 %
+-Sokoto : 69,9 %
+-Jigawa : 61,1 %
+-Borno : 51,0 %
+-Kano : 45,1 %
+Les États du sud (Lagos, Rivers, Abia, etc.) affichent des taux bien plus faibles, souvent en dessous de 10 %.
+
+La taille des points reflète l’effectif enquêté : les États les plus peuplés (Kano, Lagos) ont de gros points, ce qui donne plus de poids à leurs estimations.
+
+```{r}
+etats_nigeria <- c(
+  "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi",
+  "Bayelsa","Benue","Borno","Cross River","Delta",
+  "Ebonyi","Edo","Ekiti","Enugu","Gombe","Imo",
+  "Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi",
+  "Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo",
+  "Osun","Oyo","Plateau","Rivers","Sokoto","Taraba",
+  "Yobe","Zamfara","FCT"
+)
+state_names <- setNames(etats_nigeria, as.character(1:37))
+
+adultes_etat <- adultes %>%
+  filter(!is.na(etat), !is.na(niveau_educ)) %>%
+  mutate(
+    etat_nom = state_names[as.character(as.integer(etat))]
+  ) %>%
+  filter(!is.na(etat_nom))
+
+cat("► N adultes avec état :", nrow(adultes_etat), "\n")
+
+heatmap_data <- adultes_etat %>%
+  group_by(etat_nom) %>%
+  summarise(
+    n_total   = n(),
+    n_aucun   = sum(niveau_educ == "Aucun"),
+    pct_aucun = n_aucun / n_total * 100,
+    .groups   = "drop"
+  ) %>%
+  filter(n_total >= 3) %>%
+  arrange(desc(pct_aucun))
+
+cat("► États avec données :", nrow(heatmap_data), "\n")
+cat("► Top 5 États sans instruction :\n")
+print(head(heatmap_data, 5))
+
+```
+
+```{r}
+p_heatmap <- ggplot(heatmap_data,
+  aes(x    = pct_aucun,
+      y    = fct_reorder(etat_nom, pct_aucun),
+      fill = pct_aucun,
+      size = n_total)) +
+  geom_point(shape = 21, alpha = 0.88) +
+  geom_segment(
+    aes(x = 0, xend = pct_aucun,
+        y = fct_reorder(etat_nom, pct_aucun),
+        yend = fct_reorder(etat_nom, pct_aucun)),
+    color = "#E0E0E0", linewidth = 0.5
+  ) +
+  geom_text(
+    aes(label = paste0(round(pct_aucun, 0), "%")),
+    hjust = -0.5, size = 3.2,
+    fontface = "bold", color = "#2D3436"
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma", direction = -1,
+    name   = "% sans\ninstruction"
+  ) +
+  scale_size_continuous(
+    range = c(3, 10), name = "N adultes"
+  ) +
+  scale_x_continuous(
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, max(heatmap_data$pct_aucun) * 1.25),
+    expand = c(0, 0)
+  ) +
+  labs(
+    title    = "Part d'adultes sans instruction par État",
+    subtitle = paste0("Nigeria GHS Panel Wave 4 (2018) | ",
+                      nrow(heatmap_data), " États représentés\n",
+                      "Taille du point = Nombre d'adultes enquêtés"),
+    x = "% sans instruction",
+    y = NULL,
+    caption = "Source : World Bank LSMS-ISA | sect2_harvestw4"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_line(
+      color = "#F0F0F0", linewidth = 0.5),
+    legend.key.width   = unit(1.0, "cm")
+  )
+p_heatmap
+```
+### A. Résultats 
+#### a.Tableau Gtsummary
+```{r}
+gt_data2 <- adultes %>%
+  mutate(
+    zone_label  = factor(zone_ru,
+      levels = c(1,2), labels = c("Rural","Urbain")),
+    alphabetise = factor(s2aq5,
+      levels = c(1,2), labels = c("Oui","Non")),
+    groupe_age_f = cut(age,
+      breaks = c(18,30,45,60,Inf),
+      labels = c("18-30","31-45","46-60","60+"),
+      right  = FALSE)
+  ) %>%
+  select(zone_label, sexe_label, niveau_educ,
+         age, alphabetise, groupe_age_f)
+
+tableau_gt2 <- gt_data2 %>%
+  tbl_summary(
+    by    = zone_label,
+    label = list(
+      sexe_label   ~ "Sexe",
+      niveau_educ  ~ "Niveau d'éducation",
+      age          ~ "Âge (années)",
+      alphabetise  ~ "Alphabétisé(e)",
+      groupe_age_f ~ "Groupe d'âge"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "ifany"
+  ) %>%
+  add_p() %>%
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption(
+    paste0("**Tableau 2.** Profil éducatif par zone — ",
+           "Nigeria GHS Panel Wave 4 (2018)")
+  )
+gt_data2
+```
+
+```{r}
+p_synthese2 <- (p_educ_freq | p_sexe_educ) /
+               (p_age_educ  | p_scol)      +
+  plot_annotation(
+    title    = "TP2 — Éducation et Alphabétisation",
+    subtitle = "Nigeria GHS Panel — Wave 4 (2018)",
+    caption  = "Source : World Bank LSMS-ISA | ENSAE ISE1 2025-2026",
+    theme    = theme(
+      plot.title    = element_text(face = "bold", size = 17,
+                                   color = "#2D3436",
+                                   hjust = 0.5),
+      plot.subtitle = element_text(size = 12,
+                                   color = "#636E72",
+                                   hjust = 0.5)
+    )
+  )
+
+
+```
+
+
+
