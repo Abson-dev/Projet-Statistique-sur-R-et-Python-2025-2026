@@ -1,0 +1,454 @@
+---
+title: "Accès aux Soins et Dépenses de Santé au Nigeria"
+subtitle: "Nigeria General Household Survey Panel — Vague 4 (2018)"
+author: "Cheikh Mouhamdou Moustapha Ndiaye & Awa Ba"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+lang: fr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE,
+                      dpi=180, out.width="95%")
+options(scipen=999)
+options(survey.lonely.psu = "adjust")
+```
+
+```{r packages, include=FALSE}
+if (!requireNamespace("pacman", quietly=TRUE)) install.packages("pacman")
+pacman::p_load(haven, dplyr, tidyr, ggplot2, patchwork, naniar,
+               gtsummary, rstatix, scales, forcats, stringr,
+               survey, purrr, flextable, officer, knitr, viridis)
+
+# CORRECTION : helper universel pour les bordures flextable
+# border_all() n'existe pas dans toutes les versions de flextable
+ft_borders <- function(ft) {
+  bd <- officer::fp_border(color="#BFC9CA", width=0.5)
+  ft %>%
+    flextable::hline(border=bd) %>%
+    flextable::vline(border=bd) %>%
+    flextable::hline_top(border=officer::fp_border(color=BLUE_ENSAE, width=2)) %>%
+    flextable::hline_bottom(border=bd)
+}
+```
+
+```{r data, include=FALSE}
+# CORRECTION : SCRIPT_DIR robuste pour RStudio + Rscript + knitr
+SCRIPT_DIR <- tryCatch(
+  dirname(rstudioapi::getSourceEditorContext()$path),
+  error = function(e) {
+    args <- commandArgs(trailingOnly=FALSE)
+    f    <- args[grep("--file=", args)]
+    if (length(f)) dirname(normalizePath(sub("--file=", "", f)))
+    else getwd()
+  }
+)
+TP_DIR   <- dirname(SCRIPT_DIR)
+DATA_DIR <- file.path(TP_DIR, "data", "NGA_2018_GHSP-W4_v03_M_Stata12")
+OUT      <- file.path(TP_DIR, "outputs")
+if (!dir.exists(OUT)) dir.create(OUT, recursive=TRUE)
+
+f_health <- file.path(DATA_DIR, "sect4a_harvestw4.dta")
+f_sect1  <- file.path(DATA_DIR, "sect1_harvestw4.dta")
+f_cons   <- file.path(DATA_DIR, "totcons_final.dta")
+if (!all(file.exists(c(f_health, f_sect1, f_cons)))) stop("Fichiers introuvables.")
+
+COL_M <- "#1B6CA8"; COL_F <- "#C0392B"; COL_R <- "#27AE60"; COL_U <- "#E67E22"
+BLUE_ENSAE <- "#003E74"
+COLS_ILL <- c("Infectieuse"="#E74C3C", "Respiratoire"="#3498DB",
+              "Traumatique"="#E67E22", "Chronique"="#8E44AD", "Autre"="#95A5A6")
+
+THEME <- theme_minimal(base_size=9) +
+  theme(plot.title    = element_text(face="bold", size=9, margin=margin(b=3)),
+        plot.subtitle = element_text(size=7.5, color="grey40"),
+        plot.caption  = element_text(size=6.5, color="grey55", hjust=0),
+        axis.title    = element_text(size=8, face="bold"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(color="grey93"),
+        plot.background  = element_rect(fill="white", color=NA),
+        panel.background = element_rect(fill="white", color=NA))
+
+# ── DONNÉES ────────────────────────────────────────────────────────────────────
+df_s1 <- read_dta(f_sect1) %>%
+  mutate(s1q4a_num = as.integer(stringr::str_extract(as.character(s1q4a), "^\\d+"))) %>%
+  filter(s1q4a_num != 2 | is.na(s1q4a_num)) %>%
+  mutate(sex       = as.integer(stringr::str_extract(as.character(s1q2), "^\\d+")),
+         sex_label = factor(case_when(sex==1~"Homme", sex==2~"Femme")),
+         age       = as.numeric(s1q4),
+         age       = if_else(age > 110 | age < 0, NA_real_, age),
+         sec_num   = as.integer(stringr::str_extract(as.character(sector), "^\\d+")),
+         sec_label = factor(case_when(sec_num==1~"Urbain", sec_num==2~"Rural"),
+                            levels=c("Rural","Urbain")))
+
+df_cons <- read_dta(f_cons) %>%
+  select(hhid, totcons_pc, wt_wave4) %>%
+  mutate(quintile    = ntile(totcons_pc, 5),
+         quint_label = paste0("Q", quintile))
+
+df_h <- read_dta(f_health) %>%
+  left_join(df_s1 %>% select(hhid, indiv, sex_label, age, sec_label, sec_num),
+            by=c("hhid","indiv")) %>%
+  left_join(df_cons, by="hhid") %>%
+  mutate(
+    ill_s4aq3   = stringr::str_detect(as.character(s4aq3), "^1"),
+    cons_reason = as.integer(stringr::str_extract(as.character(s4aq2a), "^\\d+")),
+    malade      = case_when(
+      ill_s4aq3 ~ TRUE,
+      !is.na(cons_reason) & cons_reason %in% c(1L, 2L) ~ TRUE,
+      TRUE ~ FALSE),
+    consulted     = stringr::str_detect(as.character(s4aq1), "^1"),
+    dep_consult   = coalesce(suppressWarnings(as.numeric(s4aq9)), 0),
+    dep_transport = replace_na(as.numeric(stringr::str_extract(as.character(s4aq10), "^\\d+\\.?\\d*")), 0),
+    dep_meds      = replace_na(as.numeric(stringr::str_extract(as.character(s4aq14), "^\\d+\\.?\\d*")), 0),
+    dep_hosp      = replace_na(as.numeric(stringr::str_extract(as.character(s4aq17), "^\\d+\\.?\\d*")), 0),
+    dep_total     = dep_consult + dep_transport + dep_meds + dep_hosp,
+    age_grp       = cut(age, breaks=c(0,5,15,30,45,60,Inf),
+                        labels=c("0-4","5-14","15-29","30-44","45-59","60+"),
+                        right=FALSE, include.lowest=TRUE))
+
+# Seuil outliers
+dep_pos_all <- df_h %>% filter(dep_total > 0) %>% pull(dep_total)
+q3_d <- quantile(dep_pos_all, .75); q1_d <- quantile(dep_pos_all, .25)
+seuil_out <- q3_d + 3*(q3_d - q1_d)
+
+# Design survey
+svy_h <- svydesign(ids=~hhid, strata=~sec_num, weights=~wt_wave4,
+                   data=df_h %>% filter(!is.na(wt_wave4)))
+
+# Taux pondérés globaux
+morb_w <- as.numeric(coef(svymean(~malade, svy_h, na.rm=TRUE))["maladeTRUE"]) * 100
+cons_w <- as.numeric(coef(svymean(~consulted, svy_h, na.rm=TRUE))["consultedTRUE"]) * 100
+
+# Morbidité par sexe — CORRECTION : rename robuste
+morb_sex_svy <- svyby(~malade, ~sex_label, svy_h, svymean, na.rm=TRUE, vartype="ci")
+col_pct_s <- grep("TRUE",  names(morb_sex_svy), value=TRUE)[1]
+col_lo_s  <- grep("ci_l",  names(morb_sex_svy), value=TRUE)[1]
+col_hi_s  <- grep("ci_u",  names(morb_sex_svy), value=TRUE)[1]
+morb_sex <- morb_sex_svy %>%
+  rename(pct=all_of(col_pct_s), pct_lo=all_of(col_lo_s), pct_hi=all_of(col_hi_s)) %>%
+  mutate(across(c(pct, pct_lo, pct_hi), ~.*100)) %>%
+  left_join(df_h %>% filter(!is.na(sex_label)) %>%
+              group_by(sex_label) %>%
+              summarise(N=n(), n_ill=sum(malade), .groups="drop"), by="sex_label")
+
+# Morbidité par âge
+morb_age_svy <- svyby(~malade, ~age_grp, svy_h %>% subset(!is.na(age_grp)),
+                      svymean, na.rm=TRUE, vartype="ci")
+col_pct_a <- grep("TRUE", names(morb_age_svy), value=TRUE)[1]
+col_lo_a  <- grep("ci_l", names(morb_age_svy), value=TRUE)[1]
+col_hi_a  <- grep("ci_u", names(morb_age_svy), value=TRUE)[1]
+morb_age <- morb_age_svy %>%
+  rename(pct=all_of(col_pct_a), pct_lo=all_of(col_lo_a), pct_hi=all_of(col_hi_a)) %>%
+  mutate(across(c(pct, pct_lo, pct_hi), ~.*100)) %>%
+  left_join(df_h %>% filter(!is.na(age_grp)) %>%
+              group_by(age_grp) %>%
+              summarise(N=n(), n_ill=sum(malade), .groups="drop"), by="age_grp")
+
+# Dépenses
+dep_pos   <- df_h %>% filter(dep_total > 0, !is.na(wt_wave4))
+dep_moy_w <- weighted.mean(dep_pos$dep_total, dep_pos$wt_wave4)
+dep_med_br <- median(dep_pos$dep_total)
+
+# Quintile — CORRECTION : rename robuste
+df_hq <- df_h %>%
+  filter(!is.na(quintile), !is.na(consulted), !is.na(wt_wave4)) %>%
+  dplyr::mutate(consulted_f = factor(as.integer(consulted)))
+svy_q  <- svydesign(ids=~hhid, strata=~sec_num, weights=~wt_wave4, data=df_hq)
+test_q <- svychisq(~consulted_f + quint_label, svy_q, statistic="Chisq")
+ct     <- table(as.integer(df_hq$consulted), df_hq$quint_label)
+V_q    <- sqrt(chisq.test(ct)$statistic / (sum(ct)*(min(nrow(ct),ncol(ct))-1)))
+q_svy_raw <- svyby(~consulted, ~quint_label, svy_q, svymean, na.rm=TRUE)
+col_cons  <- grep("consulted", names(q_svy_raw), value=TRUE)
+col_cons  <- col_cons[!grepl("se\\.|SE", col_cons)][1]
+q_consult <- q_svy_raw %>%
+  rename(pct=all_of(col_cons)) %>%
+  mutate(pct=pct*100) %>%
+  left_join(df_hq %>% group_by(quint_label) %>%
+              summarise(N=n(), n_cons=sum(consulted), .groups="drop"), by="quint_label")
+
+# Rural vs Urbain — CORRECTION : as.character() + protection division par zéro
+dep_sec <- df_h %>%
+  filter(dep_total > 0, dep_total < seuil_out, !is.na(sec_label), !is.na(wt_wave4))
+wx_e <- wilcox.test(dep_total ~ sec_label, data=dep_sec, exact=FALSE)
+n1   <- sum(as.character(dep_sec$sec_label) == "Rural")
+n2   <- sum(as.character(dep_sec$sec_label) == "Urbain")
+r_e  <- if (n1 > 0 && n2 > 0) as.numeric(wx_e$statistic)/(n1*n2) else NA_real_
+med_sec <- dep_sec %>% group_by(sec_label) %>%
+  summarise(med   = median(dep_total),
+            moy_w = round(weighted.mean(dep_total, wt_wave4, na.rm=TRUE)),
+            .groups="drop")
+
+# Prestataires
+prov_map <- c("0"="Aucun soignant","1"="Guerisseur trad.","2"="Medecin",
+              "3"="Dentiste","4"="Infirmier(e)","5"="Assist. medical",
+              "6"="Sage-femme","7"="Pharmacist","8"="Chemist/Pharmacien",
+              "9"="Accoucheuse","10"="Benevole sante","11"="Autre","15"="Agent CHEW")
+prov_df <- df_h %>%
+  filter(!is.na(s4aq6a), !is.na(wt_wave4)) %>%
+  mutate(prov_code_s = stringr::str_extract(as.character(s4aq6a), "^\\d+"),
+         prov_n      = coalesce(prov_map[prov_code_s], paste0("Code ", prov_code_s))) %>%
+  group_by(prov_n) %>%
+  summarise(n=n(), n_pond=sum(wt_wave4), .groups="drop") %>%
+  mutate(pct=n_pond/sum(n_pond)*100, prov_n=fct_reorder(prov_n, n_pond))
+
+# Maladies — CORRECTION : str_squish + filtre robuste
+ill_cat_fn <- function(v) {
+  code <- suppressWarnings(as.integer(stringr::str_extract(v, "^\\d+")))
+  case_when(code %in% c(1:8)           ~ "Infectieuse",
+            code %in% c(9,10,15,16,17) ~ "Respiratoire",
+            code == 11                 ~ "Traumatique",
+            code %in% 20:27            ~ "Chronique",
+            !is.na(code)               ~ "Autre",
+            TRUE                       ~ NA_character_)
+}
+ill_df <- df_h %>%
+  filter(!is.na(s4aq3b_1)) %>%
+  mutate(ill_name = stringr::str_squish(stringr::str_remove(as.character(s4aq3b_1), "^\\d+\\.?\\s*")),
+         ill_cat  = ill_cat_fn(as.character(s4aq3b_1))) %>%
+  filter(ill_name != "", ill_name != "NA") %>%
+  count(ill_name, ill_cat) %>%
+  arrange(desc(n)) %>% head(10) %>%
+  mutate(ill_name = fct_reorder(ill_name, n))
+```
+
+---
+
+# Introduction {-}
+
+L'accès aux soins de santé est un déterminant essentiel du bien-être des populations. En Nigéria, les inégalités d'accès persistent selon le sexe, le milieu de résidence et le niveau socio-économique. Ce rapport analyse les données sanitaires du **General Household Survey Panel Wave 4 (GHS-W4, 2018)** pour documenter la morbidité, les comportements de recours aux soins et les dépenses de santé.
+
+**Note méthodologique — Construction des variables :** Le taux de morbidité intègre les individus ayant déclaré une maladie (`s4aq3 = 1`) **et** ceux ayant consulté pour maladie ou blessure (`s4aq2a = 1 ou 2`). Les dépenses totales sont la somme de 4 composantes : consultation (`s4aq9`), transport (`s4aq10`), médicaments (`s4aq14`), hospitalisation (`s4aq17`).
+
+**Note méthodologique — Pondération :** Le poids `wt_wave4` (issu de `totcons_final.dta`) est appliqué à toutes les estimations. Le taux de morbidité pondéré est **`r round(morb_w, 1)`%**, le taux de consultation pondéré est **`r round(cons_w, 1)`%**.
+
+---
+
+# Morbidité — Taux et répartition
+
+## Statistiques clés pondérées
+
+```{r tab_morb}
+# CORRECTION : calcul n_cons_raison robuste (évite NA silencieux)
+n_cons_raison <- sum(!is.na(df_h$cons_reason) & df_h$cons_reason %in% c(1L,2L) &
+                     is.na(df_h$s4aq3), na.rm=TRUE)
+tab_m <- data.frame(
+  Indicateur = c("Taux de morbidité pondéré (global)",
+                 "Taux de consultation pondéré",
+                 "Dont malades (s4aq3=YES)",
+                 "Dont consultés pour maladie/blessure (s4aq2a=1,2) sans s4aq3",
+                 "Dépense moyenne pondérée (individus >0)",
+                 "Dépense médiane brute"),
+  Valeur = c(sprintf("%.1f%%", morb_w),
+             sprintf("%.1f%%", cons_w),
+             format(sum(df_h$ill_s4aq3, na.rm=TRUE), big.mark=" "),
+             format(n_cons_raison, big.mark=" "),
+             sprintf("%s NGN", comma(round(dep_moy_w))),
+             sprintf("%s NGN", comma(dep_med_br))))
+flextable(tab_m) %>%
+  bold(part="header") %>%
+  bg(part="header", bg=BLUE_ENSAE) %>% color(part="header", color="white") %>%
+  bg(i=seq(1,nrow(tab_m),2), bg="#EBF5FB") %>%
+  bg(i=seq(2,nrow(tab_m),2), bg="white") %>%
+  bold(j=2, bold=TRUE) %>% color(j=2, color=BLUE_ENSAE) %>%
+  ft_borders() %>%
+  set_caption("Indicateurs clés de santé pondérés — GHS W4 (2018)") %>%
+  autofit()
+```
+
+## Morbidité par sexe et groupe d'âge
+
+```{r fig_morb, fig.cap="Taux de morbidité pondéré par sexe et groupe d'âge — IC 95% survey.", fig.height=3.0}
+p_ms <- ggplot(morb_sex, aes(x=sex_label, y=pct, fill=sex_label)) +
+  geom_col(alpha=0.87, width=0.52) +
+  geom_errorbar(aes(ymin=pct_lo, ymax=pct_hi), width=0.14, linewidth=1, color="grey20") +
+  geom_text(aes(label=sprintf("%.1f%%\n(n=%s)", pct, comma(n_ill))),
+            vjust=-0.4, size=3.5, fontface="bold") +
+  scale_fill_manual(values=c("Homme"=COL_M,"Femme"=COL_F), guide="none") +
+  scale_y_continuous(labels=function(x) paste0(x,"%"), limits=c(0,35)) +
+  labs(title="Morbidite par sexe (pond.)", x="Sexe", y="Taux pondere (%)",
+       caption="IC 95% linearisation Taylor | wt_wave4") + THEME
+
+p_ma <- ggplot(morb_age, aes(x=age_grp, y=pct, fill=pct)) +
+  geom_col(alpha=0.87) +
+  geom_errorbar(aes(ymin=pct_lo, ymax=pct_hi), width=0.2, linewidth=1, color="grey20") +
+  geom_text(aes(label=sprintf("%.1f%%", pct)), vjust=-0.8, size=3.0, fontface="bold") +
+  scale_fill_gradient(low="#AED6F1", high="#1A5276", guide="none") +
+  scale_y_continuous(labels=function(x) paste0(x,"%"), limits=c(0,65)) +
+  labs(title="Morbidite par groupe d'age (pond.)", x="Groupe d'age", y="Taux pondere (%)",
+       caption="IC 95% survey | wt_wave4") + THEME
+
+(p_ms | p_ma) +
+  plot_annotation(title=sprintf("Taux morbidite global pondere = %.1f%%", morb_w))
+```
+
+**Interprétation :** Le taux de morbidité pondéré global est de **`r round(morb_w, 1)`%**. Les femmes présentent un taux légèrement supérieur aux hommes, résultat cohérent avec la littérature sur la surmortalité déclarée des femmes. La morbidité croît fortement avec l'âge : les 60 ans et plus présentent un taux pondéré de **`r round(morb_age$pct[as.character(morb_age$age_grp)=="60+"], 0)`%**, témoignant de la charge croissante des maladies chroniques.
+
+---
+
+# Types de maladies
+
+```{r fig_maladies, fig.cap="Top 10 des maladies déclarées — GHS W4 (2018).", fig.height=3.0}
+ggplot(ill_df, aes(x=n, y=ill_name, fill=ill_cat)) +
+  geom_col(alpha=0.87, width=0.72) +
+  geom_text(aes(label=sprintf("%s  (%.1f%%)", comma(n), n/sum(n)*100)),
+            hjust=-0.05, size=2.9, fontface="bold") +
+  scale_fill_manual(values=COLS_ILL, name="Categorie", na.value="#95A5A6") +
+  scale_x_continuous(expand=expansion(mult=c(0,.22)), labels=comma) +
+  labs(title="Top 10 maladies/blessures declarees — W4 (2018)",
+       x="Nombre de cas", y=NULL,
+       caption="Source : GHS Panel W4 | s4aq3b_1") +
+  THEME + theme(legend.position="right")
+```
+
+**Interprétation :** Le **paludisme** est de loin la première cause de maladie déclarée, devant les affections respiratoires. Cette prédominance des maladies infectieuses et parasitaires est caractéristique des pays d'Afrique subsaharienne en cours de transition épidémiologique. Les maladies chroniques (hypertension, diabète) commencent à émerger parmi les 10 premières causes, signalant une double charge épidémiologique.
+
+---
+
+# Recours aux soins
+
+```{r fig_recours, fig.cap="Recours aux soins par type de prestataire — proportions pondérées.", fig.height=3.0}
+ggplot(prov_df, aes(x=pct, y=prov_n, fill=fct_rev(prov_n))) +
+  geom_col(alpha=0.87, width=0.72) +
+  geom_text(aes(label=sprintf("%.1f%%  (%s)", pct, comma(n))),
+            hjust=-0.05, size=2.9, fontface="bold") +
+  scale_fill_viridis_d(option="turbo", direction=-1, guide="none") +
+  scale_x_continuous(labels=function(x) paste0(x,"%"),
+                     expand=expansion(mult=c(0,.3))) +
+  labs(title="Recours aux soins par prestataire — W4 (2018) · Pondere",
+       x="Proportion ponderee (%)", y=NULL,
+       caption="wt_wave4 | Source : GHS Panel W4 | s4aq6a") + THEME
+```
+
+**Interprétation :** Le **Chemist/pharmacien** constitue le premier recours aux soins (environ 46% pondéré), reflet d'une automédication répandue et d'un accès limité aux structures formelles. Les médecins représentent moins de 30% des consultations, ce qui traduit à la fois des contraintes financières et des problèmes de disponibilité géographique des professionnels de santé.
+
+---
+
+# Dépenses de santé
+
+## Distribution des dépenses
+
+```{r fig_dep_dist, fig.cap="Distribution pondérée des dépenses totales de santé — échelle logarithmique.", fig.height=2.8}
+ggplot(df_h %>% filter(dep_total>0, dep_total<seuil_out, !is.na(wt_wave4)),
+       aes(x=dep_total, weight=wt_wave4)) +
+  geom_histogram(bins=55, fill=COL_M, color="white", alpha=0.85) +
+  scale_x_log10(labels=label_dollar(prefix="NGN ", big.mark=" "),
+                breaks=c(10,50,200,500,2000,5000,20000)) +
+  geom_vline(xintercept=dep_med_br, color=COL_F, linewidth=1.1, linetype="dashed") +
+  annotate("text", x=dep_med_br*2.3, y=Inf, vjust=1.6,
+           color=COL_F, fontface="bold", size=2.9,
+           label=sprintf("Med. = %s NGN", comma(dep_med_br))) +
+  scale_y_continuous(labels=label_number(scale=1e-6, suffix="M")) +
+  labs(title="Depenses sante totales (ponderees) — W4 (2018)",
+       subtitle=sprintf("Moy. pond. = %s NGN | Echelle log | s4aq9+s4aq10+s4aq14+s4aq17",
+                        comma(round(dep_moy_w))),
+       x="Depenses totales (NGN, log scale)", y="Effectif pondere",
+       caption="wt_wave4 | Source : GHS Panel W4") + THEME
+```
+
+## Dépenses Rural vs Urbain
+
+```{r fig_dep_sec, fig.cap="Dépenses de santé Rural vs Urbain — violin plot pondéré.", fig.height=3.2}
+y_annot <- exp(mean(log(range(dep_sec$dep_total, na.rm=TRUE)))) * 5
+ggplot(dep_sec, aes(x=sec_label, y=dep_total, fill=sec_label)) +
+  geom_violin(alpha=0.70, scale="width", trim=TRUE) +
+  geom_boxplot(width=0.11, fill="white", color="grey20",
+               outlier.shape=NA, linewidth=0.9) +
+  stat_summary(fun=median, geom="point", shape=21, size=5, fill="white") +
+  stat_summary(aes(weight=wt_wave4), fun=weighted.mean,
+               geom="point", shape=8, size=5, color="#E67E22") +
+  geom_text(data=med_sec,
+            aes(x=sec_label, y=med, label=sprintf("Med\n%s NGN", comma(med))),
+            vjust=-1.3, size=3.2, fontface="bold") +
+  scale_fill_manual(values=c("Rural"=COL_R,"Urbain"=COL_U), guide="none") +
+  scale_y_log10(labels=label_dollar(prefix="NGN ", big.mark=" "),
+                breaks=c(10,50,200,500,2000,5000,20000)) +
+  annotate("label", x=1.5, y=y_annot,
+           label=sprintf("Wilcoxon\nW=%s\np=%.4f\nr=%.3f",
+                         comma(wx_e$statistic), wx_e$p.value, r_e),
+           size=2.8, hjust=0.5, fill="white", label.size=0.3) +
+  labs(title="Depenses sante : Rural vs Urbain — W4 (2018) · Ponderee",
+       subtitle="Violin + boxplot | Etoile = Moy ponderee | Echelle log",
+       x="Milieu", y="Depenses totales (NGN, log)",
+       caption=sprintf("Wilcoxon W=%s · p=%.4f · r=%.3f | wt_wave4 | GHS Panel W4",
+                       comma(wx_e$statistic), wx_e$p.value, r_e)) + THEME
+```
+
+**Interprétation :** Les ménages urbains dépensent significativement plus que les ruraux (Wilcoxon *p* = `r round(wx_e$p.value, 4)`, effet `r ifelse(is.na(r_e), "non calculable", ifelse(r_e<0.1,"négligeable",ifelse(r_e<0.3,"faible",ifelse(r_e<0.5,"modéré","fort"))))`, *r* = `r ifelse(is.na(r_e), "NA", round(r_e, 3))`). Ce gradient reflète à la fois un **meilleur accès aux prestataires de soins formels** et un **pouvoir d'achat plus élevé** en milieu urbain. La dépense moyenne pondérée est de **`r comma(round(dep_moy_w))` NGN** pour les individus ayant engagé des dépenses.
+
+---
+
+# Inégalités socio-économiques d'accès aux soins
+
+```{r fig_quintile, fig.cap="Taux de consultation pondéré par quintile de consommation — gradient d'inégalité.", fig.height=2.8}
+ggplot(q_consult, aes(x=quint_label, y=pct, fill=quint_label)) +
+  geom_col(alpha=0.87, width=0.62) +
+  geom_text(aes(label=sprintf("%.1f%%", pct)), vjust=-0.5, size=3.5, fontface="bold") +
+  scale_fill_viridis_d(option="plasma", guide="none") +
+  scale_y_continuous(labels=function(x) paste0(x,"%"), limits=c(0,30)) +
+  annotate("label", x=3, y=25, size=2.8, hjust=0.5, fill="white", label.size=0.3,
+           label=sprintf("Chi2 survey=%.1f\np<0.001\nV Cramer=%.3f",
+                         test_q$statistic, V_q)) +
+  labs(title="Taux de consultation x quintile — W4 (2018) · Pondere",
+       subtitle="Q1=Tres pauvres → Q5=Riches | Gradient d'inegalites d'acces | wt_wave4",
+       x="Quintile de consommation", y="Taux de consultation pondere (%)",
+       caption=sprintf("Chi2 survey=%.1f · V Cramer=%.3f | wt_wave4 | GHS Panel W4",
+                       test_q$statistic, V_q)) + THEME
+```
+
+**Interprétation :** L'accès aux soins est **fortement lié au niveau socio-économique** (Chi² survey *p* < 0,001, V de Cramér = `r round(V_q, 3)`). Les plus riches (Q5 : `r round(q_consult$pct[q_consult$quint_label=="Q5"], 1)`%) consultent nettement plus que les plus pauvres (Q1 : `r round(q_consult$pct[q_consult$quint_label=="Q1"], 1)`%). Ce gradient confirme les barrières financières à l'accès aux soins au Nigeria en 2018.
+
+---
+
+# Tableau de synthèse pondéré
+
+```{r tab_synthese}
+# CORRECTION : suppression de results='asis' incompatible avec as_flex_table() en Word
+svy_tbl <- svydesign(ids=~hhid, strata=~sec_num, weights=~wt_wave4,
+  data=df_h %>% filter(!is.na(sec_label), !is.na(wt_wave4)) %>%
+    mutate(Malade           = factor(as.integer(malade), 0:1, c("Non","Oui")),
+           Consultation     = factor(as.integer(consulted), 0:1, c("Non","Oui")),
+           `Dep. sante (NGN)` = if_else(dep_total>0, dep_total, NA_real_),
+           Milieu=sec_label, Sexe=sex_label, Age=age))
+tbl_svysummary(svy_tbl,
+  include   = c(Sexe, Age, Malade, Consultation, `Dep. sante (NGN)`),
+  by        = Milieu,
+  statistic = list(all_continuous()  ~ "{median} [{p25}-{p75}]",
+                   all_categorical() ~ "{n_unweighted} ({p}%)")
+) %>%
+  add_p(test=list(all_categorical() ~ "svy.chisq.test",
+                  all_continuous()  ~ "svy.wilcox.test")) %>%
+  add_overall() %>% bold_labels() %>%
+  modify_caption("**Tableau 3. Indicateurs de santé pondérés par milieu — GHS W4 (2018)**") %>%
+  modify_footnote(everything() ~ "Analyses pondérées wt_wave4 | Dep.=s4aq9+s4aq10+s4aq14+s4aq17") %>%
+  as_flex_table() %>%
+  bold(part="header") %>%
+  bg(part="header", bg=BLUE_ENSAE) %>% color(part="header", color="white") %>%
+  ft_borders() %>%
+  autofit()
+```
+
+**Interprétation :** Le tableau confirme des **disparités systématiques** entre rural et urbain : taux de morbidité similaires mais taux de consultation significativement plus élevé en urbain, et dépenses de santé médianes nettement plus élevées en milieu urbain.
+
+---
+
+# Conclusion {-}
+
+Ce rapport documente quatre enseignements majeurs sur la santé des ménages nigérians en 2018 :
+
+**1. Morbidité élevée et croissante avec l'âge.** Le taux de morbidité pondéré global est de **`r round(morb_w, 1)`%**, avec une forte accélération après 45 ans, annonçant une charge croissante de maladies chroniques.
+
+**2. Prédominance des maladies infectieuses.** Le paludisme reste la première cause de maladie, confirmant la nécessité de maintenir les programmes de lutte antipaludéenne prioritaires.
+
+**3. Automédication répandue.** L'accès aux soins passe majoritairement par les pharmacies/chemists (~46% pondéré), révélant des barrières d'accès aux soins formels.
+
+**4. Inégalités socio-économiques fortes.** Le gradient de consultation par quintile (Q1 : `r round(q_consult$pct[q_consult$quint_label=="Q1"], 1)`% → Q5 : `r round(q_consult$pct[q_consult$quint_label=="Q5"], 1)`%) et les écarts rural-urbain appellent à une extension urgente de la couverture santé universelle.
+
+---
+
+*Données : NBS/World Bank — GHS Panel Wave 4, Nigeria, 2018 | ENSAE ISE 1 — 2025–2026*
+
+*Pondération : wt_wave4 | Packages R : survey, gtsummary, flextable*
