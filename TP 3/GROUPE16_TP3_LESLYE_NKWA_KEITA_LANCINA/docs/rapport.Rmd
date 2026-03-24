@@ -1,0 +1,237 @@
+---
+title: "Accès aux soins et dépenses de santé des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel Wave 4 (2018-2019)"
+author:
+  - "Nkwa T. Leslye & Keita Lancina"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+lang: fr
+output:
+  word_document:
+    reference_docx: reference.docx
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  out.width = "95%",
+  dpi       = 180
+)
+
+library(tidyverse)
+library(knitr)
+library(flextable)
+library(gtsummary)
+library(scales)
+library(srvyr)
+library(here)
+
+options(scipen = 999)
+
+source_ghs <- "Source : GHS Panel W4 (2018-2019), NBS Nigeria / World Bank LSMS-ISA. Calculs des auteurs."
+
+df_sante     <- readRDS(here("data", "processed", "df_sante_clean.rds"))
+plan_sante   <- readRDS(here("data", "processed", "plan_sante.rds"))
+taux_global  <- readRDS(here("data", "processed", "taux_global.rds"))
+taux_sexe    <- readRDS(here("data", "processed", "taux_sexe.rds"))
+taux_age     <- readRDS(here("data", "processed", "taux_age.rds"))
+top10        <- readRDS(here("data", "processed", "top10_maladies.rds"))
+freq_presta  <- readRDS(here("data", "processed", "freq_presta.rds"))
+taux_quint   <- readRDS(here("data", "processed", "taux_quint.rds"))
+stats_milieu <- readRDS(here("data", "processed", "stats_milieu.rds"))
+tests_quint  <- readRDS(here("data", "processed", "tests_quintile.rds"))
+tests_dep    <- readRDS(here("data", "processed", "tests_depenses.rds"))
+
+fmt <- function(x, d = 1) {
+  format(round(x, d), big.mark = " ", decimal.mark = ",",
+         nsmall = d, scientific = FALSE, trim = TRUE)
+}
+
+# Indicateurs clés
+n_sante <- nrow(df_sante)
+n_menages <- n_distinct(df_sante$hhid)
+taux_morb <- round(taux_global$taux * 100, 1)
+taux_h <- round(taux_sexe$taux[taux_sexe$sexe == "Homme"], 1)
+taux_f <- round(taux_sexe$taux[taux_sexe$sexe == "Femme"], 1)
+taux_60 <- round(taux_age$taux[taux_age$groupe_age == "60+"], 1)
+top1_mal <- top10$type_maladie[1]
+pct_prive <- freq_presta$pct[freq_presta$type_presta == "Privé"]
+pct_public <- freq_presta$pct[freq_presta$type_presta == "Public"]
+v_quint <- tests_quint$v
+med_rural <- stats_milieu$mediane[stats_milieu$milieu == "Rural"]
+med_urbain <- stats_milieu$mediane[stats_milieu$milieu == "Urbain"]
+r_dep <- tests_dep$eff$effsize
+```
+
+# Messages clés
+
+**Morbidité.** Le taux de morbidité déclarée sur 4 semaines est de `r taux_morb` % (pondéré), avec un écart significatif entre femmes (`r taux_f` %) et hommes (`r taux_h` %). Le gradient par âge est marqué : les 60+ déclarent un taux de `r taux_60` %, reflet de la charge de maladies chroniques et comorbidités. Ce taux global est cohérent avec les enquêtes DHS/MICS en Afrique subsaharienne (8-15 % sur 4 semaines).
+
+**Profil épidémiologique.** Les douleurs corporelles et le paludisme co-dominent le profil de morbidité déclarée, ce qui est typique d'une enquête auto-rapportée sans diagnostic clinique dans le contexte nigérian 2018.
+
+**Recours aux soins.** Le secteur privé assure `r pct_prive` % des consultations avec établissement identifié, contre `r pct_public` % pour le public. Cette dominance du privé est cohérente avec le sous-financement chronique du système public nigérian documenté par l'OMS.
+
+**Gradient socioéconomique.** Le taux de consultation augmente avec le quintile de consommation (chi-deux Rao-Scott, p < 0,001). L'association reste faible (V de Cramér = `r fmt(v_quint, 3)`), la richesse n'étant qu'un déterminant parmi d'autres du recours aux soins.
+
+**Dépenses de santé.** La médiane des dépenses de médicaments est de `r format(med_rural, big.mark = " ")` nairas en rural et `r format(med_urbain, big.mark = " ")` nairas en urbain. La distribution est fortement asymétrique à droite, caractéristique des dépenses de santé dans les pays à faible couverture assurantielle.
+
+**Pondération.** Toutes les statistiques sont calculées avec les poids `wt_wave4` et le plan de sondage complexe (stratifié, en grappes).
+
+# Introduction
+
+Le Nigeria consacrait moins de 4 % de son PIB aux dépenses de santé en 2018, bien en dessous de la moyenne subsaharienne. Dans un contexte de faible couverture assurantielle (le National Health Insurance Scheme couvre moins de 5 % de la population selon l'OMS), les dépenses de santé reposent massivement sur les paiements directs des ménages (*out-of-pocket*), exposant les plus vulnérables à un risque de dépenses catastrophiques.
+
+Ce rapport analyse les épisodes de maladie, les types de soins consultés et les coûts de santé supportés par les ménages nigérians à partir du module santé (section 4a) du Nigeria General Household Survey Panel Wave 4 (2018-2019). L'analyse intègre les pondérations et le plan de sondage complexe pour toutes les statistiques.
+
+# Exploration et qualité des données
+
+## Note sur la restructuration du module santé en W4
+
+Le sujet du TP cite `sect3a` et `sect3b` comme sources des données de santé. Cette nomenclature est correcte pour les vagues W1 à W3. En W4, le contenu santé (morbidité, consultations, dépenses) a été restructuré et se trouve dans `sect4a_harvestw4.dta`. Le fichier `sect3a_harvestw4` contient désormais le module emploi, et `sect3b_harvestw4` ne contient que l'enrôlement au NHIS.
+
+De même, le fichier `cons_agg_wave4_visit2` cité dans le sujet n'existe pas dans le package W4. L'agrégat de consommation est fourni par `totcons_final.dta` (variable `totcons_adj` : consommation annuelle par tête, ajustée spatialement et temporellement).
+
+## Population analytique
+
+L'échantillon comprend `r format(n_sante, big.mark = " ")` membres résidents actifs issus de `r format(n_menages, big.mark = " ")` ménages, obtenus par le même filtre que les TP1 et TP2 (`s1q4a == 1 | is.na(s1q4a)`). Le module santé (`sect4a`) ne contient pas de filtre d'âge explicite analogue à `s2aq2` en éducation, mais la question de morbidité (`s4aq3`) n'est pas posée aux enfants de moins de 5 ans (`s4aq51 == 1`), qui ont des NA structurels.
+
+Les quintiles de consommation sont construits à partir de `totcons_adj` via `ntile()`. La couverture NHIS provient de `sect3b_harvestw4` (`s3q50`), jointure au niveau ménage.
+
+&nbsp;
+
+```{r fig-na, fig.cap="Carte des valeurs manquantes. Les NA sur dépenses et type de praticien sont structurels (logique du questionnaire : questions posées uniquement aux consultants). Les NA sur morbidité correspondent aux enfants de moins de 5 ans."}
+knitr::include_graphics(here("outputs", "figures", "fig00_diagnostic_NA.png"))
+```
+
+# Taux de morbidité par sexe et groupe d'âge
+
+```{r fig-morb, fig.cap="Taux de morbidité déclarée par sexe (gauche) et par groupe d'âge (droite). Proportions pondérées, IC 95% plan de sondage."}
+knitr::include_graphics(here("outputs", "figures", "fig01_morbidite_combined.png"))
+```
+
+Le taux de morbidité pondéré sur 4 semaines est de `r taux_morb` %, cohérent avec les enquêtes DHS en Afrique subsaharienne (8-15 %). Les femmes déclarent une morbidité supérieure aux hommes (`r taux_f` % vs `r taux_h` %), un résultat classique dans les enquêtes LSMS : les femmes sous-déclarent moins et ont un recours aux soins pré/post-nataux qui augmente la déclaration.
+
+Le gradient par âge est net : de `r round(taux_age$taux[taux_age$groupe_age == "0-14"], 1)` % chez les 0-14 ans à `r taux_60` % chez les 60+. Les personnes âgées cumulent maladies chroniques, comorbidités et vulnérabilité aux infections, un profil documenté par l'OMS dans le cadre du vieillissement en Afrique subsaharienne.
+
+Le rapport officiel NBS/World Bank (Table 2.8) indique une prévalence de maladie de 45,8 % chez les hommes 65+ et 51,8 % chez les femmes 65+ pour les 4 semaines précédant l'enquête. Notre taux pour les 60+ est inférieur car il inclut la tranche 60-64, moins touchée que les 65+.
+
+# Types de maladies déclarées
+
+```{r fig-maladies, fig.cap="Top 10 des affections déclarées par les membres malades. Proportions pondérées. Couleurs : rouge infectieuses, cyan respiratoires, orange traumatiques, bleu chroniques, gris autres."}
+knitr::include_graphics(here("outputs", "figures", "fig02_types_maladies.png"))
+```
+
+Le profil épidémiologique est dominé par les douleurs corporelles et le paludisme, qui co-dominent avec des proportions proches. Ce résultat est typique d'une enquête auto-rapportée sans diagnostic clinique : les symptômes non spécifiques (douleurs, céphalées) sont surreprésentés tandis que les maladies chroniques (hypertension, diabète) sont sous-représentées, la fenêtre de rappel de 4 semaines étant inadaptée à leur capture.
+
+Le catarrhe et la toux (catégorie respiratoire) confirment la charge des infections respiratoires aiguës, deuxième cause de mortalité infantile au Nigeria (WHO, 2018).
+
+# Recours aux soins par type de prestataire
+
+```{r fig-presta, fig.cap="Répartition des consultations par type de gestionnaire d'établissement (pondéré, IC 95% plan de sondage). Bleu : public. Vert : privé. Ocre : autre."}
+knitr::include_graphics(here("outputs", "figures", "fig03_recours_prestataire.png"))
+```
+
+Le secteur privé domine avec `r pct_prive` % des consultations, contre `r pct_public` % pour le public. Cette répartition est cohérente avec la revue du système de santé nigérian par l'OMS (2015) qui documente le sous-financement chronique du secteur public et le rôle central des *Patent Medicine Vendors* (chemist/PMV), point d'entrée principal dans le système de soins, notamment en zone rurale.
+
+La variable `s4aq8` (gestionnaire de l'établissement) ne distingue pas explicitement le secteur informel : les tradipraticiens et PMV sont classés comme « privé ». La distinction formel/informel nécessiterait de croiser `s4aq6a` (type de praticien) et `s4aq7` (lieu de consultation).
+
+# Distribution des dépenses de santé
+
+```{r fig-dep-distrib, fig.cap="Distribution des dépenses en médicaments (s4aq14 > 0, échelle log). Couleur bleu OMS."}
+knitr::include_graphics(here("outputs", "figures", "fig04a_depenses_distribution.png"))
+```
+
+La distribution des dépenses en médicaments (`s4aq14`) présente une asymétrie positive prononcée, caractéristique classique des dépenses de santé dans les pays à faible couverture assurantielle. La grande majorité des dépenses se concentre entre 100 et 5 000 nairas, la tranche 500-1 000 nairas étant la plus fréquente.
+
+Les barres situées au-delà de 10 000 nairas sont si faibles qu'elles sont à peine visibles sur le graphique : elles correspondent à un petit nombre d'hospitalisations ou de traitements coûteux (maladies chroniques, interventions chirurgicales) qui, bien que rares, représentent des dépenses catastrophiques pour les ménages concernés. Cette queue de distribution, presque invisible graphiquement, est précisément celle qui plonge les ménages vulnérables dans la pauvreté un phénomène documenté par l'OMS sous le terme de *catastrophic health expenditure*.
+
+Les dépenses de médicaments (`s4aq14`) sont utilisées comme proxy principal car la dépense totale (`s4aq9` + `s4aq14` + `s4aq17`) exige que les trois postes (consultation, médicaments, hospitalisation) soient simultanément renseignés, ce qui ne concerne qu'un petit sous-ensemble de l'échantillon. `s4aq14` est le poste le plus universel car les Nigérians achètent des médicaments même sans consultation formelle, via les *Patent Medicine Vendors* (chemist) et il est aussi le mieux renseigné.
+
+
+```{r fig-dep-presta, fig.cap="Boxplots des dépenses de médicaments par type de prestataire (échelle log). Bleu : public. Vert : privé. Ocre : autre."}
+knitr::include_graphics(here("outputs", "figures", "fig04b_depenses_prestataire.png"))
+```
+
+La comparaison par type de prestataire révèle des médianes relativement proches entre secteur public et privé, ce qui peut sembler contre-intuitif. L'explication réside dans le fait que la variable `s4aq14` mesure les dépenses de médicaments et non les frais de consultation : même les patients du secteur public achètent leurs médicaments dans le circuit privé (pharmacies, chemist) en raison des ruptures de stock chroniques dans les établissements publics nigérians. 
+La catégorie « Autre » (communautaire, religieux, ONG) présente une variabilité plus large, reflétant l'hétérogénéité de ces structures. Les outliers visibles au-dessus de 10 000 nairas correspondent aux cas d'hospitalisation avec traitement médicamenteux lourd.
+
+
+En somme, les dépenses de santé se concentrent massivement sur de petits montants d'automédication, tandis qu'une minorité de dépenses catastrophiques, à peine visibles sur l'histogramme, dévaste les ménages concernés. Le type de prestataire n'influe que marginalement sur le coût des médicaments : c'est l'hospitalisation, rare mais coûteuse, qui creuse les inégalités de dépenses.
+
+# Recours aux soins et quintile de consommation
+
+```{r fig-quintile, fig.cap="Taux de consultation pondéré par quintile de consommation (IC 95% plan de sondage)."}
+knitr::include_graphics(here("outputs", "figures", "fig05_recours_quintile.png"))
+```
+
+Le gradient socioéconomique est net : le taux de consultation augmente du quintile le plus pauvre au plus riche. Le test de chi-deux Rao-Scott (adapté au plan de sondage) est hautement significatif (p < 0,001), mais l'association reste faible (V de Cramér = `r fmt(v_quint, 3)`). La richesse favorise le recours aux soins mais n'en est qu'un déterminant parmi d'autres : la morbidité, la distance géographique, les normes culturelles et la disponibilité de l'offre jouent aussi un rôle important.
+
+# Dépenses de santé par milieu de résidence
+
+```{r fig-dep-milieu, fig.cap="Violin plot + boxplot des dépenses de médicaments par milieu (échelle log, winsorisé au 99e percentile). Vert rural, gris urbain."}
+knitr::include_graphics(here("outputs", "figures", "fig06_depenses_milieu.png"))
+```
+
+La médiane des dépenses de médicaments est de `r format(med_rural, big.mark = " ")` nairas en rural et `r format(med_urbain, big.mark = " ")` nairas en urbain. Le test de Wilcoxon donne un r = `r fmt(r_dep, 3)`, ce qui correspond à un effet `r tests_dep$eff$magnitude`. L'absence ou la faiblesse de différence entre milieux s'explique probablement par le recours universel aux chemist/PMV, qui pratiquent des tarifs comparables dans les deux milieux.
+
+La winsorisation au 99e percentile a été appliquée pour limiter l'influence des hospitalisations exceptionnellement coûteuses sur les statistiques.
+
+# Tableau de synthèse stratifié par milieu
+
+```{r tab-gtsummary}
+readRDS(here("data", "processed", "tab_sante_word.rds"))
+```
+
+&nbsp;
+
+Ce tableau confirme les disparités rural-urbain sur les indicateurs de santé. Le milieu de résidence, combiné au quintile de consommation, détermine largement l'accès aux soins formels. La couverture NHIS, dérisoire dans les deux milieux (< 5 %), ne joue actuellement aucun rôle protecteur significatif.
+
+# Discussion
+
+## Choix méthodologiques et limites
+
+Le passage de `sect3a`/`sect3b` à `sect4a` en W4 constitue un changement structurel majeur que le sujet ne documente pas. Nous avons identifié cette restructuration en vérifiant le dictionnaire des variables (`GHS_Variable_Dictionary_FINAL.xlsx`). De même, `totcons_final.dta` remplace `cons_agg_wave4_visit2` qui n'existe pas en W4.
+
+La variable `s4aq3` (morbidité) exclut les enfants de moins de 5 ans par construction du questionnaire W4. Le taux de morbidité est donc calculé sur la population de 5 ans et plus uniquement. La variable `s4aq1` (consultation) capture les consultations curatives et préventives, ce qui explique que le nombre de consultants excède le nombre de malades déclarés.
+
+Les dépenses de médicaments (`s4aq14`) sont utilisées comme proxy de la dépense totale car la somme `s4aq9 + s4aq14 + s4aq17` n'est complète que pour un petit sous-ensemble de l'échantillon. Cette approximation est acceptable car les médicaments constituent le poste de dépense le plus fréquent et le plus universel dans le contexte nigérian.
+
+## Confrontation avec le rapport officiel NBS/World Bank (2019)
+
+Le rapport NBS/World Bank (Table 2.9) indique un taux de problèmes de santé de 22,6 % pour les hommes et 24,5 % pour les femmes (tous âges). Notre taux pondéré de 8,7 % est sensiblement inférieur. Trois facteurs peuvent expliquer cet écart. Premièrement, le rapport officiel combine probablement les deux visites (post-planting et post-harvest) de la W4, doublant la fenêtre d'observation, tandis que nous n'utilisons que la visite post-harvest. Deuxièmement, la Table 2.9 du rapport inclut les enfants de 0-4 ans, population à forte morbidité (paludisme, diarrhées), que notre variable `s4aq3` exclut par construction du questionnaire W4. Troisièmement, la définition du rapport officiel peut inclure des indicateurs complémentaires de santé au-delà de `s4aq3` seul.
+
+En revanche, les structures observées sont cohérentes avec le rapport officiel : la dominance du paludisme (Table 2.11 : 41,2 % vs nos 26,7 %), la prédominance du secteur privé/chemist (Table 2.10 : ~48 % vs nos 68,4 % en incluant tous les privés), et le coût moyen des médicaments (N1 677 vs notre médiane de 700 nairas, écart attendu entre moyenne et médiane sur distribution asymétrique) sont tous alignés.
+
+## Implications pour les politiques publiques
+
+Le taux de couverture NHIS de moins de 5 % confirme l'échec de la politique d'assurance maladie lancée en 2005. Les ménages nigérians financent directement l'essentiel de leurs soins, avec un risque élevé de dépenses catastrophiques pour les plus vulnérables. La dominance du secteur privé informel (chemist/PMV) comme point d'entrée dans le système de soins appelle une régulation renforcée de la qualité des médicaments vendus et une intégration progressive de ces acteurs dans le système de santé formel.
+
+# Conclusion
+
+Ce troisième volet révèle un système de santé nigérian marqué par la faible protection financière des ménages, la dominance du secteur privé informel et des inégalités d'accès liées au niveau de richesse. Le taux de morbidité de `r taux_morb` % sur 4 semaines, les disparités de genre dans la déclaration et le gradient socioéconomique du recours aux soins dessinent un tableau cohérent avec la littérature sur le Nigeria et l'Afrique subsaharienne. Les résultats pondérés confirment que la santé reste un domaine où les politiques publiques nigérianes ont le plus de chemin à parcourir.
+
+# Références bibliographiques
+
+[1] National Bureau of Statistics Nigeria & World Bank (2019). *Nigeria General Household Survey Panel Wave 4 (2018-2019) — Survey Report*. LSMS-ISA.
+
+[2] National Bureau of Statistics Nigeria & World Bank (2019). *Nigeria GHS Panel W4 — Basic Information Document*. DOI: 10.48529/1hgw-dq47
+
+[3] World Health Organization (2018). *World Health Statistics 2018: Monitoring Health for the SDGs*. Geneva.
+
+[4] WHO (2015). *Nigeria Health System Review*. Health Systems in Transition, Vol. 5 No. 3.
+
+[5] National Population Commission & ICF (2019). *Nigeria Demographic and Health Survey 2018*. Abuja/Rockville.
+
+[6] Onwujekwe, O. et al. (2011). Constraints to universal coverage: inequities in health service use and expenditures for different health conditions and providers. *International Journal for Equity in Health*, 10:50.
+
+[7] Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences* (2nd ed.). Lawrence Erlbaum.
+
+[8] Rao, J. N. K. & Scott, A. J. (1981). The analysis of categorical data from complex sample surveys. *JASA*, 76(374), 221-230.
+
+
+                Superviseur : M. Aboubacar HEMA, IFPRI Research Scientist

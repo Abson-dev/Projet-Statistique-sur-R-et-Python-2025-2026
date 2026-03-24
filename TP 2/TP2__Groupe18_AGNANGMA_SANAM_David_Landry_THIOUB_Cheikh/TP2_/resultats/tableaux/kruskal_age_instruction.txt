@@ -1,0 +1,6 @@
+
+	Kruskal-Wallis rank sum test
+
+data:  score_instruction by tranche_age
+Kruskal-Wallis chi-squared = 122.54, df = 3, p-value < 2.2e-16
+

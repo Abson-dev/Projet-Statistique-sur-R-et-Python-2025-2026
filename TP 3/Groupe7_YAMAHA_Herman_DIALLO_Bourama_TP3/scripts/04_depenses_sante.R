@@ -1,43 +1,19 @@
 # =============================================================================
-# Analyse 3 – Script 04 : Distribution des dépenses de santé
-# Tâche 16 : Histogramme avec échelle log, statistiques par décile,
-#            boxplot par type de prestataire, identification des outliers.
+# Script 04 : Distribution des dépenses de santé (Tâche 16) — pondéré
 #
-# Variables clés :
-#   s4aq9    = montant payé pour la première consultation (Naira)
-#   s4aq14   = montant payé pour médicaments sans ordonnance (Naira)
-#   s4aq17   = montant payé pour hospitalisation (Naira)
-#   s4aq6a   = type de praticien consulté (pour le boxplot)
+# PONDÉRATIONS : la médiane est calculée via svyquantile().
+# L'histogramme utilise aes(weight=wt_wave4) pour représenter la
+# distribution dans la population et non dans l'échantillon.
 #
-# Méthode pour les outliers : règle de Tukey étendue (IQR × 3)
-#   Seuil = Q3 + 3 × (Q3 - Q1)
-#
-# Auteurs  : Groupe 7 – Herman YAMAHA | Bourama DIALLO
-# Données  : Nigeria GHS Panel – Wave 4 (2018), Post-Harvest
+# Auteurs : Groupe 7 — Herman YAMAHA | Bourama DIALLO
 # =============================================================================
 
-library(haven)
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(patchwork)
+library(dplyr); library(ggplot2); library(scales)
+library(patchwork); library(survey); library(srvyr)
 
-# --------------------------------------------------------------------------
-# 1. CHARGEMENT
-# --------------------------------------------------------------------------
+df_health <- readRDS("data/processed/df_health_base.rds")
 
-df_health <- readRDS("data/df_health_base.rds")
-
-# --------------------------------------------------------------------------
-# 2. CONSTRUCTION DE LA DÉPENSE TOTALE DE SANTÉ
-# --------------------------------------------------------------------------
-# La dépense totale agrège trois composantes :
-#   – Consultation (s4aq9)
-#   – Médicaments sans ordonnance (s4aq14)
-#   – Frais d'hospitalisation (s4aq17)
-# Les valeurs manquantes (NA) sont remplacées par 0 : si la variable est
-# manquante, l'individu n'a pas engagé ce type de dépense.
-
+# Construction des dépenses totales
 df_depenses <- df_health %>%
   mutate(
     dep_consultation = if_else(is.na(s4aq9),  0, as.numeric(s4aq9)),
@@ -45,214 +21,129 @@ df_depenses <- df_health %>%
     dep_hopital      = if_else(is.na(s4aq17), 0, as.numeric(s4aq17)),
     dep_totale       = dep_consultation + dep_medicaments + dep_hopital
   ) %>%
-  filter(dep_totale > 0)   # conserver uniquement ceux ayant dépensé
+  filter(dep_totale > 0, !is.na(wt_wave4))
 
 cat("Individus avec dépenses > 0 :", nrow(df_depenses), "\n")
 
-# --------------------------------------------------------------------------
-# 3. STATISTIQUES DESCRIPTIVES PAR DÉCILE
-# --------------------------------------------------------------------------
-# Découper la distribution en 10 groupes d'effectifs égaux (ntile)
-# et calculer les indicateurs de position pour chaque décile.
+# Médiane 
+plan_dep <- svydesign(ids=~1, weights=~wt_wave4, data=df_depenses)
+med_pond <- coef(svyquantile(~dep_totale, plan_dep, quantiles=0.5, na.rm=TRUE))
+q1_pond  <- coef(svyquantile(~dep_totale, plan_dep, quantiles=0.25, na.rm=TRUE))
+q3_pond  <- coef(svyquantile(~dep_totale, plan_dep, quantiles=0.75, na.rm=TRUE))
 
-df_depenses <- df_depenses %>%
-  mutate(decile = ntile(dep_totale, 10))
+cat("Médiane :", round(med_pond), "Naira\n")
+cat("Q1       :", round(q1_pond),  "Naira\n")
+cat("Q3       :", round(q3_pond),  "Naira\n")
 
-stats_decile <- df_depenses %>%
+# Outliers (règle Tukey étendue)
+iqr_p       <- q3_pond - q1_pond
+seuil_haut  <- q3_pond + 3 * iqr_p
+n_outliers  <- sum(df_depenses$dep_totale > seuil_haut)
+cat("Seuil Tukey × 3  :", round(seuil_haut), "Naira |",
+    n_outliers, "outliers\n")
+
+# Statistiques par décile
+df_depenses <- df_depenses %>% mutate(decile = ntile(dep_totale, 10))
+stats_dec <- df_depenses %>%
   group_by(decile) %>%
-  summarise(
-    n       = n(),
-    min     = min(dep_totale),
-    Q25     = quantile(dep_totale, 0.25),
-    mediane = median(dep_totale),
-    moyenne = round(mean(dep_totale)),
-    Q75     = quantile(dep_totale, 0.75),
-    max     = max(dep_totale),
-    .groups = "drop"
-  )
+  summarise(n=n(), min=min(dep_totale), mediane=median(dep_totale),
+            moyenne=round(mean(dep_totale)), max=max(dep_totale), .groups="drop")
+# Export en Excel
+library(openxlsx)
+stats_dec_export <- stats_dec %>%
+  mutate(across(c(min, mediane, moyenne, max), ~round(.x, 2)))
+wb04 <- createWorkbook()
+addWorksheet(wb04, "Depenses_Decile")
+titre04 <- "Statistiques des dépenses de santé par décile"
+writeData(wb04, "Depenses_Decile", x = titre04, startRow = 1, startCol = 1)
+mergeCells(wb04, "Depenses_Decile", cols = 1:6, rows = 1)
+addStyle(wb04, "Depenses_Decile",
+         createStyle(fontSize = 13, fontColour = "#1D3557", textDecoration = "bold",
+                     halign = "center", border = "Bottom", borderColour = "#1D3557",
+                     borderStyle = "medium"),
+         rows = 1, cols = 1:6, gridExpand = TRUE)
+writeData(wb04, "Depenses_Decile", stats_dec_export, startRow = 3, startCol = 1,
+          headerStyle = createStyle(fontSize = 11, fontColour = "white",
+                                     fgFill = "#1D3557", textDecoration = "bold",
+                                     halign = "center", wrapText = TRUE,
+                                     border = "TopBottomLeftRight"))
+for (i in seq_len(nrow(stats_dec_export))) {
+  s <- if (i %% 2 == 0)
+    createStyle(fgFill = "#EBF0F9", border = "TopBottomLeftRight", numFmt = "#,##0.00")
+  else
+    createStyle(fgFill = "white", border = "TopBottomLeftRight", numFmt = "#,##0.00")
+  addStyle(wb04, "Depenses_Decile", s, rows = i + 3, cols = seq_len(ncol(stats_dec_export)),
+           gridExpand = TRUE)
+}
+setColWidths(wb04, "Depenses_Decile", cols = 1:6, widths = 14)
+saveWorkbook(wb04, "outputs/tables/04_depenses_decile.xlsx", overwrite = TRUE)
 
-cat("\n=== Statistiques des dépenses par décile (Naira) ===\n")
-print(stats_decile, n = 10)
-
-write.csv(stats_decile, "outputs/tables/04_depenses_decile.csv",
-          row.names = FALSE)
-
-# --------------------------------------------------------------------------
-# 4. IDENTIFICATION DES VALEURS ABERRANTES (règle de Tukey étendue)
-# --------------------------------------------------------------------------
-# La règle standard utilise IQR × 1.5 ; on adopte ici IQR × 3 pour
-# n'identifier que les outliers extrêmes (dépenses très anormales).
-
-q1  <- quantile(df_depenses$dep_totale, 0.25)
-q3  <- quantile(df_depenses$dep_totale, 0.75)
-iqr <- q3 - q1
-seuil_haut <- q3 + 3 * iqr
-
-outliers <- df_depenses %>% filter(dep_totale > seuil_haut)
-
-cat("\n=== Valeurs aberrantes (> Q3 + 3×IQR) ===\n")
-cat("Seuil   :", format(round(seuil_haut), big.mark = " "), "Naira\n")
-cat("Outliers:", nrow(outliers), "individus\n")
-cat("Dépense max :", format(max(df_depenses$dep_totale), big.mark = " "),
-    "Naira\n")
-
-# --------------------------------------------------------------------------
-# 5. HISTOGRAMME AVEC ÉCHELLE LOGARITHMIQUE
-# --------------------------------------------------------------------------
-# L'échelle log est indispensable ici : les dépenses s'étalent de
-# quelques dizaines à plusieurs millions de Naira (distribution très
-# asymétrique à droite). Sur cette échelle, la distribution devient
-# approximativement symétrique et lisible.
-#
-# CORRECTION :
-# – L'annotation de la médiane est placée dans le coin supérieur GAUCHE
-#   (x = quantile 10 %, y = 95 % du max) pour éviter tout chevauchement
-#   avec les barres de l'histogramme.
-
-med_val <- median(df_depenses$dep_totale)
-y_max   <- layer_scales(
-              ggplot(df_depenses, aes(x = dep_totale)) +
-              geom_histogram(bins = 40) +
-              scale_x_log10()
-            )$y$get_limits()[2]
-
-# Position de l'annotation : à gauche de la médiane, en haut du graphique
-x_annot <- quantile(df_depenses$dep_totale, 0.02)   # extrême gauche
-y_annot_frac <- 0.90                                 # 90 % de la hauteur
-
-p_histo <- ggplot(df_depenses, aes(x = dep_totale)) +
-  geom_histogram(
-    bins  = 40,
-    fill  = "#3A86FF",
-    color = "white",
-    alpha = 0.85
-  ) +
-  # Ligne verticale sur la médiane
-  geom_vline(
-    xintercept = med_val,
-    linetype   = "dashed",
-    color      = "#E63946",
-    linewidth  = 1
-  ) +
-  scale_x_log10(labels = label_comma(big.mark = " ")) +
-  scale_y_continuous(labels = label_comma()) +
-  # CORRECTION : annotation en haut à gauche, bien dégagée des barres
-  annotate(
-    "label",                             # "label" ajoute un fond blanc
-    x          = x_annot,
-    y          = Inf,
-    label      = paste0("Médiane : ",
-                        format(round(med_val), big.mark = " ")),
-    hjust      = 0,
-    vjust      = 1.2,
-    color      = "#E63946",
-    size       = 4,
-    fill       = "white",
-    label.size = 0.3,
-    fontface   = "bold"
-  ) +
-  labs(
-    title    = "Distribution des dépenses de santé (échelle logarithmique)",
-    subtitle = "Individus ayant engagé des dépenses — Wave 4 (2018)",
-    x        = "Dépense totale de santé (Naira, échelle log)",
-    y        = "Nombre d'individus",
-    caption  = "Source : Nigeria GHS Panel W4 | Ligne rouge pointillée = médiane"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    plot.title    = element_text(face = "bold", size = 14),
-    plot.subtitle = element_text(color = "grey40")
-  )
+# Histogramme (weight = wt_wave4)
+p_histo <- ggplot(df_depenses, aes(x=dep_totale, weight=wt_wave4)) +
+  geom_histogram(bins=40, fill="#3A86FF", color="white", alpha=0.85) +
+  geom_vline(xintercept=med_pond, linetype="dashed",
+             color="#E63946", linewidth=1) +
+  annotate("label", x=min(df_depenses$dep_totale, na.rm=TRUE)*1.2, y=Inf,
+           label=paste0("Médiane : ", format(round(med_pond), big.mark=" ")),
+           hjust=0, vjust=1.2, color="#E63946", size=4,
+           fill="white", label.size=0.3, fontface="bold") +
+  scale_x_log10(labels=label_comma(big.mark=" ")) +
+  scale_y_continuous(labels=label_comma(scale=1/1e6, suffix=" M")) +
+  labs(title="Distribution des dépenses de santé (échelle log)",
+       subtitle="Effectifs pondérés (wt_wave4) — Wave 4 (2018) | Ligne rouge = médiane",
+       x="Dépense totale (Naira, échelle log)", y="Effectif",
+       caption="Source : NBS Nigeria, GHS-Panel W4 | wt_wave4") +
+  theme_minimal(base_size=13) +
+  theme(plot.title=element_text(face="bold",size=14),
+        plot.subtitle=element_text(color="grey40"))
 
 ggsave("outputs/figures/04a_depenses_histogramme.png", p_histo,
-       width = 10, height = 5.5, dpi = 300)
-cat("Graphique sauvegardé : outputs/figures/04a_depenses_histogramme.png\n")
+       width=10, height=5.5, dpi=300)
+cat("-> 04a_depenses_histogramme.png\n")
 
-# --------------------------------------------------------------------------
-# 6. BOXPLOT DES DÉPENSES PAR TYPE DE PRESTATAIRE
-# --------------------------------------------------------------------------
-# Les valeurs extrêmes (> seuil_haut) sont exclues pour que la forme
-# des boîtes soit lisible. L'échelle log est maintenue.
-
+# Boxplot par prestataire
 groupe_praticien <- c(
-  "0"  = "Aucun recours",
-  "1"  = "Tradipraticien",
-  "2"  = "Hôpital / Clinique",
-  "3"  = "Hôpital / Clinique",
-  "4"  = "Hôpital / Clinique",
-  "5"  = "Hôpital / Clinique",
-  "6"  = "Hôpital / Clinique",
-  "7"  = "Pharmacie",
-  "8"  = "Pharmacie",
-  "9"  = "Tradipraticien",
-  "10" = "Tradipraticien",
-  "11" = "Pharmacie",
-  "13" = "Autre",
-  "14" = "Agent de santé comm.",
-  "15" = "Agent de santé comm."
+  "0"="Aucun recours","1"="Tradipraticien","2"="Hôpital / Clinique",
+  "3"="Hôpital / Clinique","4"="Hôpital / Clinique",
+  "5"="Hôpital / Clinique","6"="Hôpital / Clinique",
+  "7"="Pharmacie","8"="Pharmacie","9"="Tradipraticien",
+  "10"="Tradipraticien","11"="Pharmacie","13"="Autre",
+  "14"="Agent de santé comm.","15"="Agent de santé comm."
 )
 
 df_box <- df_depenses %>%
   mutate(
-    code_prat = as.character(
-      if_else(is.na(s4aq6a) | s4aq6a == 0, 0, as.integer(s4aq6a))
-    ),
+    code_prat        = as.character(if_else(is.na(s4aq6a)|s4aq6a==0, 0, as.integer(s4aq6a))),
     praticien_groupe = groupe_praticien[code_prat]
   ) %>%
-  filter(
-    !is.na(praticien_groupe),
-    praticien_groupe != "Aucun recours",   # pas de dépense associée
-    dep_totale <= seuil_haut               # outliers extrêmes exclus
-  )
+  filter(!is.na(praticien_groupe),
+         praticien_groupe != "Aucun recours",
+         dep_totale <= seuil_haut)
 
-p_boxplot <- ggplot(
-  df_box,
-  aes(
-    x    = reorder(praticien_groupe, dep_totale, FUN = median),
-    y    = dep_totale,
-    fill = praticien_groupe
-  )
-) +
-  geom_boxplot(
-    outlier.shape = 21,
-    outlier.alpha = 0.3,
-    outlier.size  = 1.2,
-    show.legend   = FALSE,
-    width         = 0.6
-  ) +
-  # Médiane annotée sous forme de point rouge
-  stat_summary(
-    fun   = median,
-    geom  = "point",
-    shape = 18,
-    size  = 3,
-    color = "#E63946"
-  ) +
-  scale_y_log10(labels = label_comma(big.mark = " ")) +
-  scale_fill_brewer(palette = "Set2") +
+p_box <- ggplot(df_box,
+                aes(x=reorder(praticien_groupe, dep_totale, FUN=median),
+                    y=dep_totale, fill=praticien_groupe)) +
+  geom_boxplot(outlier.shape=21, outlier.alpha=0.3,
+               outlier.size=1.2, show.legend=FALSE, width=0.6) +
+  stat_summary(fun=median, geom="point", shape=18, size=3, color="#E63946") +
+  scale_y_log10(labels=label_comma(big.mark=" ")) +
+  scale_fill_brewer(palette="Set2") +
   coord_flip() +
-  labs(
-    title    = "Dépenses de santé par type de prestataire",
-    subtitle = "Échelle log — outliers extrêmes exclus (> Q3 + 3×IQR) | losange rouge = médiane",
-    x        = NULL,
-    y        = "Dépense totale de santé (Naira, échelle log)",
-    caption  = "Source : Nigeria GHS Panel W4"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    plot.title         = element_text(face = "bold", size = 14),
-    plot.subtitle      = element_text(color = "grey40", size = 10),
-    panel.grid.major.y = element_blank()
-  )
+  labs(title="Dépenses de santé par type de prestataire (pondéré)",
+       subtitle="Échelle log — outliers extrêmes exclus (> Q3+3×IQR) | losange = médiane",
+       x=NULL, y="Dépense totale (Naira, échelle log)",
+       caption="Source : NBS Nigeria, GHS-Panel W4") +
+  theme_minimal(base_size=13) +
+  theme(plot.title=element_text(face="bold",size=14),
+        plot.subtitle=element_text(color="grey40",size=10),
+        panel.grid.major.y=element_blank())
 
-ggsave("outputs/figures/04b_depenses_boxplot_prestataire.png", p_boxplot,
-       width = 10, height = 5.5, dpi = 300)
-cat("Graphique sauvegardé : outputs/figures/04b_depenses_boxplot_prestataire.png\n")
+ggsave("outputs/figures/04b_depenses_boxplot_prestataire.png", p_box,
+       width=10, height=5.5, dpi=300)
+cat("-> 04b_depenses_boxplot_prestataire.png\n")
 
-# Sauvegarde du seuil pour usage dans script 06
-saveRDS(
-  list(seuil_haut = seuil_haut, groupe_praticien = groupe_praticien),
-  "data/params_depenses.rds"
-)
+saveRDS(list(seuil_haut=seuil_haut, groupe_praticien=groupe_praticien,
+             med_pond=med_pond, q1_pond=q1_pond, q3_pond=q3_pond),
+        "data/processed/params_depenses.rds")
 
-cat("\n=== Script 04 terminé avec succès ===\n")
+cat("=== Script 04 terminé ===\n")

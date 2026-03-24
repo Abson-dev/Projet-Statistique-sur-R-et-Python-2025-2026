@@ -8,7 +8,11 @@ library(haven)
 sect1_w4 <- read_dta("data/raw/sect1_harvestw4.dta")
 
 # Chargement de sectaa_harvest qui contient les zones urabaine et rurale
+<<<<<<< HEAD
 secta_w4 <- read_dta("data/raw/sectaa_harvestw4.dta")
+=======
+secta_w4 <- read_dta("data/raw/secta_harvestw4.dta")
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
 
 # Sauvegarde en .rds dans data/processed/
 saveRDS(sect1_w4, "data/processed/sect1_w4.rds")

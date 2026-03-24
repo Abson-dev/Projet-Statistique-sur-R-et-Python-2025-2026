@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TP2 · Éducation & Alphabétisation · Nigeria GHS W4 · Pondéré</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f4f6fb;--surf:#fff;--card:#fff;--border:#e2e8f0;
+  --blue:#2563eb;--red:#dc2626;--green:#16a34a;--amber:#d97706;--purple:#7c3aed;
+  --text:#1e293b;--muted:#64748b;--light:#f1f5f9
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#134e7c 100%);
+  padding:2.5rem 3.5rem;display:flex;align-items:flex-start;justify-content:space-between;
+  gap:2rem;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 4% 60%,rgba(124,58,237,.2),transparent 50%),
+             radial-gradient(ellipse at 96% 20%,rgba(22,163,74,.14),transparent 50%)}
+.badge{display:flex;gap:.4rem;margin-bottom:.7rem;flex-wrap:wrap;position:relative;z-index:1}
+.chip{font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:.22rem .7rem;border-radius:20px;border:1px solid rgba(255,255,255,.22);
+  color:rgba(255,255,255,.9);background:rgba(255,255,255,.1)}
+.chip.g{background:rgba(22,163,74,.28);border-color:rgba(22,163,74,.45)}
+.chip.a{background:rgba(217,119,6,.28);border-color:rgba(217,119,6,.45)}
+h1{font-family:'Playfair Display',serif;font-size:2.15rem;font-weight:900;line-height:1.1;
+  color:#fff;position:relative;z-index:1;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+.hero-sub{font-size:.75rem;color:rgba(255,255,255,.6);margin-top:.35rem;position:relative;z-index:1}
+.note{background:rgba(217,119,6,.14);border:1px solid rgba(217,119,6,.38);
+  color:rgba(254,215,170,1);font-size:.67rem;padding:.4rem .9rem;border-radius:8px;
+  margin-top:.5rem;position:relative;z-index:1;line-height:1.5}
+.note-w{background:rgba(22,163,74,.14);border:1px solid rgba(22,163,74,.38);
+  color:rgba(134,239,172,1);font-size:.67rem;padding:.4rem .9rem;border-radius:8px;
+  margin-top:.3rem;position:relative;z-index:1;line-height:1.5}
+.hkpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;min-width:310px;
+  position:relative;z-index:1}
+.hkpi{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;padding:.95rem 1.1rem;text-align:center}
+.hkpi .v{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:700;
+  display:block;color:#fff}
+.hkpi .l{font-size:.57rem;color:rgba(255,255,255,.58);text-transform:uppercase;
+  letter-spacing:.07em;margin-top:.12rem}
+
+/* LAYOUT */
+.wrap{padding:1.6rem 3.5rem;max-width:1520px;margin:0 auto}
+.stitle{font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:.1em;
+  text-transform:uppercase;margin:2rem 0 1rem;display:flex;align-items:center;gap:.8rem}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.4rem;box-shadow:0 1px 5px rgba(0,0,0,.05);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--purple),var(--blue))}
+.card.red::before{background:linear-gradient(90deg,var(--red),var(--amber))}
+.card.green::before{background:linear-gradient(90deg,var(--green),#0891b2)}
+.card.amber::before{background:linear-gradient(90deg,var(--amber),var(--red))}
+.card.geo::before{background:linear-gradient(90deg,#0891b2,var(--purple))}
+.ctitle{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.cbadge{font-size:.57rem;font-weight:600;padding:.16rem .52rem;border-radius:10px;
+  background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);color:var(--green)}
+.cbadge.p{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.3);color:var(--purple)}
+.cbadge.a{background:rgba(217,119,6,.1);border-color:rgba(217,119,6,.3);color:var(--amber)}
+.cbadge.r{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.3);color:var(--red)}
+
+/* KPI CARDS */
+.kcard{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:1.1rem 1.3rem;display:flex;align-items:center;gap:.9rem;
+  box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.ki{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:1.05rem;flex-shrink:0}
+.kv{font-family:'Playfair Display',serif;font-size:1.75rem;line-height:1;font-weight:700}
+.kl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.15rem}
+
+/* STAT ROWS */
+.srow{display:flex;justify-content:space-between;align-items:center;
+  padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.82rem}
+.srow:last-child{border:none}
+.srow .sv{font-weight:700;color:var(--purple);font-family:'Playfair Display',serif;font-size:.95rem}
+.srow.g .sv{color:var(--green)}.srow.r .sv{color:var(--red)}.srow.a .sv{color:var(--amber)}
+.srow .sl{color:var(--muted);font-size:.7rem}
+
+/* HEATMAP TABLE */
+.hm-wrap{overflow-y:auto;max-height:520px;border-radius:8px;border:1px solid var(--border)}
+.hm-table{width:100%;border-collapse:collapse;font-size:.77rem}
+.hm-table th{position:sticky;top:0;background:#f8fafc;padding:.52rem .9rem;
+  text-align:left;font-size:.61rem;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);z-index:2}
+.hm-table td{padding:.4rem .9rem;border-bottom:1px solid var(--border)}
+.hm-table tr:last-child td{border:none}
+.hm-table tr:hover td{background:var(--light)}
+.hm-bar-track{background:var(--light);border-radius:5px;height:10px;width:160px;overflow:hidden}
+.hm-bar-fill{height:10px;border-radius:5px}
+.zbadge{font-size:.58rem;font-weight:600;padding:.15rem .48rem;border-radius:8px;white-space:nowrap}
+
+/* NOTE METHODO */
+.mcard{background:var(--light);border:1px solid var(--border);border-radius:14px;
+  padding:1.4rem 1.6rem}
+.mcard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
+  font-size:.77rem;line-height:1.75;color:var(--muted)}
+.mcard-grid strong{color:var(--text);display:block;margin-bottom:.3rem;font-size:.8rem}
+
+/* HEATMAP VISUELLE */
+.heatmap-visual{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-top:.5rem}
+.hm-cell{border-radius:5px;padding:.4rem .3rem;text-align:center;font-size:.62rem;
+  font-weight:700;line-height:1.3;cursor:default;transition:transform .15s}
+.hm-cell:hover{transform:scale(1.07);z-index:10;position:relative}
+
+canvas{max-height:285px}
+footer{text-align:center;padding:1.4rem 2rem;font-size:.68rem;color:var(--muted);
+  border-top:1px solid var(--border);margin-top:2.5rem;background:var(--surf);line-height:1.8}
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div style="position:relative;flex:1">
+    <div class="badge">
+      <span class="chip">TP 2</span>
+      <span class="chip g">ENSAE ISE 1 · 2025-2026</span>
+      <span class="chip a">Analyses pondérées · wt_wave4</span>
+    </div>
+    <h1>Éducation &amp; Alphabétisation<br>des Ménages Nigérians</h1>
+    <div class="hero-sub">Cheikh M. M. Ndiaye &amp; Awa Ba · GHS Panel Wave 4 (2018) · Encadrant : Aboubacar HEMA</div>
+    <div class="note">⚠ Corrections appliquées : s2aq6="No" → Aucun · Scolarisation : s2aq13a (2018/2019) · Membres absents exclus (s1q4a=2) · map_educ vectorisée (Vectorize) · extraction educ_level robuste (str_remove)</div>
+    <div class="note-w">⚖ Design survey : svydesign(ids=~hhid, strata=~sec_num, weights=~wt_wave4) · options(survey.lonely.psu="adjust") · IC 95% linéarisation Taylor · scale_y T10 limits(NA,5.6)</div>
+  </div>
+  <div class="hkpis">
+    <div class="hkpi"><span class="v">13 385</span><span class="l">Adultes 18+ analysés</span></div>
+    <div class="hkpi"><span class="v" style="color:#fca5a5">≈ 32%</span><span class="l">Sans instruction (pond.)</span></div>
+    <div class="hkpi"><span class="v" style="color:#86efac">≈ 60%</span><span class="l">Alphabétisés (pond.)</span></div>
+    <div class="hkpi"><span class="v" style="color:#fde68a">73–88%</span><span class="l">Scolarisation 6-17 ans</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══ KPIs ════════════════════════════════════════════════════════════════ -->
+<div class="stitle">Indicateurs clés pondérés · wt_wave4</div>
+<div class="g4">
+  <div class="kcard">
+    <div class="ki" style="background:rgba(220,38,38,.1)">📚</div>
+    <div><div class="kv" style="color:var(--red)">≈ 32%</div>
+    <div class="kl">Sans instruction (pondéré)</div></div>
+  </div>
+  <div class="kcard">
+    <div class="ki" style="background:rgba(22,163,74,.1)">🎓</div>
+    <div><div class="kv" style="color:var(--green)">≈ 11%</div>
+    <div class="kl">Niveau tertiaire (pondéré)</div></div>
+  </div>
+  <div class="kcard">
+    <div class="ki" style="background:rgba(124,58,237,.1)">📊</div>
+    <div><div class="kv" style="color:var(--purple)">≈ 0,37</div>
+    <div class="kl">V Cramér éducation/sexe</div></div>
+  </div>
+  <div class="kcard">
+    <div class="ki" style="background:rgba(217,119,6,.1)">🏫</div>
+    <div><div class="kv" style="color:var(--amber)">p&lt;0,001</div>
+    <div class="kl">Chi² scolarisation Rural/Urbain</div></div>
+  </div>
+</div>
+
+<!-- ═══ DISTRIBUTION ÉDUCATION ══════════════════════════════════════════════ -->
+<div class="stitle">Distribution du niveau d'éducation · Pondérée · Adultes 18+</div>
+<div class="g2">
+  <div class="card">
+    <div class="ctitle">Proportions pondérées par niveau <span class="cbadge">IC 95% Taylor</span></div>
+    <canvas id="educChart"></canvas>
+  </div>
+  <div class="card red">
+    <div class="ctitle">Éducation par sexe — barres 100% empilées <span class="cbadge p">Chi² survey · V Cramér</span></div>
+    <canvas id="sexChart"></canvas>
+  </div>
+</div>
+
+<!-- ═══ SCOLARISATION & ÂGE ══════════════════════════════════════════════════ -->
+<div class="stitle">Scolarisation 6-17 ans &amp; Progression éducative par âge · Pondérés</div>
+<div class="g2">
+  <div class="card green">
+    <div class="ctitle">Taux de scolarisation par milieu <span class="cbadge">s2aq13a · 2018/2019 · IC Clopper-Pearson</span></div>
+    <canvas id="scolChart"></canvas>
+  </div>
+  <div class="card amber">
+    <div class="ctitle">Score éducation moyen pondéré par groupe d'âge <span class="cbadge a">Kruskal-Wallis · p&lt;0,001</span></div>
+    <canvas id="ageChart"></canvas>
+  </div>
+</div>
+
+<!-- ═══ ALPHABÉTISATION & STATS ══════════════════════════════════════════════ -->
+<div class="stitle">Alphabétisation &amp; Tableau de synthèse pondéré</div>
+<div class="g3">
+  <div class="card">
+    <div class="ctitle">Taux d'alphabétisation pondéré · s2aq5</div>
+    <canvas id="alphabChart"></canvas>
+  </div>
+
+  <div class="card green">
+    <div class="ctitle">Récapitulatif niveaux éducatifs pondérés</div>
+    <div class="srow r"><span>Sans instruction</span><span class="sv">≈ 32,5%</span></div>
+    <div class="srow a"><span>Primaire</span><span class="sv">≈ 19,8%</span></div>
+    <div class="srow a"><span>Junior Secondaire</span><span class="sv">≈ 5,8%</span></div>
+    <div class="srow g"><span>Senior Secondaire</span><span class="sv">≈ 32,1%</span></div>
+    <div class="srow" style="color:var(--blue)"><span>Tertiaire</span><span class="sv" style="color:var(--blue)">≈ 9,8%</span></div>
+    <div style="border-top:2px solid var(--border);margin-top:.4rem;padding-top:.4rem">
+    <div class="srow r"><span>Non alphabétisés</span><span class="sv">≈ 39,8%</span></div>
+    <div class="srow g"><span>Alphabétisés</span><span class="sv">≈ 60,2%</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Tests statistiques réalisés</div>
+    <div class="srow"><span>Éducation × Sexe</span><span class="sv" style="font-size:.72rem">Chi² survey + V Cramér</span></div>
+    <div class="srow"><span>Éducation × Âge</span><span class="sv" style="font-size:.72rem">Kruskal-Wallis + Dunn</span></div>
+    <div class="srow"><span>Scolarisation × Milieu</span><span class="sv" style="font-size:.72rem">Chi² survey</span></div>
+    <div class="srow"><span>Tableau synthèse</span><span class="sv" style="font-size:.72rem">tbl_svysummary (gtsummary)</span></div>
+    <div class="srow"><span>IC estimations</span><span class="sv" style="font-size:.72rem">Linéarisation Taylor 95%</span></div>
+    <div class="srow"><span>IC scolarisation</span><span class="sv" style="font-size:.72rem">Clopper-Pearson 95%</span></div>
+    <div class="srow"><span>Poids utilisé</span><span class="sv" style="font-size:.72rem">wt_wave4 (secta)</span></div>
+  </div>
+</div>
+
+<!-- ═══ DISPARITÉS GÉOGRAPHIQUES — HEATMAP ════════════════════════════════ -->
+<div class="stitle">Disparités géographiques · % adultes sans instruction par État · Pondéré wt_wave4</div>
+<div class="card geo" style="padding:1.4rem">
+  <div class="ctitle">
+    36 États + FCT classés du moins au plus affecté par l'analphabétisme adulte
+    <span class="cbadge r">Nord-Ouest &amp; Nord-Est : taux très élevés</span>
+    <span class="cbadge">Sud-Ouest : taux faibles</span>
+  </div>
+
+  <!-- Heatmap visuelle colorée par gradient -->
+  <div style="margin-bottom:1.2rem">
+    <div style="font-size:.62rem;color:var(--muted);margin-bottom:.5rem;font-weight:600">
+      HEATMAP — couleur = % sans instruction (vert=faible → rouge foncé=élevé)
+    </div>
+    <div class="heatmap-visual" id="heatmapGrid"></div>
+    <!-- Légende -->
+    <div style="display:flex;align-items:center;gap:.5rem;margin-top:.7rem;font-size:.6rem;color:var(--muted)">
+      <span>Faible (&lt;15%)</span>
+      <div style="flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#1a9850,#91cf60,#d9ef8b,#fee08b,#fc8d59,#d73027,#67001f)"></div>
+      <span>Très élevé (&gt;70%)</span>
+    </div>
+  </div>
+
+  <!-- Tableau détaillé -->
+  <div class="hm-wrap">
+    <table class="hm-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>État</th>
+          <th>Zone géopolitique</th>
+          <th>% sans instr. (pond.)</th>
+          <th>Proportion</th>
+          <th>Niveau</th>
+        </tr>
+      </thead>
+      <tbody id="statesBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ NOTE MÉTHODOLOGIQUE ══════════════════════════════════════════════════ -->
+<div class="stitle">Note méthodologique complète</div>
+<div class="mcard">
+  <div class="mcard-grid">
+    <div>
+      <strong>📁 Bases de données utilisées</strong>
+      <b>sect2_harvestw4.dta</b> — éducation<br>
+      &nbsp;&nbsp;s2aq9 : niveau d'éducation atteint<br>
+      &nbsp;&nbsp;s2aq5 : alphabétisation (lire/écrire)<br>
+      &nbsp;&nbsp;s2aq6 : jamais scolarisé (→ Aucun)<br>
+      &nbsp;&nbsp;s2aq13a : scolarisation 2018/2019<br>
+      <b>sect1_harvestw4.dta</b> — démographie<br>
+      &nbsp;&nbsp;s1q2 : sexe · s1q4 : âge · sector : milieu<br>
+      <b>secta_harvestw4.dta</b> — poids wt_wave4
+    </div>
+    <div>
+      <strong>⚖ Stratégie de pondération</strong>
+      Poids wt_wave4 joint via hhid depuis secta<br>
+      Design : <code>svydesign(ids=~hhid,<br>
+      &nbsp;&nbsp;strata=~sec_num,<br>
+      &nbsp;&nbsp;weights=~wt_wave4)</code><br>
+      <code>options(survey.lonely.psu="adjust")</code><br>
+      Appliqué à toutes les estimations :<br>
+      proportions, taux, tableau gtsummary
+    </div>
+    <div>
+      <strong>🔧 Corrections v2 appliquées</strong>
+      <b>map_educ</b> : Vectorize() → character vector<br>
+      <b>educ_dist</b> : str_remove(".*\\)") robuste<br>
+      <b>SCRIPT_DIR</b> : fallback knitr::current_input()<br>
+      <b>T10</b> : limits(NA,5.6) annotation visible<br>
+      <b>Heatmap</b> : hauteur dynamique n_etats×0.4<br>
+      <b>s2aq6="No"</b> → niveau "Aucun" (évite NA)<br>
+      Scolarisation : s2aq13a (pas s2aq13)
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<footer>
+  GHS Panel Wave 4 · Nigeria 2018 · ENSAE ISE 1 · 2025–2026<br>
+  Cheikh Mouhamdou Moustapha Ndiaye &amp; Awa Ba · Encadrant : Aboubacar HEMA<br>
+  Bases : sect2_harvestw4 + sect1_harvestw4 + secta_harvestw4 · <strong>Pondération wt_wave4</strong><br>
+  <em>Les valeurs (≈) sont indicatives — les chiffres exacts sont issus de TP2_Education.R sur les données brutes.</em>
+</footer>
+
+<script>
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = 'rgba(226,232,240,.8)';
+Chart.defaults.font.family = 'Inter';
+
+// ════════════════════════════════════════════════════════════════════════════
+// DONNÉES — 36 ÉTATS + FCT ABUJA NIGERIA (vrais libellés officiels)
+// Valeurs approximatives — les exactes viennent du script TP2_Education.R
+// ════════════════════════════════════════════════════════════════════════════
+const statesData = [
+  // Sud-Ouest
+  {name:'Lagos',          zone:'Sud-Ouest',      pct:5.8},
+  {name:'Ogun',           zone:'Sud-Ouest',      pct:8.2},
+  {name:'Oyo',            zone:'Sud-Ouest',      pct:11.5},
+  {name:'Ekiti',          zone:'Sud-Ouest',      pct:14.7},
+  {name:'Ondo',           zone:'Sud-Ouest',      pct:17.3},
+  {name:'Osun',           zone:'Sud-Ouest',      pct:20.4},
+  // FCT
+  {name:'FCT Abuja',      zone:'FCT',            pct:9.6},
+  // Sud-Sud
+  {name:'Rivers',         zone:'Sud-Sud',        pct:10.1},
+  {name:'Edo',            zone:'Sud-Sud',        pct:13.8},
+  {name:'Delta',          zone:'Sud-Sud',        pct:15.9},
+  {name:'Bayelsa',        zone:'Sud-Sud',        pct:18.2},
+  {name:'Akwa Ibom',      zone:'Sud-Sud',        pct:21.6},
+  {name:'Cross River',    zone:'Sud-Sud',        pct:24.3},
+  // Sud-Est
+  {name:'Anambra',        zone:'Sud-Est',        pct:11.9},
+  {name:'Imo',            zone:'Sud-Est',        pct:16.1},
+  {name:'Enugu',          zone:'Sud-Est',        pct:23.7},
+  {name:'Abia',           zone:'Sud-Est',        pct:25.4},
+  {name:'Ebonyi',         zone:'Sud-Est',        pct:30.8},
+  // Nord-Central
+  {name:'Kwara',          zone:'Nord-Central',   pct:33.2},
+  {name:'Benue',          zone:'Nord-Central',   pct:36.5},
+  {name:'Kogi',           zone:'Nord-Central',   pct:39.8},
+  {name:'Nasarawa',       zone:'Nord-Central',   pct:42.6},
+  {name:'Niger',          zone:'Nord-Central',   pct:47.1},
+  {name:'Plateau',        zone:'Nord-Central',   pct:49.4},
+  // Nord-Ouest
+  {name:'Kebbi',          zone:'Nord-Ouest',     pct:69.3},
+  {name:'Katsina',        zone:'Nord-Ouest',     pct:72.1},
+  {name:'Jigawa',         zone:'Nord-Ouest',     pct:74.5},
+  {name:'Kano',           zone:'Nord-Ouest',     pct:76.8},
+  {name:'Sokoto',         zone:'Nord-Ouest',     pct:79.2},
+  {name:'Zamfara',        zone:'Nord-Ouest',     pct:81.7},
+  {name:'Kaduna',         zone:'Nord-Ouest',     pct:52.3},
+  // Nord-Est
+  {name:'Adamawa',        zone:'Nord-Est',       pct:53.6},
+  {name:'Taraba',         zone:'Nord-Est',       pct:56.8},
+  {name:'Bauchi',         zone:'Nord-Est',       pct:61.4},
+  {name:'Gombe',          zone:'Nord-Est',       pct:64.2},
+  {name:'Yobe',           zone:'Nord-Est',       pct:67.9},
+  {name:'Borno',          zone:'Nord-Est',       pct:65.7},
+];
+
+// ── Fonction couleur gradient (vert → rouge foncé) ──────────────────────────
+function pctToColor(pct, alpha=1) {
+  // Stops : 0%→#1a9850, 15%→#91cf60, 25%→#d9ef8b, 40%→#fee08b, 55%→#fc8d59, 70%→#d73027, 85%→#67001f
+  const stops = [
+    {p:0,  r:26,  g:152, b:80},
+    {p:15, r:145, g:207, b:96},
+    {p:25, r:217, g:239, b:139},
+    {p:40, r:254, g:224, b:139},
+    {p:55, r:252, g:141, b:89},
+    {p:70, r:215, g:48,  b:39},
+    {p:85, r:103, g:0,   b:31},
+  ];
+  const v = Math.min(Math.max(pct, 0), 85);
+  let lo = stops[0], hi = stops[stops.length-1];
+  for (let i=0; i<stops.length-1; i++) {
+    if (v >= stops[i].p && v <= stops[i+1].p) { lo=stops[i]; hi=stops[i+1]; break; }
+  }
+  const t = lo.p===hi.p ? 0 : (v-lo.p)/(hi.p-lo.p);
+  const r = Math.round(lo.r + t*(hi.r-lo.r));
+  const g = Math.round(lo.g + t*(hi.g-lo.g));
+  const b = Math.round(lo.b + t*(hi.b-lo.b));
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function getStyle(pct) {
+  if (pct>=70) return {lbl:'Très élevé ≥70%', tc:'#dc2626', tbg:'rgba(220,38,38,.1)', tbc:'rgba(220,38,38,.3)'};
+  if (pct>=50) return {lbl:'Élevé 50–70%',    tc:'#ef4444', tbg:'rgba(239,68,68,.1)',  tbc:'rgba(239,68,68,.3)'};
+  if (pct>=30) return {lbl:'Modéré 30–50%',   tc:'#d97706', tbg:'rgba(217,119,6,.1)',  tbc:'rgba(217,119,6,.3)'};
+  if (pct>=15) return {lbl:'Faible 15–30%',   tc:'#16a34a', tbg:'rgba(22,163,74,.1)',  tbc:'rgba(22,163,74,.3)'};
+  return              {lbl:'Très faible <15%',tc:'#2563eb', tbg:'rgba(37,99,235,.1)',  tbc:'rgba(37,99,235,.3)'};
+}
+
+// ── 1. Heatmap visuelle (grille de cellules colorées) ────────────────────────
+const sorted = [...statesData].sort((a,b) => a.pct - b.pct);
+const grid   = document.getElementById('heatmapGrid');
+sorted.forEach(s => {
+  const bg   = pctToColor(s.pct, 0.88);
+  const tc   = s.pct > 45 ? '#fff' : '#1e293b';
+  const cell = document.createElement('div');
+  cell.className = 'hm-cell';
+  cell.style.background = bg;
+  cell.style.color = tc;
+  cell.innerHTML = `${s.name}<br><span style="font-size:.58rem;opacity:.9">${s.pct.toFixed(1)}%</span>`;
+  cell.title = `${s.name} (${s.zone}) — ${s.pct.toFixed(1)}% sans instruction`;
+  grid.appendChild(cell);
+});
+
+// ── 2. Tableau détaillé trié du plus élevé au plus faible ───────────────────
+const sortedDesc = [...statesData].sort((a,b) => b.pct - a.pct);
+const tbody = document.getElementById('statesBody');
+// CORRECTION : utiliser un tableau + join au lieu de innerHTML += en boucle (plus rapide)
+const tableRows = [];
+sortedDesc.forEach((s, i) => {
+  const st  = getStyle(s.pct);
+  const bg  = pctToColor(s.pct, 0.82);
+  const wBar = Math.round(s.pct / 85 * 145);
+  tableRows.push(`
+    <tr>
+      <td style="color:var(--muted);font-size:.72rem;font-weight:600">${i+1}</td>
+      <td style="font-weight:700">${s.name}</td>
+      <td style="color:var(--muted);font-size:.73rem">${s.zone}</td>
+      <td>
+        <span style="font-weight:700;color:${st.tc};font-family:'Playfair Display',serif;font-size:.93rem">${s.pct.toFixed(1)}%</span>
+      </td>
+      <td>
+        <div class="hm-bar-track">
+          <div class="hm-bar-fill" style="width:${wBar}px;background:${bg}"></div>
+        </div>
+      </td>
+      <td><span class="zbadge" style="background:${st.tbg};border:1px solid ${st.tbc};color:${st.tc}">${st.lbl}</span></td>
+    </tr>`);
+});
+tbody.innerHTML = tableRows.join('');
+
+// ════════════════════════════════════════════════════════════════════════════
+// GRAPHIQUES CHART.JS
+// ════════════════════════════════════════════════════════════════════════════
+const EDUC_LABELS = ['Aucun','Primaire','Junior Sec.','Senior Sec.','Tertiaire'];
+const EDUC_DATA   = [32.5, 19.8, 5.8, 32.1, 9.8];
+const EDUC_COLORS = [
+  'rgba(220,38,38,.85)',
+  'rgba(217,119,6,.85)',
+  'rgba(202,138,4,.85)',
+  'rgba(22,163,74,.85)',
+  'rgba(37,99,235,.85)'
+];
+
+// ── 1. Distribution éducation ────────────────────────────────────────────────
+new Chart(document.getElementById('educChart'), {
+  type: 'bar',
+  data: {
+    labels: EDUC_LABELS,
+    datasets: [{
+      data: EDUC_DATA,
+      backgroundColor: EDUC_COLORS,
+      borderRadius: 7,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {display: false},
+      tooltip: {callbacks: {label: c => `${c.raw.toFixed(1)}% (pondéré wt_wave4)`}}
+    },
+    scales: {
+      x: {ticks:{callback:v=>v+'%'}, max:42, grid:{color:'rgba(226,232,240,.7)'}},
+      y: {ticks:{color:'#1e293b', font:{weight:'600', size:12}}, grid:{display:false}}
+    }
+  }
+});
+
+// ── 2. Éducation par sexe (barres 100% empilées) ─────────────────────────────
+new Chart(document.getElementById('sexChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Hommes','Femmes'],
+    datasets: [
+      {label:'Aucun',        data:[25.2,39.5], backgroundColor:'rgba(220,38,38,.85)', borderRadius:2},
+      {label:'Primaire',     data:[18.5,21.0], backgroundColor:'rgba(217,119,6,.85)', borderRadius:2},
+      {label:'Junior Sec.',  data:[6.2,  5.4], backgroundColor:'rgba(202,138,4,.85)', borderRadius:2},
+      {label:'Senior Sec.',  data:[36.5,27.8], backgroundColor:'rgba(22,163,74,.85)', borderRadius:2},
+      {label:'Tertiaire',    data:[13.6, 6.3], backgroundColor:'rgba(37,99,235,.85)', borderRadius:2}
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {position:'bottom', labels:{color:'#1e293b', font:{size:9}, padding:8, boxWidth:10}},
+      tooltip: {callbacks: {label: c => `${c.dataset.label} : ${c.raw}% (pond.)`}}
+    },
+    scales: {
+      x: {stacked:true, ticks:{color:'#1e293b', font:{weight:'600', size:13}}},
+      y: {stacked:true, max:100, ticks:{callback:v=>v+'%'}}
+    }
+  }
+});
+
+// ── 3. Scolarisation 6-17 ans ────────────────────────────────────────────────
+new Chart(document.getElementById('scolChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Rural','Urbain'],
+    datasets: [{
+      label: 'Taux scolarisation pondéré (%)',
+      data: [73.2, 87.8],
+      backgroundColor: ['rgba(22,163,74,.85)','rgba(37,99,235,.85)'],
+      borderRadius: 12,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {display: false},
+      tooltip: {callbacks: {label: c => `${c.raw}% scolarisés (pondéré)`}}
+    },
+    scales: {
+      y: {beginAtZero:true, max:105, ticks:{callback:v=>v+'%'}, grid:{color:'rgba(226,232,240,.7)'}},
+      x: {ticks:{color:'#1e293b', font:{weight:'700', size:14}}}
+    }
+  }
+});
+
+// ── 4. Âge × Éducation (score moyen pondéré) ────────────────────────────────
+// CORRECTION : max scale ajusté (2.5 max observé → max:3.0 suffisant + label axes)
+new Chart(document.getElementById('ageChart'), {
+  type: 'bar',
+  data: {
+    labels: ['18–30 ans','31–45 ans','46–60 ans','60+ ans'],
+    datasets: [{
+      label: 'Score moyen pondéré (/5)',
+      data: [2.42, 2.10, 1.72, 1.38],
+      backgroundColor: [
+        'rgba(124,58,237,.88)',
+        'rgba(99,46,189,.85)',
+        'rgba(76,29,149,.82)',
+        'rgba(55,20,110,.80)'
+      ],
+      borderRadius: 9,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {display: false},
+      tooltip: {callbacks: {
+        label: c => `Score pond. : ${c.raw}/5`,
+        afterLabel: c => {
+          const v = c.raw;
+          const lbls = {1:'Aucun', 2:'Primaire', 3:'Junior Sec.', 4:'Senior Sec.', 5:'Tertiaire'};
+          const lo = Math.floor(v), hi = Math.ceil(v);
+          if (lo===hi) return `Niveau : ${lbls[lo]}`;
+          return `Entre ${lbls[lo]||lo} et ${lbls[hi]||hi}`;
+        }
+      }}
+    },
+    scales: {
+      // CORRECTION : max:3.0 (données max=2.42) + ticks avec libellés réels
+      y: {
+        beginAtZero: true,
+        max: 3.0,
+        title: {display:true, text:'Score éducation (1=Aucun → 5=Tertiaire)', color:'#64748b', font:{size:9}},
+        ticks: {
+          stepSize: 0.5,
+          callback: v => {
+            const m = {1:'Aucun',2:'Primaire',3:'Jr Sec.',4:'Sr Sec.',5:'Tertiaire'};
+            return m[v] || v.toFixed(1);
+          }
+        }
+      },
+      x: {ticks:{color:'#1e293b', font:{weight:'600', size:11}}}
+    }
+  }
+});
+
+// ── 5. Alphabétisation (donut) ───────────────────────────────────────────────
+new Chart(document.getElementById('alphabChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Alphabétisés','Non alphabétisés'],
+    datasets: [{
+      data: [60.2, 39.8],
+      backgroundColor: ['rgba(22,163,74,.88)','rgba(220,38,38,.78)'],
+      borderWidth: 3,
+      borderColor: '#fff',
+      hoverBorderWidth: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {position:'bottom', labels:{color:'#1e293b', font:{size:11}, padding:14, boxWidth:13}},
+      tooltip: {callbacks: {label: c => `${c.label} : ${c.raw}% (pondéré wt_wave4)`}}
+    }
+  }
+});
+</script>
+</body>
+</html>

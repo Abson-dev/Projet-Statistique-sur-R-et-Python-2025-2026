@@ -1,0 +1,333 @@
+---
+title: "Analyse 3 - Accès aux services de santé et chocs sanitaires des ménages"
+author: "Crespo Eugène SAAH YEMELI & David FRANK"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+params:
+  script_path: "TP3.R"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 8,
+  fig.height = 5,
+  dpi = 300
+)
+
+library(tidyverse)
+library(haven)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(glue)
+library(survey)
+library(srvyr)
+library(Hmisc)
+library(gtsummary)
+library(patchwork)
+
+# Créer les dossiers de sortie si besoin
+if (!dir.exists("output")) dir.create("output", recursive = TRUE)
+if (!dir.exists("output/figures")) dir.create("output/figures", recursive = TRUE)
+
+# Exécute le script utilisateur pour générer les objets et graphiques
+source("R/TP3.R", local = knitr::knit_global())
+
+fmt_pct <- function(x, d = 1) paste0(format(round(x, d), nsmall = d, decimal.mark = ","), "%")
+fmt_n <- function(x) format(round(x, 0), big.mark = " ", scientific = FALSE)
+fmt_naira <- function(x, d = 0) paste0(format(round(x, d), big.mark = " ", decimal.mark = ",", nsmall = d), " ₦")
+
+mode_label <- function(tbl, col_label = "label", col_value = "pct_pond") {
+  tbl %>% arrange(desc(.data[[col_value]])) %>% slice(1) %>% pull(.data[[col_label]])
+}
+
+safe_obj <- function(x) exists(x, inherits = TRUE)
+```
+
+# Objectif et démarche
+
+Ce rapport décrit les épisodes de maladie, les types de soins consultés et les dépenses de santé supportées par les ménages nigérians, à partir des données **Nigeria GHS-Panel Wave 4**. L'analyse suit les tâches 13 à 18 de l'**Analyse 3** et repose sur le script R fourni par l'étudiant.
+
+Le document répond à trois objectifs :
+
+- mesurer la morbidité récente et ses écarts selon le sexe et l'âge ;
+- décrire les maladies déclarées, le recours aux soins et les dépenses de santé ;
+- tester l'existence d'inégalités selon le niveau de vie et le milieu de résidence.
+
+# 1. Morbidité déclarée (Tâche 13)
+
+## Résultat global
+
+```{r t13-global}
+if (safe_obj("ic")) {
+  kable(ic %>% mutate(across(c(taux, ic_low, ic_high), ~ round(.x, 2))),
+        caption = "Taux global de morbidité pondéré et intervalle de confiance à 95 %")
+}
+```
+
+```{r t13-global-text, results='asis'}
+if (safe_obj("ic")) {
+  cat(glue(
+    "Sur l'ensemble des individus observés, le taux pondéré de morbidité sur les quatre dernières semaines est de **{fmt_pct(ic$taux)}**. ",
+    "L'intervalle de confiance à 95 % est compris entre **{fmt_pct(ic$ic_low)}** et **{fmt_pct(ic$ic_high)}**. ",
+    "Autrement dit, la maladie ou la blessure récente concerne une minorité non négligeable de la population, dans un contexte où les besoins de soins peuvent être fréquents mais inégalement couverts."
+  ))
+}
+```
+
+## Morbidité selon le sexe
+
+```{r t13-sexe-fig, fig.cap="Taux de morbidité pondéré selon le sexe"}
+if (safe_obj("p1")) print(p1)
+```
+
+```{r t13-sexe-tab}
+if (safe_obj("ic_sexe")) {
+  kable(ic_sexe %>% mutate(across(c(taux, ic_low, ic_high), ~ round(.x, 2))),
+        caption = "Taux de morbidité par sexe")
+}
+```
+
+```{r t13-sexe-text, results='asis'}
+if (safe_obj("ic_sexe")) {
+  sexe_max <- ic_sexe %>% arrange(desc(taux)) %>% slice(1)
+  sexe_min <- ic_sexe %>% arrange(taux) %>% slice(1)
+  ecart <- sexe_max$taux - sexe_min$taux
+  cat(glue(
+    "La comparaison par sexe montre que la morbidité est la plus élevée chez les **{sexe_max$sexe_label}** ({fmt_pct(sexe_max$taux)}), contre **{fmt_pct(sexe_min$taux)}** chez les **{sexe_min$sexe_label}**. ",
+    "L'écart absolu est de **{format(round(ecart, 1), decimal.mark = ',')} points**. ",
+    "Si les intervalles de confiance se recouvrent fortement, on parlera d'un écart descriptif modéré ; dans le cas contraire, l'écart paraît plus net."
+  ))
+}
+```
+
+## Morbidité selon l'âge
+
+```{r t13-age-fig, fig.cap="Taux de morbidité pondéré selon le groupe d'âge"}
+if (safe_obj("p2")) print(p2)
+```
+
+```{r t13-age-tab}
+if (safe_obj("ic_age")) {
+  kable(ic_age %>% mutate(across(c(taux, ic_low, ic_high), ~ round(.x, 2))),
+        caption = "Taux de morbidité par groupe d'âge")
+}
+```
+
+```{r t13-age-text, results='asis'}
+if (safe_obj("ic_age")) {
+  age_max <- ic_age %>% arrange(desc(taux)) %>% slice(1)
+  age_min <- ic_age %>% arrange(taux) %>% slice(1)
+  cat(glue(
+    "Les différences selon l'âge sont marquées. Le groupe **{age_max$groupe_age}** enregistre le taux le plus élevé (**{fmt_pct(age_max$taux)}**), alors que le groupe **{age_min$groupe_age}** affiche le niveau le plus faible (**{fmt_pct(age_min$taux)}**). ",
+    "Ce profil suggère que l'exposition à la maladie n'est pas homogène dans le cycle de vie, avec des besoins de soins potentiellement plus fréquents dans certains groupes d'âge."
+  ))
+}
+```
+
+## Morbidité croisée sexe × âge
+
+```{r t13-cross-fig, fig.cap="Taux de morbidité pondéré selon l'âge et le sexe"}
+if (safe_obj("p3")) print(p3)
+```
+
+```{r t13-cross-text, results='asis'}
+if (safe_obj("ic_sexe_age")) {
+  cell_max <- ic_sexe_age %>% arrange(desc(taux)) %>% slice(1)
+  cat(glue(
+    "L'analyse croisée confirme l'hétérogénéité des situations : la combinaison la plus exposée est **{cell_max$sexe_label} - {cell_max$groupe_age}**, avec un taux estimé à **{fmt_pct(cell_max$taux)}**. ",
+    "Ce résultat met en évidence l'intérêt d'une lecture intersectionnelle des inégalités sanitaires : les écarts liés au sexe varient selon l'âge, et inversement."
+  ))
+}
+```
+
+# 2. Types de maladies déclarées (Tâche 14)
+
+```{r t14-fig, fig.cap="Top 10 des maladies ou affections les plus déclarées"}
+if (safe_obj("p4")) print(p4)
+```
+
+```{r t14-tab}
+if (safe_obj("freq_maladies")) {
+  kable(freq_maladies %>% mutate(pct_pond = round(pct_pond, 2)),
+        caption = "Top 10 des affections déclarées (fréquences pondérées)")
+}
+```
+
+```{r t14-text, results='asis'}
+if (safe_obj("freq_maladies")) {
+  top1 <- freq_maladies %>% slice(1)
+  top3 <- paste(freq_maladies$label[1:min(3, nrow(freq_maladies))], collapse = ", ")
+  infect_share <- freq_maladies %>% filter(categorie == "Infectieuse") %>% summarise(s = sum(pct_pond)) %>% pull(s)
+  cat(glue(
+    "La structure des maladies déclarées est dominée par **{top1$label}** (**{fmt_pct(top1$pct_pond)}** des cas pondérés du top 10). ",
+    "Les trois premières affections sont : **{top3}**. ",
+    "Les maladies de type **infectieux** représentent **{fmt_pct(infect_share)}** du total cumulé du top 10, ce qui indique que la demande de soins est encore largement tirée par les pathologies transmissibles. ",
+    "Les affections chroniques et traumatiques restent présentes, mais dans des proportions plus faibles."
+  ))
+}
+```
+
+# 3. Recours aux soins selon le type de prestataire (Tâche 15)
+
+```{r t15-text, results='asis'}
+cat("Le script fourni code bien une variable de **prestataire** (hôpital public, clinique privée, pharmacie/PMV, tradipraticien, aucun recours), mais il ne contient pas encore de **tableau synthétique** ni de **barplot spécifique** répondant directement à la tâche 15. Le bloc ci-dessous permet de produire ce résultat dans le rapport.\n\n")
+```
+
+```{r t15-build}
+if (safe_obj("DF")) {
+  prest_t15 <- DF %>%
+    filter(!is.na(prestataire), !is.na(wt_wave4)) %>%
+    group_by(prestataire) %>%
+    summarise(n_pond = sum(wt_wave4), .groups = "drop") %>%
+    mutate(pct = n_pond / sum(n_pond) * 100) %>%
+    arrange(desc(pct))
+
+  p15 <- ggplot(prest_t15, aes(x = pct, y = forcats::fct_reorder(prestataire, pct))) +
+    geom_col(fill = "#2C7FB8") +
+    geom_text(aes(label = fmt_pct(pct)), hjust = -0.1, fontface = "bold") +
+    scale_x_continuous(limits = c(0, max(prest_t15$pct) * 1.15)) +
+    labs(title = "Répartition pondérée du recours aux soins selon le type de prestataire",
+         x = "Part pondérée (%)", y = NULL) +
+    theme_minimal()
+}
+```
+
+```{r t15-fig, fig.cap="Répartition pondérée du recours aux soins selon le type de prestataire"}
+if (exists("p15")) print(p15)
+```
+
+```{r t15-tab}
+if (exists("prest_t15")) {
+  kable(prest_t15 %>% mutate(across(c(n_pond, pct), ~ round(.x, 2))),
+        caption = "Fréquence de consultation selon le type de prestataire")
+}
+```
+
+```{r t15-ana, results='asis'}
+if (exists("prest_t15")) {
+  pmax <- prest_t15 %>% slice(1)
+  cat(glue(
+    "Le recours aux soins se concentre principalement sur **{pmax$prestataire}**, qui représente **{fmt_pct(pmax$pct)}** des recours pondérés. ",
+    "Cette distribution renseigne sur la structure effective de l'offre utilisée : selon les cas, elle peut refléter la proximité géographique, le coût des soins, la confiance accordée au prestataire ou la gravité perçue de la maladie."
+  ))
+}
+```
+
+# 4. Distribution des dépenses de santé (Tâche 16)
+
+## Histogramme en échelle logarithmique
+
+```{r t16-hist, fig.cap="Distribution pondérée des dépenses de santé en échelle logarithmique"}
+if (exists("p16a")) {
+  print(p16a)
+} else if (exists("p_hist")) {
+  print(p_hist)
+}
+```
+
+## Déciles et valeurs aberrantes
+
+```{r t16-deciles}
+if (exists("tbl_deciles")) {
+  kable(tbl_deciles, caption = "Déciles pondérés des dépenses de santé")
+} else if (exists("deciles_pond")) {
+  kable(data.frame(Décile = names(deciles_pond), `Dépense (₦)` = round(deciles_pond, 0)),
+        caption = "Déciles pondérés des dépenses de santé")
+}
+```
+
+```{r t16-box, fig.cap="Dépenses de santé par type de prestataire"}
+if (exists("p16b")) {
+  print(p16b)
+} else if (exists("p_box")) {
+  print(p_box)
+}
+```
+
+```{r t16-text, results='asis'}
+if (exists("deciles_pond")) {
+  med <- unname(deciles_pond[which.min(abs(seq(0.1,0.9,0.1) - 0.5))])
+  mean_dep <- if (exists("df_dep")) Hmisc::wtd.mean(df_dep$dep_sante %||% df_dep$s4aq14, weights = df_dep$wt_wave4) else NA
+  cat(glue(
+    "La distribution des dépenses est **très asymétrique à droite** : la majorité des individus supporte de faibles montants, tandis qu'un petit groupe enregistre des dépenses très élevées. ",
+    "La médiane pondérée se situe autour de **{fmt_naira(med)}**, alors que la moyenne pondérée est plus élevée, ce qui traduit l'influence de valeurs extrêmes. ",
+    "Le passage en échelle logarithmique améliore la lisibilité de cette distribution fortement dispersée."
+  ))
+}
+
+if (exists("outliers")) {
+  cat(glue(
+    "\n\nL'identification des valeurs aberrantes confirme l'existence de cas de dépenses exceptionnellement élevées. Ces observations peuvent correspondre à des épisodes aigus, à des hospitalisations, ou à des soins plus coûteux dans certains types de structures. Elles ne doivent pas être supprimées sans justification, mais discutées comme révélatrices d'un risque financier sanitaire élevé pour une fraction des ménages."
+  ))
+}
+```
+
+# 5. Recours aux soins et quintile de richesse (Tâche 17)
+
+```{r t17-tab}
+if (exists("tab_wide")) {
+  kable(tab_wide, caption = "Tableau de contingence pondéré : recours aux soins × quintile")
+}
+```
+
+```{r t17-fig, fig.cap="Recours aux soins selon le quintile de consommation"}
+if (exists("p17")) print(p17)
+```
+
+```{r t17-text, results='asis'}
+if (exists("chi2_t17") && exists("v_cramer") && exists("tab_wide")) {
+  best <- tab_wide %>% arrange(desc(`Taux recours (%)`)) %>% slice(1)
+  worst <- tab_wide %>% arrange(`Taux recours (%)`) %>% slice(1)
+  ptxt <- ifelse(chi2_t17$p.value < 0.001, "< 0,001", paste0("= ", format(round(chi2_t17$p.value, 4), decimal.mark = ",")))
+  cat(glue(
+    "Le gradient social du recours aux soins apparaît à travers les quintiles de consommation. Le taux le plus élevé est observé dans **{best$quintile}** (**{best$`Taux recours (%)`} %**), tandis que le plus faible concerne **{worst$quintile}** (**{worst$`Taux recours (%)`} %**). ",
+    "Le test du chi-deux de Rao-Scott donne une p-valeur **{ptxt}**, ce qui permet d'évaluer si l'association entre niveau de vie et recours aux soins est statistiquement significative. ",
+    "Le **V de Cramér = {format(round(v_cramer, 3), decimal.mark = ',')}** renseigne sur l'intensité du lien : plus cette valeur est proche de 0, plus l'association est faible ; au-delà de 0,1, elle devient substantielle dans une lecture descriptive."
+  ))
+}
+```
+
+# 6. Dépenses médianes selon le milieu de résidence (Tâche 18)
+
+```{r t18-fig, fig.cap="Dépenses de santé selon le milieu de résidence"}
+if (exists("p18")) print(p18)
+```
+
+```{r t18-text, results='asis'}
+if (exists("med_labels") && exists("wilcox_t18")) {
+  urb <- med_labels %>% filter(milieu == "Urbain") %>% pull(med_pond)
+  rur <- med_labels %>% filter(milieu == "Rural") %>% pull(med_pond)
+  plus <- ifelse(urb > rur, "urbain", "rural")
+  ptxt <- ifelse(wilcox_t18$p.value < 0.001, "< 0,001", paste0("= ", format(round(wilcox_t18$p.value, 4), decimal.mark = ",")))
+  cat(glue(
+    "Les dépenses médianes pondérées diffèrent entre milieux de résidence. La médiane est de **{fmt_naira(urb)}** en zone urbaine contre **{fmt_naira(rur)}** en zone rurale. ",
+    "Le niveau médian le plus élevé est donc observé en milieu **{plus}**. ",
+    "Le test de Wilcoxon pondéré donne une p-valeur **{ptxt}** : si cette valeur est faible, on conclut à une différence statistiquement significative des distributions ; sinon, l'écart observé reste surtout descriptif. ",
+    "Dans tous les cas, le graphique montre que la dispersion des dépenses est forte dans les deux milieux, avec une longue queue de dépenses élevées."
+  ))
+}
+```
+
+# Conclusion générale
+
+```{r conclusion, results='asis'}
+cat("Cette analyse met en évidence trois résultats centraux. Premièrement, la morbidité récente n'est pas homogène : elle varie selon l'âge et, dans une moindre mesure, selon le sexe. Deuxièmement, les maladies infectieuses occupent une place dominante parmi les affections déclarées, ce qui structure le recours aux soins. Troisièmement, l'accès aux services de santé et le niveau des dépenses restent socialement différenciés : les comportements de recours et les montants déboursés varient selon le quintile de richesse et le milieu de résidence.\n\n")
+cat("Au total, les résultats suggèrent que les chocs sanitaires peuvent renforcer les inégalités économiques lorsqu'ils entraînent des dépenses élevées ou lorsqu'ils limitent le recours aux soins chez les ménages les plus contraints. Une discussion finale peut insister sur les barrières financières, la proximité des structures de soins et les écarts de qualité entre prestataires.\n")
+```
+
+# Annexes
+
+## Conseils de rendu
+
+```{r conseils, results='asis'}
+cat("Pour générer le document Word, utilisez dans RStudio : **Knit > Knit to Word**. Vous pouvez aussi exécuter :\n\n")
+cat("```r\nrmarkdown::render('Analyse3_report_template.Rmd', output_format = 'word_document')\n```\n")
+```

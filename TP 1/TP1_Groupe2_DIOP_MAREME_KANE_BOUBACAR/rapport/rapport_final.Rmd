@@ -1,5 +1,6 @@
 ---
 title: "Profil démographique des ménages nigérians"
+<<<<<<< HEAD
 subtitle: "Nigeria General Household Survey Panel -- Wave 4 (2018-2019)"
 author: "DIOP Marème & KANE Boubacar, Elèves Ingénieurs statisticiens économistes"
 date: "`r Sys.Date()`"
@@ -14,12 +15,28 @@ geometry: "margin=1in"
 fontsize: 10pt
 ---
 
+=======
+subtitle: "Nigeria General Household Survey Panel — Wave 4 (2018-2019)"
+author: "DIOP Marème & KANE Boubacar — Élèves Ingénieurs Statisticiens Économistes, ENSAE Dakar"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  officedown::rdocx_document:
+    reference_docx: NULL
+    number_sections: true
+    plots:
+      align: center
+    tables:
+      style: Table
+      layout: autofit
+---
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo      = FALSE,
   warning   = FALSE,
   message   = FALSE,
   fig.align = "center",
+<<<<<<< HEAD
   fig.pos   = "H",
   out.width = "88%",
   dpi       = 150
@@ -43,15 +60,74 @@ sect1_w4_clean <- readRDS(
 # Pré-calculs globaux
 age_data     <- sect1_w4_clean %>% filter(!is.na(s1q4), s1q4 <= 110)
 n_exclus_age <- sum(sect1_w4_clean$s1q4 > 110, na.rm = TRUE)
+=======
+  dpi       = 150
+)
+
+library(dplyr)
+library(haven)
+library(gtsummary)
+library(rstatix)
+library(knitr)
+library(officedown)
+library(officer)
+library(flextable)
+
+set_flextable_defaults(
+  font.family = "Arial",
+  font.size   = 10,
+  theme_fun   = theme_vanilla
+)
+
+proj_root <- rprojroot::find_rstudio_root_file()
+fig_dir   <- file.path(proj_root, "output", "figures")
+
+base_w4 <- readRDS(
+  file.path(proj_root, "data", "processed", "base_individus_w4.rds")
+)
+
+# ── Âge ──────────────────────────────────────────────────────────────────────
+age_data     <- base_w4 %>% filter(!is.na(s1q4), s1q4 <= 110)
+n_total      <- nrow(base_w4)
+n_menages    <- n_distinct(base_w4$hhid)
+n_exclus_age <- nrow(base_w4) - nrow(age_data)
+moy_pond     <- round(weighted.mean(age_data$s1q4, age_data$poids_individu,
+                                    na.rm = TRUE), 1)
+med_age      <- round(median(age_data$s1q4), 1)
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
 
 stats_age <- age_data %>%
   summarise(
     N          = n(),
+<<<<<<< HEAD
+=======
+    Moyenne    = round(weighted.mean(s1q4, poids_individu, na.rm = TRUE), 1),
+    Mediane    = round(median(s1q4), 1),
+    Q1         = round(quantile(s1q4, 0.25), 1),
+    Q3         = round(quantile(s1q4, 0.75), 1),
+    Ecart_type = round(sqrt(weighted.mean(
+                   (s1q4 - weighted.mean(s1q4, poids_individu))^2,
+                   poids_individu)), 1),
+    CV         = round(Ecart_type / Moyenne * 100, 1),
+    Asymetrie  = round(mean(((s1q4 - mean(s1q4)) / sd(s1q4))^3), 3)
+  )
+
+stats_age_sexe <- age_data %>%
+  filter(!is.na(s1q2)) %>%
+  mutate(Sexe = case_when(
+    as.numeric(s1q2) == 1 ~ "Masculin",
+    as.numeric(s1q2) == 2 ~ "Féminin"
+  )) %>%
+  group_by(Sexe) %>%
+  summarise(
+    N          = n(),
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
     Moyenne    = round(mean(s1q4), 1),
     Mediane    = round(median(s1q4), 1),
     Q1         = round(quantile(s1q4, 0.25), 1),
     Q3         = round(quantile(s1q4, 0.75), 1),
     Ecart_type = round(sd(s1q4), 1),
+<<<<<<< HEAD
     CV         = round((sd(s1q4) / mean(s1q4)) * 100, 1),
     Asymetrie  = round(mean(((s1q4 - mean(s1q4)) / sd(s1q4))^3), 3)
   )
@@ -83,6 +159,48 @@ taille_menage <- sect1_w4_clean %>%
   summarise(taille = n(), sector = first(sector), .groups = "drop") %>%
   filter(!is.na(sector)) %>%
   mutate(zone_label = ifelse(as.numeric(sector) == 1, "Urbain", "Rural"))
+=======
+    .groups    = "drop"
+  )
+
+set.seed(42)
+shapiro_result <- shapiro.test(sample(age_data$s1q4, 5000))
+
+# ── Lien de parenté ───────────────────────────────────────────────────────────
+lien_data <- base_w4 %>%
+  filter(!is.na(s1q3)) %>%
+  mutate(lien = case_when(
+    s1q3 == 1             ~ "Chef de ménage",
+    s1q3 == 2             ~ "Conjoint(e)",
+    s1q3 %in% c(3, 4, 5)  ~ "Enfant du chef",
+    TRUE                  ~ "Autre membre"
+  )) %>%
+  group_by(lien) %>%
+  summarise(
+    n_pondere = sum(poids_individu, na.rm = TRUE),
+    n_brut    = n(),
+    .groups   = "drop"
+  ) %>%
+  mutate(
+    prop    = n_pondere / sum(n_pondere),
+    ic_low  = mapply(function(x, n) binom.test(x, n)$conf.int[1],
+                     n_brut, sum(n_brut)),
+    ic_high = mapply(function(x, n) binom.test(x, n)$conf.int[2],
+                     n_brut, sum(n_brut))
+  ) %>%
+  arrange(desc(prop))
+
+# ── Taille des ménages ────────────────────────────────────────────────────────
+taille_menage <- base_w4 %>%
+  group_by(hhid) %>%
+  summarise(
+    taille     = n(),
+    zone_label = ifelse(as.numeric(first(sector)) == 1, "Urbain", "Rural"),
+    poids_hh   = first(wt_wave4),
+    .groups    = "drop"
+  ) %>%
+  filter(!is.na(zone_label), !is.na(poids_hh))
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
 
 wilcox_result <- wilcox.test(taille ~ zone_label, data = taille_menage,
                               exact = FALSE, conf.int = TRUE)
@@ -90,15 +208,59 @@ r_effet <- rstatix::wilcox_effsize(taille ~ zone_label, data = taille_menage)
 
 stats_taille <- taille_menage %>%
   group_by(zone_label) %>%
+<<<<<<< HEAD
   summarise(N = n(), Mediane = round(median(taille), 1),
             Moyenne = round(mean(taille), 1),
             Q1 = round(quantile(taille, 0.25), 1),
             Q3 = round(quantile(taille, 0.75), 1),
             .groups = "drop")
+=======
+  summarise(
+    N            = n(),
+    Moyenne_pond = round(weighted.mean(taille, poids_hh), 2),
+    Mediane      = round(median(taille), 1),
+    Q1           = round(quantile(taille, 0.25), 1),
+    Q3           = round(quantile(taille, 0.75), 1),
+    .groups      = "drop"
+  )
+
+# ── Valeurs manquantes — tableau de cohérence ─────────────────────────────────
+na_coherence <- data.frame(
+  Groupe   = c("Membres présents (Statut de résidence = Présent)",
+               "Membres partis   (Statut de résidence = Parti)",
+               "Statut non renseigné (NA)"),
+  N        = c(25767, 3780, 790),
+  NA_age   = c(0, 3780, 0),
+  NA_sexe  = c(0, 3780, 0),
+  NA_lien  = c(0, 3780, 0)
+)
+
+# ── Fonction utilitaire flextable ─────────────────────────────────────────────
+ft <- function(df, col_names, caption, col_widths = NULL) {
+  ft_obj <- flextable(df) %>%
+    set_header_labels(values = setNames(col_names, names(df))) %>%
+    set_caption(caption) %>%
+    bold(part = "header") %>%
+    bg(part = "header", bg = "#1F4E79") %>%
+    color(part = "header", color = "white") %>%
+    align(part = "all", align = "center") %>%
+    align(j = 1, part = "body", align = "left") %>%
+    set_table_properties(layout = "autofit", width = 1) %>%
+    fontsize(size = 9, part = "all") %>%
+    font(fontname = "Arial", part = "all") %>%
+    padding(padding = 4, part = "all")
+  if (!is.null(col_widths)) {
+    ft_obj <- ft_obj %>%
+      width(j = seq_along(col_widths), width = col_widths)
+  }
+  ft_obj
+}
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
 ```
 
 # Introduction
 
+<<<<<<< HEAD
 Ce rapport analyse le profil démographique des ménages enquêtés lors de la quatrième vague du **Nigeria General Household Survey (GHS) Panel** (2018-2019), collectée dans le cadre du programme LSMS-ISA de la Banque Mondiale. L'objectif est de décrire la structure par âge et par sexe de la population, la composition des ménages selon le lien de parenté, et les différences de taille des ménages entre milieux rural et urbain.
 
 Les analyses reposent sur deux fichiers issus de la Wave 4 Post-Harvest : **sect1\_harvestw4** (30 337 individus, 59 variables) contenant le sexe, l'âge, le lien de parenté et le statut de résidence, et **sectaa\_harvestw4** fournissant la variable de milieu de résidence. Les membres ayant quitté le ménage (`s1q4a = 2`) ont été retirés. L'échantillon analytique final comprend **`r nrow(sect1_w4_clean)` individus** répartis dans **`r n_distinct(sect1_w4_clean$hhid)` ménages**.
@@ -260,10 +422,244 @@ data_gt <- sect1_w4_clean %>%
   left_join(taille_menage %>% select(hhid, taille, zone_label), by = "hhid") %>%
   filter(!is.na(zone_label)) %>%
   mutate(sexe = haven::as_factor(s1q2))
+=======
+Ce rapport analyse le profil démographique des ménages enquêtés lors de la quatrième vague du **Nigeria General Household Survey (GHS) Panel** (2018-2019), collectée dans le cadre du programme LSMS-ISA de la Banque Mondiale. L'objectif est de décrire la structure par âge et par sexe de la population, la composition des ménages selon le lien de parenté avec le chef de ménage, et les disparités de taille entre milieux rural et urbain. Toutes les analyses sont pondérées afin de produire des estimations représentatives de la population nigériane.
+
+# Données et structure des bases
+
+## Sources mobilisées
+
+Deux fichiers issus de la Wave 4 Post-Harvest ont été utilisés conjointement, joints sur l'identifiant ménage. Les ménages ayant refusé l'entretien ont été exclus, soit 4 ménages représentant 24 individus (0,09 % de l'échantillon).
+```{r table-bases}
+bases <- data.frame(
+  Fichier      = c("sect1_harvestw4", "secta_harvestw4"),
+  Observations = c("30 337 individus", "5 025 ménages"),
+  Variables    = c("59", "22"),
+  Contenu      = c(
+    "Sexe, âge, lien de parenté, statut de résidence de chaque membre",
+    "Milieu de résidence, poids de sondage, identifiants enquêteur/superviseur"
+  )
+)
+
+ft(bases,
+   col_names  = c("Fichier", "Observations", "Variables", "Contenu principal"),
+   caption    = "Description des deux bases de données utilisées",
+   col_widths = c(1.5, 1.4, 0.8, 3.3)) %>%
+  bold(j = 1, part = "body") %>%
+  italic(j = 1, part = "body")
+```
+
+## Variables clés
+```{r table-variables}
+vars <- data.frame(
+  Variable  = c("hhid", "indiv", "s1q2", "s1q3", "s1q4",
+                "s1q4a", "sector", "wt_wave4"),
+  Label     = c("Identifiant du ménage",
+                "Identifiant individuel",
+                "Sexe",
+                "Lien de parenté avec le chef de ménage",
+                "Âge en années révolues",
+                "Statut de résidence actuel",
+                "Milieu de résidence",
+                "Poids de sondage transversal (ménage)"),
+  Modalites = c("Numérique unique",
+                "Unique au sein du ménage",
+                "1 = Masculin, 2 = Féminin",
+                "14 modalités (Chef, Conjoint, Enfant biologique, Autre...)",
+                "0 à 110 ans (1 observation aberrante exclue)",
+                "1 = Encore membre du ménage, 2 = Parti",
+                "1 = Urbain, 2 = Rural",
+                "Continu — issu de secta_harvestw4")
+)
+
+ft(vars,
+   col_names  = c("Variable", "Label", "Modalités / Plage"),
+   caption    = "Variables clés utilisées dans l'analyse",
+   col_widths = c(1.1, 2.7, 3.2)) %>%
+  bold(j = 1, part = "body") %>%
+  italic(j = 1, part = "body") %>%
+  bg(i = seq(1, nrow(vars), 2), bg = "#F0F5FA", part = "body")
+```
+
+## Qualité des données et valeurs manquantes
+
+### Vérification des doublons et filtrage
+```{r table-nettoyage}
+nettoyage <- data.frame(
+  Etape    = c(
+    "Doublons sur (Identifiant ménage + Identifiant individu)",
+    "Membres partis (Statut de résidence = Parti) — exclus",
+    "Statut de résidence non renseigné (NA) — conservés",
+    "Ménages sans poids de sondage (interview refusée) — exclus",
+    "Âge aberrant (> 110 ans) — exclu de l'analyse de l'âge",
+    "Échantillon analytique final"
+  ),
+  Resultat = c(
+    "0 doublon détecté",
+    "3 780 individus",
+    "790 individus conservés",
+    "4 ménages / 24 individus",
+    "1 individu",
+    paste0(format(n_total, big.mark = " "), " individus — ",
+           format(n_menages, big.mark = " "), " ménages")
+  )
+)
+
+ft(nettoyage,
+   col_names  = c("Étape de nettoyage", "Résultat"),
+   caption    = "Étapes de nettoyage et constitution de l'échantillon analytique",
+   col_widths = c(5.2, 1.8)) %>%
+  bold(i = 6, part = "body") %>%
+  bg(i = 6, bg = "#D6E4F0", part = "body") %>%
+  bg(i = seq(1, 5, 2), bg = "#F0F5FA", part = "body")
+```
+
+### Analyse des valeurs manquantes
+
+La carte ci-dessous visualise la présence de valeurs manquantes sur les variables clés **avant filtrage**, sur l'ensemble des 30 337 individus de `sect1_harvestw4`. Les variables affichées correspondent à leurs libellés réels dans le questionnaire.
+```{r fig-miss, fig.cap="Carte des valeurs manquantes sur les variables clés — sect1_harvestw4 (avant filtrage)", out.width="95%"}
+knitr::include_graphics(
+  file.path(fig_dir, "valeurs_manquantes_variables_cles.png")
+)
+```
+```{r table-na-coherence}
+ft(na_coherence,
+   col_names  = c("Groupe", "N individus",
+                  "NA sur Âge", "NA sur Sexe", "NA sur Lien de parenté"),
+   caption    = "Cohérence des valeurs manquantes selon le statut de résidence",
+   col_widths = c(3.2, 1.0, 1.0, 1.0, 1.8)) %>%
+  bg(i = 2, bg = "#FFF0F0", part = "body") %>%
+  bg(i = 3, bg = "#FFFBE6", part = "body") %>%
+  bold(i = 2, j = 3:5, part = "body")
+```
+
+Les 3 780 valeurs manquantes sur l'âge, le sexe et le lien de parenté correspondent **exactement** aux membres partis (Statut de résidence = Parti). Ces NA sont donc structurels — liés à la conception du questionnaire — et non aléatoires. Les 790 individus dont le statut est non renseigné ne présentent aucune valeur manquante sur les variables analytiques et sont conservés dans l'échantillon.
+
+# Analyse univariée de l'âge
+
+## Statistiques descriptives
+
+La variable *Âge en années révolues* est analysée après exclusion de `r n_exclus_age` observation(s) aberrante(s) (âge > 110 ans). Les statistiques sont pondérées par le poids individuel.
+```{r table-stats-age}
+ft(stats_age,
+   col_names = c("N", "Moyenne pond.", "Médiane",
+                 "Q1", "Q3", "Écart-type", "CV (%)", "Asymétrie"),
+   caption   = "Statistiques descriptives pondérées de l'âge — W4")
+```
+```{r table-stats-age-sexe}
+ft(stats_age_sexe,
+   col_names = c("Sexe", "N", "Moyenne", "Médiane",
+                 "Q1", "Q3", "Écart-type"),
+   caption   = "Statistiques descriptives de l'âge par sexe — W4") %>%
+  bg(i = 1, bg = "#F0F5FA", part = "body")
+```
+```{r table-shapiro}
+shapiro_tab <- data.frame(
+  Taille     = "5 000 (tirage aléatoire, graine = 42)",
+  W          = round(shapiro_result$statistic, 4),
+  Pvaleur    = "< 2,2 × 10⁻¹⁶",
+  Conclusion = "Rejet de la normalité (seuil 1 %)"
+)
+
+ft(shapiro_tab,
+   col_names  = c("Taille testée", "Statistique W",
+                  "p-valeur", "Conclusion"),
+   caption    = "Test de normalité de Shapiro-Wilk — Âge (W4)",
+   col_widths = c(2.2, 1.2, 1.4, 2.2))
+```
+
+## Résultats et interprétation
+```{r fig-age, fig.cap="Distribution de l'âge — histogramme pondéré (classes de 5 ans) et boîte à moustaches (W4)", out.width="100%"}
+knitr::include_graphics(file.path(fig_dir, "analyse_age.png"))
+```
+
+L'âge moyen pondéré est de **`r moy_pond` ans** et la médiane de **`r med_age` ans** : plus de la moitié de la population a moins de `r med_age` ans, révélant une structure démographique très jeune. L'écart de près de 10 ans entre moyenne et médiane reflète l'asymétrie positive de la distribution (coefficient = `r stats_age$Asymetrie`), tirée vers le haut par les individus âgés. Le coefficient de variation de `r stats_age$CV` % confirme une très forte hétérogénéité des âges au sein des ménages. La normalité est rejetée par le test de Shapiro-Wilk (W = `r round(shapiro_result$statistic, 4)`, p < 2,2 × 10⁻¹⁶), résultat attendu sur une distribution en pyramide. L
+
+# Pyramide des âges par sexe
+
+Les individus sont répartis en 18 groupes quinquennaux (0–4 ans à 85+), avec les **hommes à gauche et les femmes à droite** (convention internationale). Les effectifs sont pondérés par le poids individuel.
+```{r fig-pyramide, fig.cap="Pyramide des âges par groupe quinquennal et par sexe — Nigeria GHS Panel W4 (effectifs pondérés)", out.width="80%"}
+knitr::include_graphics(file.path(fig_dir, "pyramide_ages_w4.png"))
+```
+
+La pyramide adopte une **forme expansive** caractéristique des populations à fécondité élevée : base très large sur les groupes 0–14 ans — les cohortes 5–9 et 10–14 ans étant les plus importantes — puis rétrécissement progressif. La répartition entre hommes et femmes est équilibrée dans les groupes jeunes, avec une légère dominance féminine à partir de 35 ans, cohérente avec une espérance de vie féminine supérieure. Le groupe 15–19 ans est moins nombreux que le groupe 10–14 ans.
+
+# Lien de parenté avec le chef de ménage
+
+La variable *Lien de parenté avec le chef de ménage* renseigne 14 modalités. Les modalités « enfant biologique », « enfant adoptif » et « beau-fils/belle-fille » sont regroupées en « Enfant du chef ». Les proportions sont estimées sur effectifs pondérés ; les intervalles de confiance à 95 % sont issus du test binomial exact.
+```{r table-lien}
+lien_tab <- lien_data %>%
+  mutate(
+    Proportion = paste0(round(prop * 100, 1), " %"),
+    IC_bas     = paste0(round(ic_low  * 100, 1), " %"),
+    IC_haut    = paste0(round(ic_high * 100, 1), " %")
+  ) %>%
+  select(lien, n_brut, Proportion, IC_bas, IC_haut)
+
+ft(lien_tab,
+   col_names  = c("Lien de parenté", "Effectif brut",
+                  "Proportion pond.", "IC 95 % inf.", "IC 95 % sup."),
+   caption    = "Proportions pondérées du lien de parenté avec IC à 95 % — W4",
+   col_widths = c(2.0, 1.2, 1.4, 1.2, 1.2)) %>%
+  bg(i = seq(1, nrow(lien_tab), 2), bg = "#F0F5FA", part = "body")
+```
+```{r fig-lien, fig.cap="Lien de parenté avec le chef de ménage — proportions pondérées avec intervalles de confiance à 95 % (W4)", out.width="90%"}
+knitr::include_graphics(file.path(fig_dir, "lien_parente.png"))
+```
+
+Les enfants du chef constituent la catégorie dominante avec **`r round(lien_data$prop[lien_data$lien == "Enfant du chef"] * 100, 1)` %** des membres résidents [IC 95 % : `r round(lien_data$ic_low[lien_data$lien == "Enfant du chef"] * 100, 1)` – `r round(lien_data$ic_high[lien_data$lien == "Enfant du chef"] * 100, 1)` %], témoignant d'une fécondité élevée. Les chefs de ménage représentent `r round(lien_data$prop[lien_data$lien == "Chef de ménage"] * 100, 1)` % [IC 95 % : `r round(lien_data$ic_low[lien_data$lien == "Chef de ménage"] * 100, 1)` – `r round(lien_data$ic_high[lien_data$lien == "Chef de ménage"] * 100, 1)` %] et les conjoints `r round(lien_data$prop[lien_data$lien == "Conjoint(e)"] * 100, 1)` % [IC 95 % : `r round(lien_data$ic_low[lien_data$lien == "Conjoint(e)"] * 100, 1)` – `r round(lien_data$ic_high[lien_data$lien == "Conjoint(e)"] * 100, 1)` %]. La catégorie « Autre membre » recouvre des parents élargis et membres non apparentés. Les intervalles de confiance très étroits confirment la précision des estimations.
+
+# Taille des ménages selon le milieu de résidence
+
+La taille du ménage est définie comme le nombre de membres présents après filtrage. La comparaison rural/urbain est effectuée par un **test de Wilcoxon-Mann-Whitney** (la distribution de l'âge n'étant pas normale), et la taille d'effet est mesurée par le *r* de rang de Cohen.
+```{r table-taille}
+ft(stats_taille,
+   col_names  = c("Milieu de résidence", "N ménages",
+                  "Taille moyenne pond.", "Médiane", "Q1", "Q3"),
+   caption    = "Taille des ménages par milieu de résidence — statistiques pondérées (W4)",
+   col_widths = c(1.6, 1.1, 1.6, 1.1, 1.0, 1.0)) %>%
+  bg(i = 1, bg = "#F0F5FA", part = "body")
+```
+```{r table-wilcox}
+wilcox_tab <- data.frame(
+  W         = format(round(wilcox_result$statistic, 0), big.mark = " "),
+  Pvaleur   = "< 2,2 × 10⁻¹⁶",
+  r         = round(r_effet$effsize, 3),
+  Interpret = "Petite (Cohen)"
+)
+
+ft(wilcox_tab,
+   col_names  = c("Statistique W", "p-valeur",
+                  "r de rang", "Interprétation"),
+   caption    = "Résultats du test de Wilcoxon-Mann-Whitney — taille des ménages",
+   col_widths = c(1.5, 1.5, 1.2, 2.8))
+```
+```{r fig-taille, fig.cap="Taille des ménages selon le milieu de résidence — Test de Wilcoxon-Mann-Whitney (W4)", out.width="75%"}
+knitr::include_graphics(file.path(fig_dir, "taille_menage.png"))
+```
+
+Les ménages ruraux ont une taille médiane de **`r stats_taille$Mediane[stats_taille$zone_label == "Rural"]` membres** contre **`r stats_taille$Mediane[stats_taille$zone_label == "Urbain"]` en zone urbaine**. La différence est hautement significative (p < 2,2 × 10⁻¹⁶). Cependant, la taille d'effet *r* = `r round(r_effet$effsize, 3)` est **petite au sens de Cohen** : la significativité statistique est amplifiée par la taille de l'échantillon, mais la différence d'un membre en médiane a une portée socio-économique concrète. Les ménages ruraux plus grands s'expliquent par une fécondité plus élevée, un recours à la main-d'œuvre familiale agricole et des structures familiales élargies plus fréquentes.
+
+# Tableau récapitulatif stratifié
+```{r tableau-gt}
+data_gt <- base_w4 %>%
+  filter(!is.na(s1q2), !is.na(s1q4)) %>%
+  left_join(taille_menage %>% select(hhid, taille, zone_label),
+            by = "hhid") %>%
+  filter(!is.na(zone_label)) %>%
+  mutate(
+    sexe = factor(
+      case_when(as.numeric(s1q2) == 1 ~ "Homme",
+                as.numeric(s1q2) == 2 ~ "Femme"),
+      levels = c("Homme", "Femme")
+    )
+  )
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
 
 data_gt %>%
   select(zone_label, s1q4, sexe, taille) %>%
   tbl_summary(
+<<<<<<< HEAD
     by        = zone_label,
     label     = list(s1q4 ~ "Age (années)", sexe ~ "Sexe",
                      taille ~ "Taille du ménage"),
@@ -293,3 +689,49 @@ Cette analyse met en évidence trois résultats majeurs. **Premièrement**, la p
 \footnotesize
 *Packages R :* `haven`, `dplyr`, `ggplot2`, `gtsummary`, `rstatix`, `patchwork`, `naniar`, `knitr`, `kableExtra`, `rprojroot` | *Source :* GHS Panel W4, NBS et Banque Mondiale, 2019.
 \normalsize
+=======
+    by    = zone_label,
+    label = list(
+      s1q4   ~ "Âge (années révolues)",
+      sexe   ~ "Sexe",
+      taille ~ "Taille du ménage (membres)"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{median} [{p25} – {p75}]",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits  = all_continuous() ~ 1,
+    missing = "no"
+  ) %>%
+  add_p(test = list(
+    all_continuous()  ~ "wilcox.test",
+    all_categorical() ~ "chisq.test"
+  )) %>%
+  add_overall() %>%
+  bold_labels() %>%
+  modify_header(
+    label   ~ "**Caractéristique**",
+    stat_0  ~ "**Ensemble**\nN = {N}",
+    stat_1  ~ "**Rural**\nN = {N}",
+    stat_2  ~ "**Urbain**\nN = {N}",
+    p.value ~ "**p-valeur**"
+  ) %>%
+  modify_footnote(
+    p.value ~ "Wilcoxon-Mann-Whitney (cont.) ; Chi-deux (catégoriel)"
+  ) %>%
+  as_flex_table() %>%
+  set_table_properties(layout = "autofit", width = 1) %>%
+  fontsize(size = 9, part = "all") %>%
+  font(fontname = "Arial", part = "all")
+```
+
+L'âge médian est légèrement plus élevé en zone urbaine (19 ans [9–38]) qu'en zone rurale (17 ans [8–35]), différence significative (p < 0,001). La répartition par sexe est parfaitement équilibrée dans les deux zones (p = 0,5), validant la qualité de l'échantillonnage. La taille du ménage est systématiquement plus élevée en milieu rural (médiane 7 [5–10] contre 6 [4–8] en urbain, p < 0,001).
+
+# Conclusion
+
+Cette analyse met en évidence trois résultats majeurs. **Premièrement**, la population nigériane est très jeune (médiane = `r med_age` ans), avec une pyramide expansive dominée par les 0–14 ans, typique d'une fécondité totale élevée. **Deuxièmement**, les enfants du chef constituent près de la moitié des membres résidents (`r round(lien_data$prop[lien_data$lien == "Enfant du chef"] * 100, 1)` % [IC 95 % : `r round(lien_data$ic_low[lien_data$lien == "Enfant du chef"] * 100, 1)` – `r round(lien_data$ic_high[lien_data$lien == "Enfant du chef"] * 100, 1)` %]), reflétant des structures familiales larges et multigénérationnelles. **Troisièmement**, les ménages ruraux sont significativement plus grands que les ménages urbains (p < 2,2 × 10⁻¹⁶), différence d'amplitude modérée (*r* = `r round(r_effet$effsize, 3)`) mais aux implications socio-économiques concrètes.
+
+---
+
+*Packages R : `haven`, `dplyr`, `ggplot2`, `gtsummary`, `rstatix`, `patchwork`, `naniar`, `knitr`, `flextable`, `officedown`, `officer` | Source : Nigeria GHS Panel W4, NBS & Banque Mondiale, 2019.*
+>>>>>>> 664df72ee5b586307c349b237310d9487e119661
