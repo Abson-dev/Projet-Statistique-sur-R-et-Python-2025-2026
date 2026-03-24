@@ -1,0 +1,12 @@
+﻿# Données brutes et nettoyées (licence Banque Mondiale)
+data/raw/
+data/processed/
+# Cache renv (lourd, renv.lock suffit)
+renv/
+# Fichiers système
+.DS_Store
+Thumbs.db
+# Fichiers R temporaires
+.Rhistory
+.RData
+.Rproj.user/
