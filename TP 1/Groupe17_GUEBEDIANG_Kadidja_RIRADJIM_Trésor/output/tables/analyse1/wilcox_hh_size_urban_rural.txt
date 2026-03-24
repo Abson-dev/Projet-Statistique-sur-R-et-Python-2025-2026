@@ -1,7 +1,0 @@
-
-	Wilcoxon rank sum test
-
-data:  taille_menage by secteur_residence
-W = 2303176, p-value < 2.2e-16
-alternative hypothesis: true location shift is not equal to 0
-
