@@ -67,7 +67,8 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP2/
 │   └── processed/                                  # Objets .rds intermédiaires (wt_wave4 inclus)
 │
 ├── rapport/
-│   └── Rapport_educ_alphabetisation_menages.Rmd    # Rapport R Markdown → génère un .docx
+│   ├── Rapport_educ_alphabetisation_menages.docs   # Rapport word
+│   └── Rapport_educ_alphabetisation_menages.Rmd    # Rapport R Markdown → génère le rapport .docx
 │
 ├── outputs/
 │   ├── fig01_barplot_niveau_instruction.png
