@@ -65,28 +65,29 @@ Ce projet s'inscrit dans le cadre du cours de **Projet Statistique sous R et Pyt
 ```
 Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP1/
 │
-├── main.R                                       # Point d'entrée — orchestre l'exécution
+├── main.R                                            # Point d'entrée — orchestre l'exécution
 │
-├── Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP1.Rproj
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP1.Rproj    # Le fichier Rproj
 │
 ├── scripts/
-│   ├── 01_import_nettoyage.R                    # Import + jointure pondérations + recodages
-│   └── 02_exploration_visualisation.R           # Statistiques pondérées + graphiques + Excel
+│   ├── 01_import_nettoyage.R                         # Import + jointure pondérations + recodages
+│   └── 02_exploration_visualisation.R                # Statistiques pondérées + graphiques + Excel
 │
-├── data/
-│   ├── raw/                                     # VIDE — fichiers téléchargés automatiquement depuis GitHub
-│   └── processed/                               # Objets .rds intermédiaires (avec wt_wave4)
+├── data/                                             # Ce dossier se crée automatiquement lors de l'exécution du main.R
+│   ├── raw/                                          # VIDE — fichiers téléchargés automatiquement depuis GitHub
+│   └── processed/                                    # Objets .rds intermédiaires (avec wt_wave4)
 │
 ├── rapport/
-│   └── Rapport_TP1_profil_demographique.Rmd     # Rapport R Markdown → génère un .docx
+│   ├── Rapport_TP1_profil_demographique.docs         # Rapport word
+│   └── Rapport_TP1_profil_demographique.Rmd          # Rapport R Markdown qui génère le rapport .docx
 │
 ├── outputs/
-│   ├── fig01_histogramme_age.png                # Distribution pondérée de l'âge
-│   ├── fig02_boxplot_age.png                    # Boîte à moustaches de l'âge
-│   ├── fig03_pyramide_ages.png                  # Pyramide des âges pondérée par sexe
-│   ├── fig04_lien_parente.png                   # Proportions pondérées du lien de parenté
-│   ├── fig05_boxplot_menages.png                # Taille des ménages pondérée Urbain vs Rural
-│   └── tableau_gtsummary.xlsx                   # Tableau récapitulatif pondéré (Excel)
+│   ├── fig01_histogramme_age.png                     # Distribution pondérée de l'âge
+│   ├── fig02_boxplot_age.png                         # Boîte à moustaches de l'âge
+│   ├── fig03_pyramide_ages.png                       # Pyramide des âges pondérée par sexe
+│   ├── fig04_lien_parente.png                        # Proportions pondérées du lien de parenté
+│   ├── fig05_boxplot_menages.png                     # Taille des ménages pondérée Urbain vs Rural
+│   └── tableau_gtsummary.xlsx                        # Tableau récapitulatif pondéré (Excel)
 │
 └── README.md
 ```
