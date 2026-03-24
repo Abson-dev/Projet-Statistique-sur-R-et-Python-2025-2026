@@ -1,0 +1,6 @@
+
+	Shapiro-Wilk normality test
+
+data:  age_sample
+W = 0.90237, p-value < 2.2e-16
+
