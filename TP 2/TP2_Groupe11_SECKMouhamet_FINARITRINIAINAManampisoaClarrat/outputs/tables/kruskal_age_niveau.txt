@@ -1,6 +1,0 @@
-
-	Kruskal-Wallis rank sum test
-
-data:  niveau_num by age_group
-Kruskal-Wallis chi-squared = 122.54, df = 3, p-value < 2.2e-16
-
