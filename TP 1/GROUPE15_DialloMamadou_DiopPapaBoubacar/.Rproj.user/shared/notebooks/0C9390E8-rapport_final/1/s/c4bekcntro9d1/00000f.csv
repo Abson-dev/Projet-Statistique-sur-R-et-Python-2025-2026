@@ -1,0 +1,7 @@
+"0","taille_menage <- data %>%"
+"0","  group_by(hhid) %>%"
+"0","  summarise(taille_men = n(), .groups = ""drop"")"
+"0",""
+"0","data_group <- data %>%"
+"0","  left_join(taille_menage, by = ""hhid"")"
+"0",""

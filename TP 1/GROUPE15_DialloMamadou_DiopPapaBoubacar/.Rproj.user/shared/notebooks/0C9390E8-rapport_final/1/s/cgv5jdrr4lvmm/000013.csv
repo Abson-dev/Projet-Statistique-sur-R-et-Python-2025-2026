@@ -1,0 +1,3 @@
+"0","data <- data %>%"
+"0","  left_join(data_2 %>% select(hhid, wt_wave4), by = ""hhid"")"
+"0","data <- data %>% filter(!is.na(wt_wave4))"
