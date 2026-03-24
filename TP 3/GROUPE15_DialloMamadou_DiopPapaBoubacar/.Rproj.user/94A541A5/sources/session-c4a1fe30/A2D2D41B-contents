@@ -52,6 +52,15 @@ data_to_join <- data_to_join %>% select(hhid, indiv, s1q2, s1q4)
 
 # Jointure
 data <- inner_join(data, data_to_join, by = c("hhid", "indiv"))
+
+data_to_join <- read_stata("../data/raw/secta_harvestw4.dta")
+data_to_join <- data_to_join %>% select(hhid, wt_wave4)
+
+data <- data %>%
+  left_join(data_to_join %>% select(hhid, wt_wave4), by = "hhid")
+
+data <- data %>% filter(!is.na(wt_wave4))
+
 ```
 
 
@@ -60,15 +69,18 @@ data <- inner_join(data, data_to_join, by = c("hhid", "indiv"))
 ```{r taux-global}
 taux_global <- data %>% 
   summarise(
-    taux_de_morbidite = mean(s4aq3 == 1, na.rm = TRUE),
+    taux_de_morbidite = weighted.mean(s4aq3 == 1, wt_wave4, na.rm = TRUE),
     .groups = "drop"
   )
 
 taux_global %>%
-  mutate(taux_de_morbidite = percent(taux_de_morbidite, accuracy = 0.1)) %>%
-  kable(col.names = "Taux de morbidité global", caption = "Taux de morbidité dans la population")
+  mutate(taux_de_morbidite = scales::percent(taux_de_morbidite, accuracy = 0.1)) %>%
+  kable(
+    col.names = "Taux de morbidité global",
+    caption = "Taux de morbidité dans la population (pondéré)"
+  )
 ```
-Le taux de morbidité affiché est de 9,3%, c'est-à-dire 9,3% des individus de la population ont déclarés être malade ou blessé.
+Le taux de morbidité affiché est de 8,7% dans la population, c'est-à-dire 9,3% des individus de la population ont déclarés être malade ou blessé.
 
 # Préparation des données pour l'analyse
 
@@ -85,7 +97,13 @@ data_morb <- data %>%
       labels = c("0-4 ans", "5-14 ans", "15-24 ans", "25-44 ans", "45-64 ans", "65 ans et plus")
     )
   ) %>%
-  filter(!is.na(malade), !is.na(sexe), !is.na(groupe_age))
+  filter(!is.na(malade), !is.na(sexe), !is.na(groupe_age), !is.na(wt_wave4))
+
+taux_global <- data_morb %>%
+  summarise(
+    taux_de_morbidite = weighted.mean(malade, wt_wave4)
+  )
+taux_global
 ```
 
 
@@ -94,37 +112,53 @@ data_morb <- data %>%
 ## Taux de morbidité par sexe avec intervalle de confiance
 
 ```{r morbidite-par-sexe}
-tab_sexe <- data_morb %>%
-  group_by(sexe) %>%
-  summarise(
-    effectif = n(),
-    cas = sum(malade, na.rm = TRUE),
-    proportion = cas / effectif,
-    IC_low = prop.test(cas, effectif)$conf.int[1],
-    IC_up = prop.test(cas, effectif)$conf.int[2],
-    .groups = "drop"
-  ) %>%
+library(dplyr)
+library(survey)
+library(scales)
+library(knitr)
+
+# plan de sondage simple avec poids
+design_morb <- svydesign(
+  ids = ~1,
+  weights = ~wt_wave4,
+  data = data_morb
+)
+
+# proportion pondérée par sexe
+tab_sexe <- svyby(
+  ~malade,
+  ~sexe,
+  design = design_morb,
+  svyciprop,
+  vartype = c("ci"),
+  method = "logit",
+  na.rm = TRUE
+) %>%
+  as.data.frame() %>%
   mutate(
-    proportion_pct = percent(proportion, accuracy = 0.1),
-    IC = paste0("[", percent(IC_low, accuracy = 0.1), " ; ", percent(IC_up, accuracy = 0.1), "]")
+    proportion_pct = percent(malade, accuracy = 0.1),
+    IC = paste0(
+      "[", percent(ci_l, accuracy = 0.1),
+      " ; ", percent(ci_u, accuracy = 0.1), "]"
+    )
   )
 
-# Affichage du tableau
+# affichage
 tab_sexe %>%
-  select(sexe, effectif, cas, proportion_pct, IC) %>%
+  select(sexe, proportion_pct, IC) %>%
   kable(
-    col.names = c("Sexe", "Effectif", "Cas", "Proportion", "IC à 95%"),
-    caption = "Taux de morbidité par sexe"
+    col.names = c("Sexe", "Proportion pondérée", "IC à 95%"),
+    caption = "Taux de morbidité par sexe (pondéré)"
   )
 ```
-Le tableau ci-dessus montre que le taux de morbidité est de 8,4% dans la sous-population des individus de sexe masculin tandis qu'il est de 10,3% dans les individus de sexe féminin.
+Le tableau ci-dessus montre que le taux de morbidité est de 8,2% dans la sous-population des individus de sexe masculin tandis qu'il est de 9,2% dans les individus de sexe féminin.
 
 ## Visualisation
 
 ```{r plot-sexe}
-ggplot(tab_sexe, aes(x = sexe, y = proportion)) +
+ggplot(tab_sexe, aes(x = sexe, y = malade)) +
   geom_col(fill = "steelblue", alpha = 0.8) +
-  geom_errorbar(aes(ymin = IC_low, ymax = IC_up), width = 0.2, color = "darkblue") +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u), width = 0.2, color = "darkblue") +
   scale_y_continuous(labels = percent_format(accuracy = 1)) +
   labs(
     x = "Sexe",
@@ -140,38 +174,41 @@ ggplot(tab_sexe, aes(x = sexe, y = proportion)) +
 ## Taux de morbidité par groupe d'âge
 
 ```{r morbidite-par-age}
-tab_age <- data_morb %>%
-  group_by(groupe_age) %>%
-  summarise(
-    effectif = n(),
-    cas = sum(malade, na.rm = TRUE),
-    proportion = cas / effectif,
-    IC_low = prop.test(cas, effectif)$conf.int[1],
-    IC_up = prop.test(cas, effectif)$conf.int[2],
-    .groups = "drop"
-  ) %>%
+tab_age <- svyby(
+  ~malade,
+  ~groupe_age,
+  design = design_morb,
+  svyciprop,
+  vartype = c("ci"),
+  method = "logit",
+  na.rm = TRUE
+) %>%
+  as.data.frame() %>%
   mutate(
-    proportion_pct = percent(proportion, accuracy = 0.1),
-    IC = paste0("[", percent(IC_low, accuracy = 0.1), " ; ", percent(IC_up, accuracy = 0.1), "]")
+    proportion_pct = percent(malade, accuracy = 0.1),
+    IC = paste0(
+      "[", percent(ci_l, accuracy = 0.1),
+      " ; ", percent(ci_u, accuracy = 0.1), "]"
+    )
   )
 
 # Affichage du tableau
 tab_age %>%
-  select(groupe_age, effectif, cas, proportion_pct, IC) %>%
+  select(groupe_age, proportion_pct, IC) %>%
   kable(
-    col.names = c("Groupe d'âge", "Effectif", "Cas", "Proportion", "IC à 95%"),
-    caption = "Taux de morbidité par groupe d'âge"
+    col.names = c("Groupe d'âge", "Proportion", "IC à 95%"),
+    caption = "Taux de morbidité par groupe d'âge (pondéré)"
   )
 ```
 
-Ce tableau ci-dessus présente le taux de morbidité par tranche d'âge. On constate que ce taux est plus élevé chez les individus de plus de 65 ans. Ce taux est plus faible chez les individus de 5 à 14 ans.
+Ce tableau ci-dessus présente le taux de morbidité par tranche d'âge. On constate que ce taux est plus élevé chez les individus de plus de 65 ans et est plus faible chez les individus de 5 à 14 ans.
 
 ## Visualisation
 
 ```{r plot-age}
-ggplot(tab_age, aes(x = groupe_age, y = proportion)) +
+ggplot(tab_age, aes(x = groupe_age, y = malade)) +
   geom_col(fill = "darkgreen", alpha = 0.8) +
-  geom_errorbar(aes(ymin = IC_low, ymax = IC_up), width = 0.2, color = "darkgreen") +
+  geom_errorbar(aes(ymin = ci_l, ymax = ci_u), width = 0.2, color = "darkgreen") +
   scale_y_continuous(labels = percent_format(accuracy = 1)) +
   labs(
     x = "Groupe d'âge",
@@ -188,22 +225,27 @@ ggplot(tab_age, aes(x = groupe_age, y = proportion)) +
 ```{r maladies}
 data_maladie <- data %>%
   mutate(type_maladie = as_factor(s4aq3b_1)) %>%
-  filter(!is.na(type_maladie))
+  filter(!is.na(type_maladie), !is.na(wt_wave4))
 
 top_maladies <- data_maladie %>%
-  count(type_maladie, sort = TRUE) %>%
+  group_by(type_maladie) %>%
+  summarise(
+    n_pondere = sum(wt_wave4),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(n_pondere)) %>%
   slice_head(n = 10) %>%
   mutate(
-    proportion = n / sum(n),
+    proportion = n_pondere / sum(n_pondere),
     proportion_pct = percent(proportion, accuracy = 0.1)
   )
 
 # Tableau des 10 principales maladies
 top_maladies %>%
-  select(type_maladie, n, proportion_pct) %>%
+  select(type_maladie, n_pondere, proportion_pct) %>%
   kable(
-    col.names = c("Type de maladie", "Nombre de cas", "Proportion"),
-    caption = "Top 10 des maladies déclarées"
+    col.names = c("Type de maladie", "Nombre de cas pondéré", "Proportion"),
+    caption = "Top 10 des maladies déclarées (pondéré)"
   )
 
 ```
@@ -213,21 +255,21 @@ top_maladies %>%
 
 ```{r plot-maladies}
 ggplot(top_maladies,
-       aes(x = n, y = reorder(type_maladie, n))) +
+       aes(x = n_pondere, y = reorder(type_maladie, n_pondere))) +
   geom_col(fill = "steelblue", alpha = 0.8) +
-  geom_text(aes(label = n), hjust = -0.2, size = 3.5) +
+  geom_text(aes(label = round(n_pondere, 0)), hjust = -0.2, size = 3.5) +
   labs(
-    x = "Nombre de cas",
+    x = "Nombre de cas pondéré",
     y = "",
     title = "Top 10 des maladies déclarées",
     caption = "Source: Enquête Harvest W4"
   ) +
   theme_minimal() +
   theme(plot.title = element_text(face = "bold", hjust = 0.5)) +
-  xlim(0, max(top_maladies$n) * 1.1)
+  xlim(0, max(top_maladies$n_pondere) * 1.1)
 ```
 
-Ce graphique nous montre les 10 maladies les plus déclarées par les individus. La malaria est la maladie la plus déclarée avec un effectif de 2039 individus.
+Ce graphique nous montre les 10 maladies les plus déclarées dans la population. La malaria est la maladie la plus déclarée avec un effectif de 11374772 individus.
 
 # Analyse des dépenses de santé
 
@@ -235,36 +277,39 @@ Ce graphique nous montre les 10 maladies les plus déclarées par les individus.
 # Vérification de l'existence de la variable
 if("s4aq9" %in% names(data)) {
   
-  p2 <- ggplot(data, aes(x = s4aq9)) +
+  p2 <- ggplot(data %>% filter(!is.na(s4aq9), !is.na(wt_wave4)),
+               aes(x = s4aq9, weight = wt_wave4)) +
     geom_histogram(binwidth = 5000, fill = "darkblue", color = "black", alpha = 0.7) +
     scale_y_log10() +
     labs(
-      title = "Distribution des dépenses de santé (échelle log sur effectifs)",
+      title = "Distribution des dépenses de santé (échelle log sur effectifs pondérés)",
       x = "Dépenses de santé (FCFA)",
-      y = "Effectif (échelle log)"
+      y = "Effectif pondéré (échelle log)"
     ) +
     theme_minimal()
 
   p2
-  # Statistiques descriptives
+  
+  # Statistiques descriptives pondérées
   data %>%
-    filter(!is.na(s4aq9)) %>%
+    filter(!is.na(s4aq9), !is.na(wt_wave4)) %>%
     summarise(
       effectif = n(),
-      moyenne = mean(s4aq9),
-      ecart_type = sd(s4aq9),
-      mediane = median(s4aq9),
-      q1 = quantile(s4aq9, 0.25),
-      q3 = quantile(s4aq9, 0.75),
+      effectif_pondere = sum(wt_wave4),
+      moyenne = weighted.mean(s4aq9, wt_wave4),
+      mediane = Hmisc::wtd.quantile(s4aq9, weights = wt_wave4, probs = 0.5),
+      q1 = Hmisc::wtd.quantile(s4aq9, weights = wt_wave4, probs = 0.25),
+      q3 = Hmisc::wtd.quantile(s4aq9, weights = wt_wave4, probs = 0.75),
       min = min(s4aq9),
       max = max(s4aq9)
     ) %>%
     mutate(across(where(is.numeric), ~round(., 0))) %>%
-    kable(caption = "Statistiques descriptives des dépenses de santé")
+    kable(caption = "Statistiques descriptives pondérées des dépenses de santé")
   
 } else {
   cat(" La variable s4aq9 (dépenses de santé) n'est pas disponible dans les données.")
 }
+
 ```
 
 L'histogramme nous montre que malgré la log-transformation, la part des dépenses inférieures à 20000 est toujours importante par rapport à celle des dépenses supérieures à 20000.
@@ -274,27 +319,23 @@ L'histogramme nous montre que malgré la log-transformation, la part des dépens
 ```{r deciles-depenses}
 if("s4aq9" %in% names(data)) {
   stats_deciles <- data %>%
-    filter(!is.na(s4aq9)) %>%
+    filter(!is.na(s4aq9), !is.na(wt_wave4)) %>%
     mutate(
-      decile = ntile(s4aq9, 10)
+      decile = Hmisc::cut2(s4aq9, g = 10)
     ) %>%
     group_by(decile) %>%
     summarise(
       n = n(),
-      min = min(s4aq9),
-      q1 = quantile(s4aq9, 0.25),
-      mediane = median(s4aq9),
-      moyenne = mean(s4aq9),
-      q3 = quantile(s4aq9, 0.75),
-      max = max(s4aq9),
-      sd = sd(s4aq9),
+      poids_total = sum(wt_wave4),
+      moyenne = weighted.mean(s4aq9, wt_wave4),
+      mediane = Hmisc::wtd.quantile(s4aq9, weights = wt_wave4, probs = 0.5),
+      q1 = Hmisc::wtd.quantile(s4aq9, weights = wt_wave4, probs = 0.25),
+      q3 = Hmisc::wtd.quantile(s4aq9, weights = wt_wave4, probs = 0.75),
+      sd = sqrt(Hmisc::wtd.var(s4aq9, weights = wt_wave4)),
       .groups = "drop"
     ) %>%
     mutate(
-      intervalle = paste0(format(min, big.mark = " ", scientific = FALSE), 
-                          " - ", 
-                          format(max, big.mark = " ", scientific = FALSE)),
-      decile_label = paste0("D", decile, " (", intervalle, ")")
+      decile_label = as.character(decile)
     )
   
   # Affichage du tableau
@@ -303,16 +344,16 @@ if("s4aq9" %in% names(data)) {
     mutate(across(where(is.numeric), ~round(., 0))) %>%
     kable(
       col.names = c("Décile", "n", "Moyenne", "Médiane", "Q1", "Q3", "Écart-type"),
-      caption = "Statistiques des dépenses de santé par décile"
+      caption = "Statistiques pondérées des dépenses de santé par décile"
     )
   
   # Visualisation
   stats_deciles %>%
-    ggplot(aes(x = reorder(decile_label, decile), y = moyenne)) +
+    ggplot(aes(x = decile_label, y = moyenne)) +
     geom_col(fill = "darkorange", alpha = 0.7) +
     geom_errorbar(aes(ymin = moyenne - sd, ymax = moyenne + sd), width = 0.2) +
     labs(
-      title = "Dépenses moyennes de santé par décile (± écart-type)",
+      title = "Dépenses moyennes de santé par décile (± écart-type, pondéré)",
       x = "Décile",
       y = "Dépenses moyennes (FCFA)"
     ) +
