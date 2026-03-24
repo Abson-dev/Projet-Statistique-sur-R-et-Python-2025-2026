@@ -53,33 +53,36 @@ Ce projet s'inscrit dans le cadre du cours de **Projet Statistique sous R et Pyt
 ```
 Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP3/
 │
-├── main.R                                   # Point d'entrée — orchestre tous les scripts
+├── main.R                                      # Point d'entrée — orchestre tous les scripts
+│
+├── Groupe7_YAMAHA_Herman_DIALLO_Bourama.Rproj  # Le fichier Rproj
 │
 ├── scripts/
-│   ├── 01_morbidite_sexe_age.R              # Tâche 13 : taux morbidité pondéré
-│   ├── 02_types_maladies.R                  # Tâche 14 : top 10 maladies (pondéré)
-│   ├── 03_recours_soins.R                   # Tâche 15 : recours prestataires (pondéré)
-│   ├── 04_depenses_sante.R                  # Tâche 16 : dépenses + médiane pondérée
-│   ├── 05_test_independance.R               # Tâche 17 : chi-deux Rao-Scott + Excel
-│   └── 06_violin_rural_urbain.R             # Tâche 18 : violin plots + Excel
+│   ├── 01_morbidite_sexe_age.R                 # Tâche 13 : taux morbidité pondéré
+│   ├── 02_types_maladies.R                     # Tâche 14 : top 10 maladies (pondéré)
+│   ├── 03_recours_soins.R                      # Tâche 15 : recours prestataires (pondéré)
+│   ├── 04_depenses_sante.R                     # Tâche 16 : dépenses + médiane pondérée
+│   ├── 05_test_independance.R                  # Tâche 17 : chi-deux Rao-Scott + Excel
+│   └── 06_violin_rural_urbain.R                # Tâche 18 : violin plots + Excel
 │
-├── data/                                    # Ce dossier se crée automatiquement lors de l'exécution du main.R
-│   ├── raw/                                 # Fichiers .dta bruts téléchargés par main.R lors de l'exécution
-│   └── processed/                           # Objets .rds intermédiaires
+├── data/                                       # Ce dossier se crée automatiquement lors de l'exécution du main.R
+│   ├── raw/                                    # Fichiers .dta bruts téléchargés par main.R lors de l'exécution
+│   └── processed/                              # Objets .rds intermédiaires
 │
 ├── rapport/
-│   └── rapport d'analyse.Rmd                    # Rapport Word (officedown)
+│   ├── rapport d'analyse.docs                  # Rapport Word 
+│   └── rapport d'analyse.Rmd                   # Rapport rmd (officedown)
 │
 ├── outputs/
-│   ├── figures/                             # Graphiques PNG (11 figures)
-│   └── tables/                             # CSV + fichiers Excel
+│   ├── figures/                                # Graphiques PNG (11 figures)
+│   └── tables/                                 # CSV + fichiers Excel
 │       ├── 02_top10_maladies.csv
 │       ├── 03_recours_prestataires.csv
 │       ├── 04_depenses_decile.csv
 │       ├── 05_contingence_recours_quintile.csv
 │       ├── 06_wilcoxon_rural_urbain.csv
-│       ├── tableau_recours_quintile.xlsx    # Tableau pondéré tâche 17
-│       └── tableau_depenses_milieu.xlsx     # Tableau pondéré tâche 18
+│       ├── tableau_recours_quintile.xlsx       # Tableau - tâche 17
+│       └── tableau_depenses_milieu.xlsx        # Tableau - tâche 18
 │
 └── README.md
 ```
