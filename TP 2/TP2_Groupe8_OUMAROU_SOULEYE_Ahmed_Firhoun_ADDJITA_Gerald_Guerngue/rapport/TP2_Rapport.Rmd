@@ -1,0 +1,155 @@
+---
+title: "Analyse 2 - Éducation et alphabétisation des membres des ménages"
+author: "Ahmed Firhoun OUMAROU SOULEYE & Gérald Guerngué ADDJITA"
+date: "2026-03-24"
+output:
+  word_document: 
+    reference_docx: "style/template.docx"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = F,#empeche l'affichage des codes
+  message = FALSE,  # supprime les messages
+  warning = FALSE  # supprime les warnings
+  )
+options(OutDec = ",")
+```
+
+
+# 0. Préliminaires
+
+##  0.1. Traitement des valeurs manquantes
+- Les ménages avec des pondérations manquantes ont été supprimés
+- Le reste des `NA` n'étaient pas des valeurs manquantes mais des sauts :
+* Certaines valeurs manquantes de `s2aq6` (Le membre a-t-il déjà été scolarisé ?), `s2aq9` (Plus haut niveau d'éducation) et `s2aq13a` (Le membre est-il scolarisé sur l'année 2018-2019 ?) sont issues de `s1q4` (âge), car on ne posait la question qu'aux membres du ménage avec moins de 3 ans.
+* D'autres valeurs manquantes propres à `s2aq9` & `s2q13a` correspondent aux lignes ayant la modalité "Non" pour la variable `s2aq6`, c'est-à-dire que les individus n'ayant jamais été scolarisé étaient les sources des valeurs manquantes.
+Pour plus d'informations voir le fichier `R/01_nettoyage.R`.
+
+## 0.2. Chargement des données 
+
+```{r echo=T}
+data_educ <- read_dta("../data/processed/processed_w4.dta") %>%
+  mutate(across(-c(hhid, indiv,wt_wave4,s1q4), ~ as_factor(.x)))
+```
+## 0.3. Inspection
+Les variables sont au bon type :
+```{r}
+glimpse(data_educ)
+```
+
+## 0.4. Plan de sondage
+```{r}
+# ── Plan de sondage ───────────────────────────────────────────
+plan_sondage <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~wt,
+  data    = data_educ,
+  nest    = TRUE
+)
+
+# Sous-plan pour les adultes 18+ (utilisé en Q9, Q10, Q12)
+plan_adultes <- subset(plan_sondage,
+                        !is.na(age) & age >= 18 &
+                        !is.na(niveau_educ) & !is.na(sexe))
+
+# Sous-plan pour les enfants 6-17 ans (utilisé en Q11)
+plan_enfants <- subset(plan_sondage,
+                        !is.na(age) & age >= 6 & age <= 17 &
+                        !is.na(s2aq13a) & !is.na(zone_ru))
+```
+
+# 7. Charger `sect2b_harvestw4` et `sect1_harvestw4.` Joindre les deux fichiers sur `hhid + indiv_id`. Inspecter les valeurs manquantes du niveau d'éducation.
+
+Les données ont déjà été jointes dans `R/01_nettoyage.R`, nous allons juste inspecter les valeurs manquantes :
+```{r fig.height=12}
+visdat::vis_miss(
+  data_educ %>% 
+    setNames(c("ID Ménage",
+               "ID Membre du ménage",
+               "Etat",
+               "Zone de dénombrement (Enumeration Area)",
+               "Milieu de résidence",
+               "Strate",
+               "Pondération (Vague 4)",
+               "Sexe du membre",
+               "Age du membre",
+               "Le membre a-t-il déjà été scolarisé ?",
+               "Plus haut niveau d'éducation",
+               "Le membre est-il scolarisé sur l'année 2018-2019"))
+) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 14,face = "bold"),  # labels colonnes
+    axis.text.y = element_text(size = 12),                          # labels axe Y
+    axis.title  = element_text(size = 16),                          # titre des axes
+    plot.title  = element_text(size = 16, face = "bold"),           # titre principal
+    legend.text = element_text(size = 16)                           # légende
+  ) +
+  labs(title = "Valeurs manquantes pour les Section 1 & 2  - Période de soudure (Harvest) - Vague 4",
+       caption = "Source : World Bank LSMS-ISA | Section 1 & 2(Vague 4)")
+```
+
+
+Aucunes données manquantes dans les bases.
+# 8. Construire une variable ordonnée niveau_educ à 5 catégories (Aucun, Primaire, Junior Secondary, Senior Secondary, Tertiaire). Calculer les fréquences et proportions, visualiser avec un barplot horizontal coloré par catégorie.
+
+## 8.a. Recodage de `s2aq9`
+```{r echo=T}
+data_educ <- data_educ %>%
+  mutate(
+    niveau_educ = case_when(
+      # Aucune instruction formelle
+      s2aq9 == 0                       ~ "Aucun",
+      s2aq9 %in% c(1, 2, 3)            ~ "Aucun",
+      s2aq9 %in% c(51, 52, 61)         ~ "Aucun",
+      # Primaire (classes 1 à 6)
+      s2aq9 %in% c(11,12,13,14,15,16)  ~ "Primaire",
+      # Junior Secondary (JSS 1-3)
+      s2aq9 %in% c(21, 22, 23)         ~ "Junior Secondary",
+      # Senior Secondary (SSS 1-3 + Lower/Upper 6)
+      s2aq9 %in% c(24,25,26,27,28)     ~ "Senior Secondary",
+      s2aq9 == 321                      ~ "Senior Secondary",
+      # Tertiaire (tout niveau post-secondaire)
+      s2aq9 %in% c(31,33,34,35)        ~ "Tertiaire",
+      s2aq9 %in% c(41, 43)             ~ "Tertiaire",
+      s2aq9 %in% c(322, 411, 412)      ~ "Tertiaire",
+      s2aq9 %in% c(421,422,423,424)    ~ "Tertiaire",
+      TRUE                              ~ NA_character_
+    ),
+    niveau_educ = factor(niveau_educ,
+      levels  = c("Aucun", "Primaire", "Junior Secondary",
+                  "Senior Secondary", "Tertiaire"),
+      ordered = TRUE),
+    educ_num = as.numeric(niveau_educ)
+  )
+```
+
+## 8.b. 
+```{r}
+# Fréquences pondérées (estimations représentatives)
+freq_educ_svy <- svymean(~niveau_educ,
+                          design = subset(plan_sondage,
+                                          !is.na(niveau_educ)),
+                          na.rm  = TRUE)
+
+freq_educ <- as.data.frame(freq_educ_svy) %>%
+  tibble::rownames_to_column("niveau_educ") %>%
+  rename(prop = mean, se = SE) %>%
+  mutate(
+    niveau_educ = factor(
+      gsub("niveau_educ", "", niveau_educ),
+      levels  = c("Aucun", "Primaire", "Junior Secondary",
+                  "Senior Secondary", "Tertiaire"),
+      ordered = TRUE),
+    pct_label = paste0(round(prop * 100, 1), "%")
+  )
+
+# Effectifs non pondérés pour information
+n_total_obs <- sum(!is.na(data_educ$niveau_educ))
+cat("► N observations (non pondéré) :", n_total_obs, "\n")
+cat("\n► Distribution pondérée du niveau d'éducation :\n")
+print(select(freq_educ, niveau_educ, prop))
+```
+
+
