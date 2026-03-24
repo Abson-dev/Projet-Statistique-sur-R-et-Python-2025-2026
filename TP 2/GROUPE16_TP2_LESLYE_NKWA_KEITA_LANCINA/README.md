@@ -60,10 +60,10 @@ GROUPE16_TP2_LESLYE_NKWA_KEITA_LANCINA/
 │   ├── processed
 │   ├── raw
 ├── docs/
-│   ├── LSMS_Integrated_Panel_Survey_Report-14-27.pdf
+│   ├── LSMS_Integrated_Panel_Survey_Report-14-27.pdf  # Rapport officiel page 14 à 21
 │   ├── rapport.docx
 │   ├── rapport.Rmd
-│   ├── reference.docx
+│   ├── reference.docx     # Styles prédéfinis
 ├── outputs/
 │   ├── figures
 │   ├── tables
