@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TP1 · Profil Démographique · Nigeria GHS W4 · Pondéré</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0b0f1a;--surf:#131929;--card:#1a2235;--border:#243050;
+  --blue:#4f8ef7;--red:#f76b6b;--green:#4ec9a0;--amber:#f5c518;--purple:#a78bfa;
+  --text:#e2e8f0;--muted:#8892b0;--ensae:#1B6CA8
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HERO */
+.hero{
+  background:linear-gradient(135deg,#0b0f1a 0%,#0d1630 60%,#0f1d3a);
+  border-bottom:1px solid var(--border);padding:2rem 3rem;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:2rem;
+  position:relative;overflow:hidden
+}
+.hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 8% 50%,rgba(79,142,247,.13),transparent 55%),
+             radial-gradient(ellipse at 92% 30%,rgba(78,201,160,.09),transparent 55%)}
+.badge{display:inline-flex;gap:.4rem;margin-bottom:.5rem;flex-wrap:wrap}
+.chip{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:.2rem .65rem;border-radius:20px;background:var(--blue);color:#fff}
+.chip.g{background:var(--green)}.chip.r{background:var(--red)}.chip.a{background:var(--amber);color:#000}
+h1{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;line-height:1.05;
+  background:linear-gradient(135deg,#e2e8f0,#4f8ef7 60%,#4ec9a0);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative}
+.hero-sub{font-size:.76rem;color:var(--muted);margin-top:.3rem;position:relative}
+.note{background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.25);
+  color:var(--amber);font-size:.7rem;padding:.35rem .8rem;border-radius:8px;margin-top:.4rem;position:relative}
+.note-w{background:rgba(78,201,160,.08);border:1px solid rgba(78,201,160,.25);
+  color:var(--green);font-size:.7rem;padding:.35rem .8rem;border-radius:8px;margin-top:.3rem;position:relative}
+
+/* KPIs hero */
+.hkpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;min-width:320px}
+.hkpi{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;
+  padding:.85rem 1rem;text-align:center}
+.hkpi .v{font-family:'Playfair Display',serif;font-size:1.55rem;font-weight:700;display:block}
+.hkpi .l{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:.1rem}
+
+/* LAYOUT */
+.wrap{padding:1.4rem 3rem;max-width:1600px}
+.stitle{font-family:'Playfair Display',serif;font-size:.88rem;color:var(--muted);
+  letter-spacing:.08em;text-transform:uppercase;margin:1.8rem 0 .9rem;
+  display:flex;align-items:center;gap:.8rem}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem;margin-bottom:1.2rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.4rem}
+.g6{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.2rem}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.3rem;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--blue),var(--green))}
+.card.red::before{background:linear-gradient(90deg,var(--red),var(--purple))}
+.card.amber::before{background:linear-gradient(90deg,var(--amber),var(--green))}
+.ctitle{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:.9rem;display:flex;align-items:center;gap:.4rem}
+.cbadge{font-size:.58rem;font-weight:600;padding:.18rem .5rem;border-radius:10px;
+  background:rgba(78,201,160,.12);border:1px solid rgba(78,201,160,.3);color:var(--green)}
+
+/* KPI CARDS */
+.kcard{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:1rem 1.2rem;display:flex;align-items:center;gap:.8rem}
+.ki{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:.95rem;flex-shrink:0}
+.kv{font-family:'Playfair Display',serif;font-size:1.7rem;line-height:1}
+.kl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:.1rem}
+
+/* TABLE */
+.srow{display:flex;justify-content:space-between;align-items:center;
+  padding:.42rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.83rem}
+.srow:last-child{border:none}.srow .sv{font-weight:600;color:var(--blue)}
+.srow.g .sv{color:var(--green)}.srow.r .sv{color:var(--red)}
+
+/* BADGES */
+.tbadge{display:inline-flex;font-size:.67rem;font-weight:600;padding:.22rem .6rem;
+  border-radius:20px;margin-bottom:.6rem}
+.bb{background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);color:var(--blue)}
+.bg{background:rgba(78,201,160,.12);border:1px solid rgba(78,201,160,.3);color:var(--green)}
+.br{background:rgba(247,107,107,.12);border:1px solid rgba(247,107,107,.3);color:var(--red)}
+.ba{background:rgba(245,197,24,.12);border:1px solid rgba(245,197,24,.3);color:var(--amber)}
+
+canvas{max-height:320px}
+#pyramidWrap{height:440px}
+
+footer{text-align:center;padding:1.2rem;font-size:.7rem;color:var(--muted);
+  border-top:1px solid var(--border);margin-top:2rem}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div style="position:relative;flex:1">
+    <div class="badge">
+      <span class="chip">TP 1</span>
+      <span class="chip g">ENSAE ISE 1 · 2025-2026</span>
+      <span class="chip a">Analyses pondérées wt_wave4</span>
+    </div>
+    <h1>Profil Démographique<br>des Ménages Nigérians</h1>
+    <div class="hero-sub">Cheikh M. M. Ndiaye &amp; Awa Ba · GHS Panel W4 (2018) · Encadrant : Aboubacar HEMA</div>
+    <div class="note">⚠ Filtre : s1q4a ≠ 2 — 3 780 membres absents exclus · N retenu = 26 557</div>
+    <div class="note-w">⚖ Pondération wt_wave4 (secta_harvestw4) appliquée à toutes les statistiques · Population estimée : 149,0 M</div>
+  </div>
+  <div class="hkpis">
+    <div class="hkpi"><span class="v" style="color:var(--blue)">26 557</span><span class="l">Individus (brut)</span></div>
+    <div class="hkpi"><span class="v" style="color:var(--green)">4 980</span><span class="l">Ménages</span></div>
+    <div class="hkpi"><span class="v" style="color:var(--amber)">149,0 M</span><span class="l">Pop. estimée pond.</span></div>
+    <div class="hkpi"><span class="v" style="color:var(--red)">17 ans</span><span class="l">Âge méd. pondéré</span></div>
+  </div>
+</div>
+
+<!-- WRAP -->
+<div class="wrap">
+
+  <!-- KPIs STATS -->
+  <div class="stitle">Statistiques clés pondérées · wt_wave4</div>
+  <div class="g4">
+    <div class="kcard">
+      <div class="ki" style="background:rgba(79,142,247,.15)">📊</div>
+      <div><div class="kv" style="color:var(--blue)">23,2 ans</div><div class="kl">Âge moyen pondéré</div></div>
+    </div>
+    <div class="kcard">
+      <div class="ki" style="background:rgba(247,107,107,.15)">📐</div>
+      <div><div class="kv" style="color:var(--red)">83,3%</div><div class="kl">CV pondéré de l'âge</div></div>
+    </div>
+    <div class="kcard">
+      <div class="ki" style="background:rgba(78,201,160,.15)">🏠</div>
+      <div><div class="kv" style="color:var(--green)">r = 0,573</div><div class="kl">Effet Wilcoxon (fort)</div></div>
+    </div>
+    <div class="kcard">
+      <div class="ki" style="background:rgba(167,139,250,.15)">📏</div>
+      <div><div class="kv" style="color:var(--purple)">W = 0,900</div><div class="kl">Shapiro-Wilk (non-normale)</div></div>
+    </div>
+  </div>
+
+  <!-- PYRAMIDE -->
+  <div class="stitle">Pyramide des âges pondérée · wt_wave4 · W4 (2018)</div>
+  <div class="card">
+    <div class="ctitle">
+      Groupes quinquennaux · Hommes ← · → Femmes
+      <span class="cbadge">Effectifs pondérés (millions) · wt_wave4</span>
+    </div>
+    <div id="pyramidWrap"><canvas id="pyrChart"></canvas></div>
+  </div>
+
+  <!-- COMPOSITION & STRUCTURE -->
+  <div class="stitle">Composition &amp; Structure</div>
+  <div class="g3">
+    <div class="card red">
+      <div class="ctitle">Répartition par sexe (pondérée)</div>
+      <canvas id="sexChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="ctitle">Lien de parenté · Proportions pondérées · IC 95%</div>
+      <div class="tbadge bg">Linéarisation de Taylor · wt_wave4</div>
+      <canvas id="relChart"></canvas>
+    </div>
+    <div class="card amber">
+      <div class="ctitle">Statistiques descriptives pondérées</div>
+      <div id="statsBox">
+        <div class="srow"><span>Âge moyen pond.</span><span class="sv">23,2 ans</span></div>
+        <div class="srow g"><span>Âge médian pond.</span><span class="sv">17 ans</span></div>
+        <div class="srow"><span>Écart-type pond.</span><span class="sv">19,3 ans</span></div>
+        <div class="srow"><span>CV pondéré</span><span class="sv">83,3%</span></div>
+        <div class="srow r"><span>Asymétrie Pearson</span><span class="sv">+0,956 (droite)</span></div>
+        <div class="srow"><span>Q1 — Q3 pondéré</span><span class="sv">5 — 37 ans</span></div>
+        <div class="srow g"><span>Pop. H estimée</span><span class="sv">73,8 M</span></div>
+        <div class="srow g"><span>Pop. F estimée</span><span class="sv">75,2 M</span></div>
+        <div class="srow"><span>Rapport masculinité</span><span class="sv">98,1 H/100 F</span></div>
+        <div class="srow r"><span>Shapiro-Wilk</span><span class="sv">W=0,900 · p&lt;0,001</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENAGES -->
+  <div class="stitle">Taille des ménages · Comparaison Rural / Urbain · Pondérée</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Moyennes pondérées de la taille de ménage par milieu</div>
+      <div class="tbadge bg">Wilcoxon W=3 095 898 · p&lt;0,001 · r=0,573 (fort)</div>
+      <canvas id="hhChart"></canvas>
+    </div>
+    <div class="card red">
+      <div class="ctitle">Distribution pondérée par zone géopolitique</div>
+      <div class="tbadge ba">Proportions pondérées wt_wave4</div>
+      <canvas id="zoneChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ZONES STATS -->
+  <div class="stitle">Statistiques par zone géopolitique · Pondérées</div>
+  <div class="g3">
+    <div class="card">
+      <div class="ctitle">North West — Zone la plus représentée</div>
+      <div class="srow"><span>Part pondérée</span><span class="sv">30,4%</span></div>
+      <div class="srow"><span>N individus</span><span class="sv">6 106</span></div>
+      <div class="srow g"><span>Milieu dominant</span><span class="sv">Rural</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">North East</div>
+      <div class="srow"><span>Part pondérée</span><span class="sv">16,0%</span></div>
+      <div class="srow"><span>N individus</span><span class="sv">5 725</span></div>
+      <div class="srow g"><span>Milieu dominant</span><span class="sv">Rural</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">South South</div>
+      <div class="srow"><span>Part pondérée</span><span class="sv">15,8%</span></div>
+      <div class="srow"><span>N individus</span><span class="sv">3 823</span></div>
+      <div class="srow"><span>Milieu dominant</span><span class="sv">Mixte</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">North Central</div>
+      <div class="srow"><span>Part pondérée</span><span class="sv">15,7%</span></div>
+      <div class="srow"><span>N individus</span><span class="sv">4 414</span></div>
+      <div class="srow g"><span>Milieu dominant</span><span class="sv">Rural</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">South East</div>
+      <div class="srow"><span>Part pondérée</span><span class="sv">12,2%</span></div>
+      <div class="srow"><span>N individus</span><span class="sv">3 422</span></div>
+      <div class="srow"><span>Milieu dominant</span><span class="sv">Mixte</span></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">South West — Zone la moins représentée</div>
+      <div class="srow"><span>Part pondérée</span><span class="sv">10,1%</span></div>
+      <div class="srow"><span>N individus</span><span class="sv">3 067</span></div>
+      <div class="srow r"><span>Milieu dominant</span><span class="sv">Urbain</span></div>
+    </div>
+  </div>
+
+  <!-- LIEN DE PARENTE DETAIL -->
+  <div class="stitle">Lien de parenté pondéré · Top 8 · IC 95% (linéarisation Taylor)</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Proportions pondérées</div>
+      <div class="srow"><span>Enfant propre</span><span class="sv">56,5%</span></div>
+      <div class="srow"><span>Chef de ménage</span><span class="sv">18,2%</span></div>
+      <div class="srow"><span>Conjoint(e)</span><span class="sv">16,2%</span></div>
+      <div class="srow"><span>Petit-enfant</span><span class="sv">3,4%</span></div>
+      <div class="srow"><span>Frère/Sœur</span><span class="sv">1,9%</span></div>
+      <div class="srow"><span>Parent</span><span class="sv">1,1%</span></div>
+      <div class="srow"><span>Neveu/Nièce</span><span class="sv">0,9%</span></div>
+      <div class="srow"><span>Beau-fils/fille</span><span class="sv">0,8%</span></div>
+    </div>
+    <div class="card red">
+      <div class="ctitle">Méthode statistique</div>
+      <div class="srow"><span>Type d'IC</span><span class="sv">Linéarisation Taylor</span></div>
+      <div class="srow"><span>Niveau de confiance</span><span class="sv">95%</span></div>
+      <div class="srow"><span>Poids utilisés</span><span class="sv">wt_wave4</span></div>
+      <div class="srow"><span>Design survey</span><span class="sv">Grappes + strates</span></div>
+      <div class="srow g"><span>Ménages dominants</span><span class="sv">Nucléaires</span></div>
+      <div class="srow"><span>Familles élargies</span><span class="sv">~5% (petits-enf., frères)</span></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  GHS Panel W4 (2018) · ENSAE ISE 1 · 2025-2026 · Cheikh M. M. Ndiaye &amp; Awa Ba<br>
+  Encadrant : Aboubacar HEMA · sect1_harvestw4 + secta_harvestw4 · Filtre : s1q4a ≠ 2<br>
+  <strong>Pondération wt_wave4 appliquée</strong> · Tests : Shapiro-Wilk, Wilcoxon survey, linéarisation de Taylor
+</footer>
+
+<script>
+Chart.defaults.color = '#8892b0';
+Chart.defaults.borderColor = 'rgba(36,48,80,.6)';
+const fmt = n => {
+  if(Math.abs(n) >= 1e6) return (n/1e6).toFixed(1)+'M';
+  return n.toLocaleString('fr-FR');
+};
+
+// ── PYRAMIDE PONDÉRÉE ─────────────────────────────────────────────────────────
+const PYR = [
+  {g:"0–4",   m:9708128,   f:9735945},
+  {g:"5–9",   m:12895233,  f:11973588},
+  {g:"10–14", m:11000429,  f:10907328},
+  {g:"15–19", m:8939980,   f:7256343},
+  {g:"20–24", m:5001951,   f:4717100},
+  {g:"25–29", m:4072909,   f:5237823},
+  {g:"30–34", m:3542893,   f:4826487},
+  {g:"35–39", m:3230219,   f:4961538},
+  {g:"40–44", m:3323862,   f:3839512},
+  {g:"45–49", m:2843269,   f:2923003},
+  {g:"50–54", m:2319564,   f:2218260},
+  {g:"55–59", m:2142238,   f:1669323},
+  {g:"60–64", m:1545373,   f:1663125},
+  {g:"65–69", m:1155339,   f:1201370},
+  {g:"70–74", m:843063,    f:896520},
+  {g:"75–79", m:625375,    f:488172},
+  {g:"80–84", m:289900,    f:319319},
+  {g:"85–89", m:213915,    f:242344},
+  {g:"90–94", m:39765,     f:96914},
+  {g:"95–99", m:34503,     f:65436}
+];
+
+(()=>{
+  const ctx = document.getElementById('pyrChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: PYR.map(d => d.g),
+      datasets: [
+        {label:'Hommes',data:PYR.map(d=>-d.m),backgroundColor:'rgba(79,142,247,.75)',
+         borderRadius:2,borderSkipped:false},
+        {label:'Femmes',data:PYR.map(d=>d.f),backgroundColor:'rgba(247,107,107,.75)',
+         borderRadius:2,borderSkipped:false}
+      ]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{color:'#e2e8f0',font:{size:12},padding:16}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmt(Math.abs(ctx.raw))}`}}
+      },
+      scales:{
+        x:{
+          ticks:{callback:v=>fmt(Math.abs(v)),color:'#8892b0'},
+          grid:{color:'rgba(36,48,80,.5)'}
+        },
+        y:{ticks:{color:'#e2e8f0',font:{size:9}},grid:{display:false}}
+      }
+    }
+  });
+})();
+
+// ── SEXE PONDÉRÉ ─────────────────────────────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('sexChart').getContext('2d');
+  // Effectifs pondérés
+  const hPond = 73800000, fPond = 75200000;
+  new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Hommes (73,8M)','Femmes (75,2M)'],
+      datasets:[{
+        data:[hPond, fPond],
+        backgroundColor:['rgba(79,142,247,.82)','rgba(247,107,107,.82)'],
+        borderColor:'#1a2235',borderWidth:3,hoverOffset:8
+      }]
+    },
+    options:{
+      cutout:'65%',responsive:true,maintainAspectRatio:true,
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#e2e8f0',padding:14}},
+        tooltip:{callbacks:{
+          label:ctx=>{
+            const pct = (ctx.raw/(hPond+fPond)*100).toFixed(1);
+            return `${ctx.label}: ${pct}% (pondéré)`;
+          }
+        }}
+      }
+    }
+  });
+})();
+
+// ── LIEN PARENTÉ PONDÉRÉ ──────────────────────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('relChart').getContext('2d');
+  const REL = [
+    {name:"Enfant propre",   pct:56.5},
+    {name:"Chef de ménage",  pct:18.2},
+    {name:"Conjoint(e)",     pct:16.2},
+    {name:"Petit-enfant",    pct:3.4},
+    {name:"Frère/Sœur",     pct:1.9},
+    {name:"Parent",          pct:1.1},
+    {name:"Neveu/Nièce",    pct:0.9},
+    {name:"Beau-fils/fille", pct:0.8}
+  ].sort((a,b)=>a.pct-b.pct);
+
+  const colors = REL.map((d,i) => {
+    const t = i / (REL.length - 1);
+    const r = Math.round(174 + (26 - 174) * t);
+    const g = Math.round(214 + (82 - 214) * t);
+    const b = Math.round(241 + (118 - 241) * t);
+    return `rgba(${r},${g},${b},0.85)`;
+  });
+
+  new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:REL.map(d=>d.name),
+      datasets:[{
+        data:REL.map(d=>d.pct),
+        backgroundColor:colors,borderRadius:4,borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw.toFixed(1)}% (pondéré wt_wave4)`}}
+      },
+      scales:{
+        x:{ticks:{callback:v=>v+'%',color:'#8892b0'},grid:{color:'rgba(36,48,80,.5)'}},
+        y:{ticks:{color:'#e2e8f0',font:{size:9}},grid:{display:false}}
+      }
+    }
+  });
+})();
+
+// ── TAILLE MÉNAGE PONDÉRÉE ────────────────────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('hhChart').getContext('2d');
+  // Moyennes pondérées Rural=5.9, Urbain=4.8
+  new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:['Rural (pondéré)','Urbain (pondéré)'],
+      datasets:[{
+        label:'Moyenne pondérée (wt_wave4)',
+        data:[5.9, 4.8],
+        backgroundColor:['rgba(78,201,160,.78)','rgba(230,126,34,.78)'],
+        borderRadius:6,borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:ctx=>`Moy. pond. = ${ctx.raw} membres`
+        }},
+        annotation:{
+          annotations:{
+            line1:{type:'line',yMin:5.9,yMax:5.9,borderColor:'rgba(78,201,160,.4)',
+                   borderWidth:1,borderDash:[4,4]},
+            line2:{type:'line',yMin:4.8,yMax:4.8,borderColor:'rgba(230,126,34,.4)',
+                   borderWidth:1,borderDash:[4,4]}
+          }
+        }
+      },
+      scales:{
+        y:{
+          beginAtZero:true,max:9,
+          title:{display:true,text:'Membres présents',color:'#8892b0',font:{size:10}},
+          ticks:{color:'#8892b0'},grid:{color:'rgba(36,48,80,.5)'}
+        },
+        x:{ticks:{color:'#e2e8f0'},grid:{display:false}}
+      }
+    }
+  });
+})();
+
+// ── ZONES PONDÉRÉES ───────────────────────────────────────────────────────────
+(()=>{
+  const ctx = document.getElementById('zoneChart').getContext('2d');
+  const ZONES = {
+    "North West":30.4,"North East":16.0,"South South":15.8,
+    "North Central":15.7,"South East":12.2,"South West":10.1
+  };
+  const labels = Object.keys(ZONES);
+  const data   = Object.values(ZONES);
+  const palette = [
+    'rgba(79,142,247,.8)','rgba(78,201,160,.8)','rgba(247,107,107,.8)',
+    'rgba(167,139,250,.8)','rgba(245,197,24,.8)','rgba(230,126,34,.8)'
+  ];
+
+  new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels,
+      datasets:[{data,backgroundColor:palette,borderColor:'#1a2235',borderWidth:2,hoverOffset:6}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#e2e8f0',font:{size:8.5},padding:10,
+          boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}% (pondéré)`}}
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
