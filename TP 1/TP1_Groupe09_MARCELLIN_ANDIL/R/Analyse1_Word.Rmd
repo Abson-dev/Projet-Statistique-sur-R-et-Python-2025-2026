@@ -1,0 +1,414 @@
+---
+title: "Analyse 1 -- Profil demographique des menages nigerians"
+subtitle: "Nigeria GHS Panel -- Wave 4 (2018) | ENSAE ISE 1 -- 2025-2026"
+author: |
+  ANDRIALALAOSOA Marcellin  
+  Andil Ben Andjiboudine
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_width: 8
+    fig_height: 5
+    reference_docx: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "",
+  fig.align = "center",
+  out.width = "95%"
+)
+```
+
+```{r racine, include=FALSE}
+knitr::opts_knit$set(root.dir = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet")
+```
+
+```{r packages, include=FALSE}
+pkgs <- c("haven","dplyr","ggplot2","apyramid","naniar",
+          "gtsummary","rstatix","patchwork","scales",
+          "survey","knitr","kableExtra","flextable","officer")
+invisible(lapply(pkgs[pkgs %in% rownames(installed.packages())],
+                 library, character.only = TRUE))
+new_pkgs <- pkgs[!pkgs %in% rownames(installed.packages())]
+if (length(new_pkgs)) { install.packages(new_pkgs); lapply(new_pkgs, library, character.only=TRUE) }
+```
+
+```{r import, include=FALSE}
+sectaa_harvestw4 <- read_dta("data/raw/NGA_2018_GHSP-W4_v03_M_Stata12/sectaa_harvestw4.dta")
+sect1_harvestw4  <- read_dta("data/raw/NGA_2018_GHSP-W4_v03_M_Stata12/sect1_harvestw4.dta")
+
+poids <- sectaa_harvestw4 %>%
+  select(hhid, wt_wave4) %>%
+  distinct(hhid, .keep_all = TRUE)
+```
+
+```{r preparation, include=FALSE}
+sect1_w <- sect1_harvestw4 %>%
+  left_join(poids, by = "hhid") %>%
+  mutate(
+    lien_fct  = as_factor(s1q3),
+    age       = as.numeric(s1q4),
+    zone      = case_when(sector == 1 ~ "Rural", sector == 2 ~ "Urbain", TRUE ~ NA_character_),
+    age_group = cut(age,
+      breaks = c(0,4,9,14,19,24,29,34,39,44,49,54,59,64,Inf),
+      labels = c("0-4","5-9","10-14","15-19","20-24","25-29",
+                 "30-34","35-39","40-44","45-49","50-54","55-59","60-64","65+"),
+      right = TRUE),
+    sexe_label = factor(case_when(
+      as.numeric(s1q2) == 1 ~ "Homme",
+      as.numeric(s1q2) == 2 ~ "Femme",
+      TRUE ~ NA_character_), levels = c("Homme","Femme"))
+  ) %>%
+  group_by(hhid) %>% mutate(taille_menage = n()) %>% ungroup()
+
+# Doublons
+duplicates <- sect1_harvestw4 %>%
+  group_by(hhid, indiv) %>% filter(n() > 1) %>% ungroup()
+
+# Stats age
+age_stats <- sect1_w %>%
+  summarise(
+    moyenne   = mean(age, na.rm=TRUE),
+    mediane   = median(age, na.rm=TRUE),
+    Q1        = quantile(age, 0.25, na.rm=TRUE),
+    Q3        = quantile(age, 0.75, na.rm=TRUE),
+    sd        = sd(age, na.rm=TRUE),
+    cv        = sd/moyenne*100,
+    asymetrie = (3*(moyenne-mediane))/sd
+  )
+
+age_stats_w <- sect1_w %>%
+  filter(!is.na(age), !is.na(wt_wave4)) %>%
+  summarise(
+    moyenne_w = weighted.mean(age, wt_wave4),
+    sd_w      = sqrt(sum(wt_wave4*(age - weighted.mean(age,wt_wave4))^2)/sum(wt_wave4))
+  )
+
+# Shapiro
+set.seed(123)
+age_sample   <- sample(sect1_w$age[!is.na(sect1_w$age)], min(5000, sum(!is.na(sect1_w$age))))
+shapiro_test <- shapiro.test(age_sample)
+
+# Lien de parente pondere
+n_total_lien <- sect1_w %>% filter(!is.na(lien_fct)) %>% nrow()
+freq_lien_ci <- sect1_w %>%
+  filter(!is.na(lien_fct)) %>%
+  count(lien_fct) %>%
+  mutate(
+    ci_lower = sapply(n, function(x) binom.test(x, n_total_lien)$conf.int[1])*100,
+    ci_upper = sapply(n, function(x) binom.test(x, n_total_lien)$conf.int[2])*100
+  )
+
+freq_lien <- sect1_w %>%
+  filter(!is.na(lien_fct), !is.na(wt_wave4)) %>%
+  group_by(lien_fct) %>%
+  summarise(n_pondere = sum(wt_wave4), .groups="drop") %>%
+  mutate(proportion = n_pondere/sum(n_pondere)*100) %>%
+  arrange(desc(proportion)) %>%
+  left_join(freq_lien_ci %>% select(lien_fct, ci_lower, ci_upper), by="lien_fct")
+
+lien_top <- as.character(freq_lien$lien_fct[1])
+prop_top  <- round(freq_lien$proportion[1], 1)
+lien_2    <- as.character(freq_lien$lien_fct[2])
+prop_2    <- round(freq_lien$proportion[2], 1)
+
+# Taille menage par zone
+taille_zone_w <- sect1_w %>%
+  filter(!is.na(zone), !is.na(wt_wave4)) %>%
+  group_by(zone) %>%
+  summarise(moy_w = round(weighted.mean(taille_menage, wt_wave4), 2), .groups="drop")
+
+wilcox_result <- wilcox.test(taille_menage ~ zone,
+                             data=sect1_w %>% filter(!is.na(zone)), exact=FALSE)
+effet <- sect1_w %>% filter(!is.na(zone)) %>% wilcox_effsize(taille_menage ~ zone)
+
+moy_rural  <- taille_zone_w$moy_w[taille_zone_w$zone=="Rural"]
+moy_urbain <- taille_zone_w$moy_w[taille_zone_w$zone=="Urbain"]
+n_miss_pds <- sum(is.na(sect1_w$wt_wave4))
+```
+
+---
+
+**Objectif :** Decrire la composition et les caracteristiques demographiques de la population nigeriane enquetee dans la Wave 4 (2018) du GHS Panel, en tenant compte du plan de sondage via les poids `wt_wave4`.
+
+**Fichiers :** `sect1_harvestw4.dta` + `sectaa_harvestw4.dta` | **Poids :** `wt_wave4`
+
+---
+
+# Exploration et qualite des donnees
+
+## Dimensions du fichier
+
+```{r dim-table}
+data.frame(
+  Description = c("Observations totales","Menages uniques",
+                  "Individus avec poids","Individus sans poids",
+                  "Doublons (hhid+indiv)"),
+  Valeur = c(
+    format(nrow(sect1_w), big.mark=" "),
+    format(n_distinct(sect1_w$hhid), big.mark=" "),
+    format(sum(!is.na(sect1_w$wt_wave4)), big.mark=" "),
+    format(n_miss_pds, big.mark=" "),
+    format(nrow(duplicates), big.mark=" ")
+  )
+) %>%
+  flextable() %>%
+  set_caption("Dimensions du fichier apres jointure avec les poids") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+La base de donnees couvre **`r format(nrow(sect1_w), big.mark=" ")` individus** repartis dans **`r n_distinct(sect1_w$hhid)` menages**. Les poids de sondage `wt_wave4` sont disponibles pour la quasi-totalite des individus (`r n_miss_pds` valeurs manquantes). `r if(nrow(duplicates)==0) "Aucun doublon n'a ete detecte." else paste0(nrow(duplicates), " doublon(s) detecte(s).")`
+
+## Carte des valeurs manquantes
+
+```{r vis-miss, fig.cap="Valeurs manquantes -- variables cles Wave 4", fig.height=3.5}
+naniar::vis_miss(
+  sect1_harvestw4 %>% select(hhid, indiv, s1q2, s1q3, s1q4),
+  warn_large_data = FALSE
+) +
+  labs(title="Valeurs manquantes -- Variables demographiques cles",
+       subtitle="sect1_harvestw4 | Wave 4 (2018)") +
+  theme(plot.title=element_text(face="bold", size=10))
+```
+
+La carte confirme une bonne completude des variables cles. Les quelques valeurs manquantes sur `s1q3` (lien de parente) sont marginales et n'affectent pas la representativite de l'analyse.
+
+---
+
+# Analyse univariee de l'age (ponderee)
+
+## Statistiques descriptives
+
+```{r age-stats-table}
+data.frame(
+  Statistique = c("Moyenne non ponderee","Moyenne ponderee (wt_wave4)",
+                  "Mediane","Q1","Q3","Ecart-type","CV (%)","Asymetrie"),
+  Valeur = c(
+    round(age_stats$moyenne, 2),
+    round(age_stats_w$moyenne_w, 2),
+    round(age_stats$mediane, 2),
+    round(age_stats$Q1, 2),
+    round(age_stats$Q3, 2),
+    round(age_stats$sd, 2),
+    round(age_stats$cv, 2),
+    round(age_stats$asymetrie, 3)
+  )
+) %>%
+  flextable() %>%
+  set_caption("Statistiques de l'age des membres du menage -- Wave 4 (2018)") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+Au niveau de la population nigeriane representee, l'age moyen pondere est de **`r round(age_stats_w$moyenne_w, 1)` ans**. La mediane de **`r round(age_stats$mediane, 1)` ans** est inferieure a la moyenne, confirmant une distribution asymetrique a droite. Le coefficient de variation (`r round(age_stats$cv, 1)`%) traduit une forte heterogeneite des ages, caracteristique des populations a forte fecondite.
+
+## Histogramme et boxplot ponderes
+
+```{r hist-boxplot, fig.cap="Distribution ponderee de l'age de la population nigeriane -- Wave 4", fig.height=4}
+p1 <- ggplot(sect1_w %>% filter(!is.na(age), !is.na(wt_wave4)),
+             aes(x=age, weight=wt_wave4)) +
+  geom_histogram(binwidth=5, fill="steelblue", color="white", alpha=0.7) +
+  geom_vline(xintercept=age_stats$moyenne, color="red", linetype="dashed", linewidth=1) +
+  geom_vline(xintercept=age_stats$mediane, color="darkgreen", linetype="dashed", linewidth=1) +
+  annotate("text", x=age_stats$moyenne+3, y=Inf, label="Moyenne", vjust=2, color="red", size=3) +
+  annotate("text", x=age_stats$mediane-3, y=Inf, label="Mediane", vjust=4, color="darkgreen", size=3) +
+  labs(title="Distribution ponderee de l'age", subtitle="Poids : wt_wave4",
+       x="Age (ans)", y="Effectif pondere") +
+  theme_minimal(base_size=10)
+
+p2 <- ggplot(sect1_w %>% filter(!is.na(age)), aes(y=age)) +
+  geom_boxplot(fill="steelblue", alpha=0.7, outlier.colour="red", outlier.alpha=0.4) +
+  labs(title="Boxplot", y="Age (ans)") +
+  theme_minimal(base_size=10) +
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+p1 + p2 + plot_layout(widths=c(3,1))
+```
+
+L'histogramme pondere represente la structure par age de la **population nigeriane** et non de l'echantillon brut. La base large (0-14 ans) confirme une jeunesse tres marquee de la population. La distribution est non normale (test de Shapiro-Wilk : W = `r round(shapiro_test$statistic, 4)`, p = `r format.pval(shapiro_test$p.value, digits=3)`), ce qui justifie l'utilisation de tests non parametriques.
+
+---
+
+# Pyramide des ages ponderee (Wave 4)
+
+```{r pyramide, fig.cap="Pyramide des ages ponderee -- Population nigeriane, Wave 4 (2018)", fig.height=6.5}
+sect1_w_pyr <- sect1_w %>% filter(!is.na(age_group), !is.na(sexe_label), !is.na(wt_wave4))
+
+age_pyramid(
+  data      = sect1_w_pyr,
+  age_group = "age_group",
+  split_by  = "sexe_label",
+  count     = "wt_wave4"
+) +
+  scale_fill_manual(values=c("Homme"="#2874a6","Femme"="#e74c3c"), name="Sexe") +
+  labs(title="Pyramide des ages ponderee -- Wave 4 (2018)",
+       subtitle="Nigeria GHS Panel | Poids wt_wave4 | Groupes quinquennaux",
+       x="Effectif pondere", y="Groupe d'age", fill="Sexe") +
+  theme_minimal(base_size=10) +
+  theme(plot.title=element_text(face="bold", size=12), legend.position="bottom")
+```
+
+La pyramide ponderee reflete la **structure reelle de la population nigeriane**. La forme expansive a large base confirme une forte fecondite et une population tres jeune. Au sein de la population, les moins de 15 ans representent une part preponderante, generant une pression importante sur les services d'education et de sante. La symetrie quasi-parfaite entre hommes et femmes dans les jeunes cohortes s'amenuise aux ages eleves, ou une legere surmortalite masculine est observable.
+
+---
+
+# Analyse ponderee du lien de parente
+
+## Tableau des frequences
+
+```{r parente-table}
+freq_lien %>%
+  mutate(proportion=round(proportion,1), ci_lower=round(ci_lower,1), ci_upper=round(ci_upper,1)) %>%
+  select(lien_fct, proportion, ci_lower, ci_upper) %>%
+  rename(`Lien de parente`=lien_fct, `Proportion pond. (%)`=proportion,
+         `IC 95% inf`=ci_lower, `IC 95% sup`=ci_upper) %>%
+  flextable() %>%
+  set_caption("Distribution ponderee du lien de parente avec IC a 95%") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+## Diagramme en barres horizontales
+
+```{r parente-plot, fig.cap="Distribution ponderee du lien de parente -- Population nigeriane, Wave 4", fig.height=4.5}
+ggplot(freq_lien, aes(x=proportion, y=reorder(lien_fct, proportion))) +
+  geom_col(fill="steelblue", alpha=0.75, width=0.7) +
+  geom_errorbar(aes(xmin=ci_lower, xmax=ci_upper), width=0.3, color="#1a5276", linewidth=0.8) +
+  geom_text(aes(label=paste0(round(proportion,1),"%")), hjust=-0.2, size=3.5, color="#1a5276") +
+  scale_x_continuous(limits=c(0, max(freq_lien$ci_upper)*1.15),
+                     labels=function(x) paste0(x,"%")) +
+  labs(title="Distribution ponderee du lien de parente avec le chef de menage",
+       subtitle="Proportions ponderees avec IC a 95% -- Wave 4 (2018)",
+       x="Proportion ponderee (%)", y=NULL) +
+  theme_minimal(base_size=11) +
+  theme(plot.title=element_text(face="bold"), panel.grid.major.y=element_blank())
+```
+
+Au niveau de la population nigeriane, **`r lien_top`** constitue la categorie la plus representee (`r prop_top`%), suivi par les **`r lien_2`** (`r prop_2`%). Cette structure reflete la predominance des **menages elargis** au Nigeria, ou plusieurs generations cohabitent. La forte proportion d'enfants est coherente avec la pyramide des ages a base large observee.
+
+---
+
+# Taille des menages selon la zone (ponderee)
+
+## Statistiques pondereees par zone
+
+```{r taille-table}
+taille_zone_w %>%
+  rename(Zone=zone, `Moyenne ponderee`=moy_w) %>%
+  flextable() %>%
+  set_caption("Taille moyenne ponderee des menages par zone de residence") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+## Boxplot Rural vs Urbain
+
+```{r boxplot-zone, fig.cap="Taille des menages par zone de residence -- Wave 4", fig.height=3.8}
+ggplot(sect1_w %>% filter(!is.na(zone)), aes(x=zone, y=taille_menage, fill=zone)) +
+  geom_boxplot(alpha=0.7, outlier.colour="red", outlier.alpha=0.4) +
+  scale_fill_manual(values=c("Rural"="forestgreen","Urbain"="orange"), guide="none") +
+  labs(title="Taille des menages par zone de residence",
+       subtitle="Wave 4 (2018) -- Nigeria GHS Panel",
+       x="Zone", y="Nombre de membres") +
+  theme_minimal(base_size=10) +
+  theme(plot.title=element_text(face="bold"))
+```
+
+## Test de Wilcoxon-Mann-Whitney
+
+```{r wilcoxon-table}
+data.frame(
+  Test          = "Wilcoxon-Mann-Whitney",
+  `Moy Rural`   = moy_rural,
+  `Moy Urbain`  = moy_urbain,
+  `p-valeur`    = format.pval(wilcox_result$p.value, digits=4),
+  `r de rang`   = round(effet$effsize, 3),
+  `Interpretation` = case_when(
+    abs(effet$effsize) < 0.1 ~ "Negligeable",
+    abs(effet$effsize) < 0.3 ~ "Faible",
+    abs(effet$effsize) < 0.5 ~ "Modere",
+    TRUE ~ "Fort")
+) %>%
+  flextable() %>%
+  set_caption("Test de Wilcoxon -- Taille des menages Rural vs Urbain") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+Au niveau de la population nigeriane, la taille moyenne ponderee des menages est de **`r moy_rural` membres** en milieu rural contre **`r moy_urbain` membres** en milieu urbain. Cette difference est statistiquement **`r ifelse(wilcox_result$p.value < 0.05, "significative", "non significative")`** (p = `r format.pval(wilcox_result$p.value, digits=3)`). Les menages ruraux sont plus grands, en raison d'une fecondite plus elevee et de structures familiales elargies plus frequentes dans les campagnes nigerianes.
+
+---
+
+# Tableau recapitulatif pondere (gtsummary)
+
+```{r gtsummary, ft.align="left"}
+plan_tbl1 <- sect1_w %>%
+  filter(!is.na(zone), !is.na(wt_wave4)) %>%
+  mutate(sexe = factor(as.numeric(s1q2), levels=c(1,2), labels=c("Homme","Femme"))) %>%
+  svydesign(ids=~1, weights=~wt_wave4, data=.)
+
+tbl_svysummary(
+  data      = plan_tbl1,
+  by        = zone,
+  include   = c(age, sexe, taille_menage),
+  statistic = list(all_continuous()~"{mean} ({sd})", all_categorical()~"{n_unweighted} ({p}%)"),
+  digits    = all_continuous()~1,
+  label     = list(age~"Age (annees)", sexe~"Sexe", taille_menage~"Taille du menage")
+) %>%
+  add_p() %>%
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption("**Tableau 1 -- Caracteristiques demographiques ponderees par zone (Wave 4)**") %>%
+  modify_header(label~"**Variable**") %>%
+  as_flex_table()
+```
+
+Ce tableau compare les caracteristiques demographiques de la **population nigeriane** selon la zone de residence. Les statistiques sont ponderees par `wt_wave4`, garantissant la representativite nationale des estimations. Les differences entre rural et urbain sont toutes statistiquement significatives.
+
+---
+
+# Synthese de l'Analyse 1
+
+```{r synthese}
+data.frame(
+  Tache = c("Qualite donnees","Distribution age","Normalite",
+            "Pyramide ages","Lien parente","Taille menage"),
+  `Resultat principal` = c(
+    paste0(nrow(duplicates)," doublon(s) | ",n_miss_pds," sans poids"),
+    paste0("Moy. pond. = ",round(age_stats_w$moyenne_w,1)," ans | Med. = ",round(age_stats$mediane,1)," ans"),
+    paste0("Shapiro W = ",round(shapiro_test$statistic,4)," | p = ",format.pval(shapiro_test$p.value,digits=3)," --> Non normale"),
+    "Structure expansive confirmee | Base 0-14 ans preponderante",
+    paste0(lien_top," dominant (",prop_top,"%) | Menages elargis"),
+    paste0("Rural = ",moy_rural," vs Urbain = ",moy_urbain," | p = ",format.pval(wilcox_result$p.value,digits=3))
+  )
+) %>%
+  flextable() %>%
+  set_caption("Synthese des resultats ponderes -- Analyse 1") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  set_table_properties(width=1, layout="autofit") %>%
+  autofit()
+```
+
+---
+
+*Rapport genere avec R `r paste(R.version$major, R.version$minor, sep=".")` -- Source : Nigeria GHS Panel, Wave 4 (2018), World Bank LSMS-ISA.*

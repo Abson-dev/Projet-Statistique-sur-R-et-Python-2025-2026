@@ -1,0 +1,33 @@
+------------------------------------------------------------------------
+Analyse1:
+========================================================================
+
+rmarkdown::render(
+    input         = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet/R/Analyse1_Word.Rmd",
+    output_format = "word_document",
+    output_file   = "Analyse1_Profil_Demographique.docx",
+    output_dir    = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet/rapport",
+    knit_root_dir = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet"
+)
+
+------------------------------------------------------------------------
+Analyse2:
+========================================================================
+rmarkdown::render(
+    input         = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet/R/Analyse2_Word.Rmd",
+    output_format = "word_document",
+    output_file   = "Analyse2.docx",
+    output_dir    = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet/rapport",
+    knit_root_dir = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet"
+)
+
+------------------------------------------------------------------------
+Analyse3:
+========================================================================
+rmarkdown::render(
+    input         = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet/R/Analyse3_Word.Rmd",
+    output_format = "word_document",
+    output_file   = "Analyse3.docx",
+    output_dir    = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet/rapport",
+    knit_root_dir = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet"
+)
