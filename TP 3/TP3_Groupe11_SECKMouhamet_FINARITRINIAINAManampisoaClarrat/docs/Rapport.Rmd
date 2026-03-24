@@ -1,0 +1,239 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  word_document:
+    reference_docx: template.docx
+    toc: false
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 5,
+  fig.height = 3.5
+)
+library(knitr)
+library(dplyr)
+
+chemin <- "C:/Users/HP/Desktop/ISE1 CL/Semestre2/Projet statistique avec R ou python/Dossier R/TP/TP3"
+```
+
+\newpage
+
+# 1. Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP3, à partir des données de la Nigeria General Household Survey (GHS) Panel -- vague 4 (2018--2019). L'objectif est de décrire les épisodes de maladie ou de blessure survenus au cours des quatre semaines précédant l'enquête, d'analyser les types de recours aux soins et les dépenses de santé engagées, et d'examiner les disparités selon le sexe, l'âge, le milieu de résidence et le niveau de richesse des ménages.
+
+# 2. Méthodologie
+
+## 2.1 Données et Variables Clés
+
+Les fichiers suivants ont été utilisés :
+
+- **sect4a_harvestw4.dta** : 26 556 individus, module santé (morbidité, type de maladie, recours aux soins, dépenses).
+
+- **sect1_harvestw4.dta** : 30 337 individus, variables démographiques (sexe, âge, milieu de résidence).
+
+- **secta_harvestw4.dta** : 5 025 ménages, poids de sondage (`wt_wave4`).
+
+- **totcons_final.dta** : 4 976 ménages, agrégat de consommation per capita ajusté spatialement et temporellement (`totcons_adj`), utilisé pour construire les quintiles de richesse.
+
+Les variables clés retenues sont :
+
+- **Morbidité** : `s4aq3` (maladie ou blessure dans les 4 dernières semaines : 1 = Oui, 2 = Non).
+
+- **Type de maladie** : `s4aq3b_1` (type principal de maladie ou blessure déclarée).
+
+- **Prestataire consulté** : `s4aq6a` (type de premier recours aux soins).
+
+- **Dépenses de santé** : `s4aq9` (consultation), `s4aq14` (médicaments OTC), `s4aq17` (hospitalisation).
+
+- **Sexe** : `s1q2` (1 = Homme, 2 = Femme).
+
+- **Age** : `s1q4` (en années).
+
+- **Milieu de résidence** : `sector` (1 = Urbain, 2 = Rural), issu de `sect1`.
+
+- **Poids de sondage** : `wt_wave4` (poids coupe transversale, issu de `secta_harvestw4.dta`), utilisé dans les estimations de taux afin que les résultats soient représentatifs de la population nigériane. Le poids longitudinal `wt_longpanel` n'est pas utilisé, l'analyse ne portant pas sur des comparaisons inter-vagues.
+
+- **Quintile de richesse** : construit à partir de `totcons_adj` (consommation per capita ajustée spatiale et temporelle, recommandée pour les comparaisons inter-zones).
+
+## 2.2 Traitements Effectués
+
+```{r traitements, eval=FALSE, echo=TRUE}
+# Jointure santé + démographie + poids
+# Left join : sect4a_w4 est la table principale
+# sector renommé en secteur lors du select pour éviter le conflit de noms
+# wt_wave4 propagé depuis secta_w4 via hhid (NA = 0,09%, MCAR -> exclus)
+
+health_demo <- sect4a_w4 %>%
+  left_join(sect1_w4 %>% select(hhid, indiv, s1q2, s1q4,
+                                 secteur = sector),
+            by = c("hhid", "indiv")) %>%
+  left_join(secta_w4 %>% select(hhid, wt_wave4), by = "hhid")
+
+# Quintiles de consommation (totcons_adj)
+quintiles <- totcons %>%
+  mutate(quintile = ntile(totcons_adj, 5)) %>%
+  select(hhid, quintile)
+
+# Dépense totale : NA structurels remplacés par 0
+# (individu non malade ou n'ayant pas eu recours = 0 Naira dépensé)
+health_demo <- health_demo %>%
+  mutate(
+    dep_sante_totale = ifelse(is.na(s4aq9),  0, s4aq9)  +
+                       ifelse(is.na(s4aq14), 0, s4aq14) +
+                       ifelse(is.na(s4aq17), 0, s4aq17)
+  )
+
+# Taux de morbidité : svydesign() + svymean() + svyby()
+# Tests statistiques sur données brutes (Chi-deux, Wilcoxon) :
+# pas de version pondérée standard disponible en R
+```
+
+Les traitements réalisés comprennent la jointure des trois fichiers avec intégration des poids de sondage, la construction des quintiles de consommation à partir de `totcons_adj`, le calcul de la dépense totale de santé par sommation des composantes (NA structurels remplacés par 0), l'estimation des taux de morbidité par `svymean` et `svyby`, et une série de tests : chi-deux avec V de Cramér pour le recours aux soins selon le quintile, et test de Wilcoxon pour la comparaison des dépenses entre zones.
+
+# 3. Résultats
+
+## 3.1 Qualité des Données et Valeurs Manquantes
+
+L'examen des valeurs manquantes révèle une situation contrastée selon les variables. Dans `sect1_w4`, les variables démographiques (`s1q2`, `s1q4`, `sector`) sont complètes -- aucun NA n'a été détecté. Dans `sect4a_w4`, les variables de dépenses (`s4aq9`, `s4aq14`, `s4aq17`) présentent des taux élevés de NA, ce qui est structurellement attendu : ces variables ne sont renseignées que pour les individus ayant effectivement eu un recours aux soins ou engagé des dépenses. Il s'agit de NA structurels remplacés par 0 dans le calcul de la dépense totale. Aucun doublon n'a été détecté sur la clé (`hhid`, `indiv`). Les 4 979 ménages communs entre `sect4a` et `sect1` sur les 5 025 de `secta` confirment la cohérence des identifiants. Les 0,09 % de NA sur `wt_wave4` correspondent à des ménages absents de `secta` (mécanisme MCAR) et sont exclus des analyses pondérées.
+
+## 3.2 Taux de Morbidité Global et par Sous-groupes
+
+Le taux de morbidité est estimé à **8,7 %** [IC 95 % : 8,0 % -- 9,3 %], soit environ un individu sur douze ayant déclaré une maladie ou une blessure dans les quatre semaines précédant l'enquête. Ce taux, estimé par pondération, est représentatif de la population nigériane couverte par la vague 4 du GHS-Panel.
+
+Les femmes présentent un taux légèrement supérieur (9,2 %) à celui des hommes (8,2 %), une différence qui reste dans les marges des intervalles de confiance respectifs et ne traduit pas nécessairement une différence significative. 
+
+::: {custom-style="Figure Caption"}
+Figure 1 : Taux de morbidité par sexe
+:::
+
+```{r fig_morb_sexe}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/taux_morbidite_par_sexe.png"))
+```
+
+D'un autre point de vu, la morbidité croît nettement avec l'âge : de 7,4 % chez les 0--14 ans, elle atteint 21,6 % chez les 61 ans et plus, reflétant l'accumulation des pathologies chroniques et la fragilité des personnes âgées.
+
+::: {custom-style="Figure Caption"}
+Figure 2 : Taux de morbidité par groupe d'âge
+:::
+
+```{r fig_morb_age, fig.width=6, fig.height=4}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/taux_morbidite_par_age.png"))
+```
+
+## 3.3 Types de Maladies et Blessures Déclarées
+
+Parmi les 2 065 individus ayant déclaré une maladie ou une blessure et renseigné le type, les affections symptomatiques dominent largement. Body Pains arrive en tête (25,1 %), suivi de près par le Paludisme (24,9 %), confirmant que le paludisme reste l'une des principales causes de morbidité au Nigeria. Le Catarrh (11,8 %), les Headaches (9,4 %) et la Cough (8,8 %) complètent le top 5. Les maladies infectieuses graves (méningite, choléra, typhoïde) sont absentes du top 10, ce qui peut refléter soit leur rareté relative dans l'échantillon, soit des biais de déclaration.
+
+
+::: {custom-style="Figure Caption"}
+Figure 3 : Top 10 des types de maladies et blessures (coloré par catégorie)
+:::
+
+```{r fig_maladies, fig.width=7, fig.height=4.5}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/types_maladies_top10.png"))
+```
+
+## 3.4 Recours aux Soins -- Type de Prestataire
+
+L'analyse porte sur les 2 065 individus ayant déclaré une maladie ou une blessure. Le recours aux pharmacies et vendeurs de médicaments est le mode de consultation dominant (44,4 %), devant l'absence totale de recours (35,9 %) et le recours au personnel médical (médecin, infirmier, sage-femme : 15,5 %). Le tradipraticien représente 2,5 % des recours et les agents de santé communautaires (CHEW/JCHEW) 1,5 %. Ces résultats révèlent que plus d'un tiers des individus malades ne consulte personne, et que le recours informel via les pharmacies prime sur la consultation médicale formelle, témoignant des contraintes d'accès financières et géographiques au système de soins nigérian.
+
+
+::: {custom-style="Figure Caption"}
+Figure 4 : Recours aux soins selon le type de prestataire (premier recours)
+:::
+
+```{r fig_prestataire}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/recours_soins_prestataire.png"))
+```
+
+## 3.5 Distribution des Dépenses de Santé
+
+Les dépenses de santé sont analysées sur les individus ayant déclaré une maladie ou une blessure (n = 2 065). La distribution est fortement asymétrique : la médiane est de 600 Naira, mais la moyenne atteint 2 050 Naira, tirée vers le haut par des valeurs extrêmes -- le maximum observé étant de 159 500 Naira. Le 10e décile commence à 3 500 Naira, soulignant que 90 % des individus malades dépensent moins de 3 500 Naira par épisode. On dénombre 129 valeurs aberrantes extrêmes au sens de la règle IQR (dépenses supérieures à 5 250 Naira, soit Q3 + 3×IQR), représentant des chocs sanitaires potentiellement catastrophiques pour les ménages concernés.
+
+```{r tab_depenses}
+stats <- read.csv(paste0(chemin, "/outputs/tables/stats_depenses_globales.csv"))
+kable(stats,
+      caption = "Statistiques descriptives des dépenses de santé (Naira, individus malades)",
+      digits  = 0,
+      align   = "c")
+```
+
+::: {custom-style="Figure Caption"}
+Figure 5 : Distribution des dépenses de santé (échelle logarithmique)
+:::
+
+```{r fig_hist_dep}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/hist_depenses_sante_log.png"))
+```
+
+Les dépenses varient également selon le type de prestataire consulté. Le recours au personnel médical est associé aux dépenses les plus élevées, tandis que le recours aux pharmacies et vendeurs de médicaments affiche une dispersion plus faible.
+
+::: {custom-style="Figure Caption"}
+Figure 6 : Dépenses de santé selon le type de prestataire (échelle logarithmique)
+:::
+
+```{r fig_boxplot_dep, fig.width=6, fig.height=4.5}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/boxplot_depenses_par_prestataire.png"))
+```
+
+## 3.6 Recours aux Soins et Quintiles de Consommation
+
+L'analyse croise le recours aux soins (avoir consulté ou non un prestataire) avec le quintile de consommation des ménages, pour les 2 063 individus malades disposant d'une information sur la consommation. Le tableau de contingence montre des proportions de recours relativement stables entre quintiles, allant de 65,4 % (Q1) à 66,4 % (Q5). Le test du chi-deux ne détecte pas d'association significative (Chi-deux = 5,04, ddl = 4, p = 0,28), et le V de Cramér (0,049) confirme l'absence d'association pratique entre le niveau de richesse et le fait d'avoir consulté un prestataire. Ces résultats suggèrent que, parmi les individus ayant déclaré une maladie, le recours aux soins n'est pas significativement conditionné par le niveau de vie -- du moins dans cette définition binaire qui inclut les pharmacies comme recours.
+
+
+::: {custom-style="Figure Caption"}
+Figure 7 : Recours aux soins selon le quintile de consommation
+:::
+
+```{r fig_quintile}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/recours_soins_par_quintile.png"))
+```
+
+## 3.7 Comparaison Rural / Urbain des Dépenses de Santé
+
+En zone rurale (n = 1 474 malades), la dépense médiane est de 600 Naira, contre 700 Naira en zone urbaine. Le test de Wilcoxon-Mann-Whitney confirme une différence statistiquement significative entre les deux distributions (W = 404 968, p = 0,012). Bien que l'écart médian soit modeste en valeur absolue, la dépense moyenne est plus élevée en milieu urbain (2 383 Naira contre 1 917 Naira en rural), suggérant que les individus urbains, malgré un meilleur accès aux soins, supportent des coûts unitaires plus élevés, probablement liés au recours plus fréquent aux structures de santé formelles.
+
+```{r tab_rururb}
+rururb <- read.csv(paste0(chemin, "/outputs/tables/stats_depenses_rural_urbain.csv"))
+kable(rururb[, c("milieu", "n", "mean", "median", "sd", "Q1", "Q3")],
+      caption   = "Dépenses de santé selon le milieu de résidence (Naira)",
+      col.names = c("Milieu", "N", "Moyenne", "Médiane", "Ecart-type", "Q1", "Q3"),
+      digits    = 0,
+      align     = c("l", "c", "c", "c", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 8 : Distribution des dépenses de santé par milieu de résidence (échelle logarithmique)
+:::
+
+```{r fig_violin}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/violin_depenses_rural_urbain.png"))
+```
+
+# 4. Discussion
+
+Les résultats mettent en évidence trois constats majeurs sur la santé des ménages nigérians. Premièrement, le taux de morbidité de 8,7 % est modéré mais masque de fortes disparités selon l'âge -- les personnes âgées de 61 ans et plus présentent un taux presque trois fois supérieur à celui des enfants, reflétant le poids croissant des pathologies chroniques dans une population vieillissante. Deuxièmement, le paludisme reste une cause majeure de morbidité (25 % des cas déclarés), aux côtés d'affections symptomatiques bénignes (douleurs corporelles, catarrhe, toux) qui représentent collectivement la majorité des épisodes. Troisièmement, le recours aux soins est dominé par les pharmacies et vendeurs de médicaments (44 %) et l'absence de recours (36 %), témoignant d'un système de santé formel peu accessible pour une large fraction de la population.
+
+L'absence d'association significative entre le quintile de consommation et le recours aux soins (p = 0,28) mérite une interprétation prudente. Elle ne signifie pas que la richesse est sans effet sur la santé, mais plutôt que la définition binaire "a consulté / n'a pas consulté" -- qui inclut les pharmacies comme recours -- efface les différences de qualité de soins entre quintiles. Une analyse plus fine du type de prestataire par quintile révèlerait probablement que les ménages aisés consultent davantage le personnel médical formel, tandis que les plus pauvres se tournent vers les pharmacies ou n'ont aucun recours.
+
+**Limites :**
+
+- Les dépenses de santé déclarées peuvent souffrir d'un biais de mémoire sur une période de quatre semaines.
+
+- Le test de Wilcoxon est appliqué sur données brutes, faute de version pondérée standard disponible en R. Les statistiques descriptives pondérées restent l'indicateur principal.
+
+- La variable `s4aq3b_1` ne capture que le type principal de maladie ; les comorbidités ne sont pas prises en compte.
+
+- Les 35,9 % d'individus malades sans aucun recours représentent un enjeu de santé publique important qui mériterait une analyse des déterminants de la non-consultation.
+
+# 5. Conclusion
+
+Ce travail a permis de dresser un portrait détaillé de la morbidité et des dépenses de santé des ménages nigérians à partir de la vague 4 du GHS-Panel, en tenant compte des poids de sondage pour les estimations de taux. Il met en évidence un taux de morbidité modéré mais fortement différencié selon l'âge, une prédominance du paludisme et des affections symptomatiques parmi les maladies déclarées, et un recours aux soins dominé par le secteur informel pharmaceutique. L'absence d'association significative entre richesse et recours aux soins interroge sur les déterminants réels de la non-consultation, au-delà du seul facteur financier. Ces résultats constituent une base analytique utile pour orienter les politiques de santé publique vers les groupes les plus vulnérables -- personnes âgées, populations rurales, individus sans aucun recours aux soins.
