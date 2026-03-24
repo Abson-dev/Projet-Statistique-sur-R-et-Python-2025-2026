@@ -1,0 +1,465 @@
+---
+title: ''
+author: ''
+date: ''
+output:
+  word_document:
+    toc: true
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    number_sections: true
+    fig_caption: true
+    keep_tex: false
+fontsize: 8pt
+geometry: margin=2cm
+header-includes:
+- \usepackage{setspace}
+- \onehalfspacing
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(haven)
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+library(gtsummary)
+library(viridis)
+library(patchwork)
+library(DescTools)
+library(openxlsx)
+library(knitr)
+library(flextable)
+library(survey)
+library(scales)
+```
+
+
+```{r page_de_garde, echo=FALSE, results='asis'}
+if (knitr::is_latex_output()) {
+  cat("
+\\begin{titlepage}
+\\centering
+
+\\includegraphics[width=0.2\\textwidth]{logo1.png}\\hfill
+\\includegraphics[width=0.2\\textwidth]{logo2.jpeg}
+
+\\vspace{1cm}
+
+{\\Large \\textbf{RÉPUBLIQUE DU SÉNÉGAL}}\\\\
+\\vspace{0.3cm}
+{\\large Ecole nationale de la Statistique et de l'Analyse Économique Pierre Ndiaye}
+
+\\vspace{2cm}
+
+{\\Huge \\textbf{Analyse des déterminants de l'éducation au Nigeria}}
+
+\\vspace{1.5cm}
+
+\\textbf{Auteurs :}\\\\
+Kadidja GUEBEDIANG A NKEN \\\\
+Tresor RIRADJIM NGARMOUNDOU
+
+\\vspace{1cm}
+
+\\textbf{Classe :} ISE1-CL
+
+\\vspace{1cm}
+
+\\textbf{Encadrant :}\\\\
+Aboubacar HEMA \\\\
+Research Scientist
+
+\\vfill
+
+\\textbf{Année académique : 2025-2026}
+
+\\end{titlepage}
+")
+} else {
+  cat("
+# Analyse des déterminants de l'éducation au Nigeria
+
+**Auteurs :** Kadidja GUEBEDIANG A NKEN & Tresor RIRADJIM NGARMOUNDOU  
+**Classe :** ISE1-CL  
+**Encadrant :** Aboubacar HEMA, Research Scientist  
+**Année académique :** 2025-2026
+
+---
+")
+}
+```
+
+# Introduction
+
+L'éducation est reconnue comme un levier essentiel du développement humain et économique. Au Nigeria, pays le plus peuplé d'Afrique avec plus de 200 millions d'habitants, les défis éducatifs sont immenses : environ 10,5 millions d'enfants non scolarisés (UNICEF, 2022), de fortes disparités régionales et de genre, et un système scolaire sous pression démographique. Ce rapport mobilise les données de la quatrième vague de l'enquête Nigeria General Household Survey (2018-2019) pour :
+
+  * décrire la structure éducative de la population ;
+
+  * mesurer l'effet du sexe sur le niveau d'instruction ;
+
+  * analyser les écarts entre générations ;
+
+  * évaluer la scolarisation des enfants selon la zone de résidence ;
+
+  * identifier les États les plus touchés par l'analphabétisme.
+
+L'objectif est de fournir des éléments factuels pour orienter les politiques publiques vers une réduction des inégalités éducatives.
+
+# Préparation des données
+
+```{r preparation}
+data_raw <- "data/raw/"
+
+# ── 1. Import des trois fichiers ──────────────────────────────────────────────
+sect2b_w4 <- read_dta(paste0(data_raw, "sect2_harvestw4.dta"))
+sect1_w4  <- read_dta(paste0(data_raw, "sect1_harvestw4.dta"))
+secta_w4  <- read_dta(paste0(data_raw, "secta_harvestw4.dta"))
+
+# ── 2. Nettoyage des poids ────────────────────────────────────────────────────
+secta_valide <- secta_w4 %>%
+  filter(!is.na(wt_wave4) & wt_wave4 > 0)
+
+# ── 3. Fusion ─────────────────────────────────────────────────────────────────
+data_w4 <- sect2b_w4 %>%
+  inner_join(sect1_w4,   by = c("hhid", "indiv")) %>%
+  inner_join(secta_valide %>% select(hhid, wt_wave4), by = "hhid")
+
+# Harmonisation des noms de colonnes
+names(data_w4) <- gsub("\\.", "_", names(data_w4))
+
+# ── 4. Conversion des variables labellisées Stata en facteurs ─────────────────
+# as_factor() récupère les vrais labels (ex : 1 → "Male", 2 → "Female")
+# au lieu d'afficher les codes numériques bruts
+data_w4 <- data_w4 %>%
+  mutate(
+    sexe   = as_factor(s1q2),    # "Male" / "Female" (ou labels Stata équivalents)
+    zone   = as_factor(zone_x),  # "Urban" / "Rural"
+    state  = as_factor(state_x)  # Nom des États
+  )
+
+# ── 5. Recodage des variables analytiques ─────────────────────────────────────
+data_w4 <- data_w4 %>%
+  mutate(
+    niveau_educ = case_when(
+      s2aq6 == 2                                  ~ "Aucun",
+      s2aq9 %in% 11:16                            ~ "Primaire",
+      s2aq9 %in% c(21:28, 321)                    ~ "Secondaire",
+      s2aq9 %in% c(31,33,34,35,41,43,322,411:424) ~ "Tertiaire",
+      s2aq9 %in% c(51, 52)                        ~ "Religieux",
+      s2aq9 == 61                                 ~ "Education adulte",
+      TRUE                                        ~ NA_character_
+    ),
+    age       = 2019 - s1q6_year,
+    age_group = case_when(
+      s1q4 >= 18 & s1q4 <= 30 ~ "18-30",
+      s1q4 >= 31 & s1q4 <= 45 ~ "31-45",
+      s1q4 >= 46 & s1q4 <= 60 ~ "46-60",
+      s1q4 >  60               ~ "60+",
+      TRUE                     ~ NA_character_
+    )
+  )
+
+# ── 6. Sous-populations ────────────────────────────────────────────────────────
+data_adult <- data_w4 %>% filter(age >= 18)
+data_child <- data_w4 %>% filter(s1q4 >= 6 & s1q4 <= 17)
+
+# ── 7. Designs de sondage ─────────────────────────────────────────────────────
+design       <- svydesign(ids = ~1, weights = ~wt_wave4, data = data_w4)
+design_adult <- subset(design, age >= 18)
+design_child <- subset(design, s1q4 >= 6 & s1q4 <= 17)
+```
+
+# Distribution du niveau d'éducation
+
+```{r distrib_educ}
+# Fréquences pondérées
+freq_educ <- data_w4 %>%
+  filter(!is.na(niveau_educ)) %>%
+  group_by(niveau_educ) %>%
+  summarise(poids = sum(wt_wave4, na.rm = TRUE), .groups = "drop") %>%
+  mutate(
+    prop       = poids / sum(poids),
+    prop_label = percent(prop, accuracy = 0.1)
+  )
+
+# Tableau
+freq_educ %>%
+  select(`Niveau d'éducation` = niveau_educ,
+         `Effectif pondéré`   = poids,
+         Proportion           = prop_label) %>%
+  flextable() %>%
+  set_caption("Tableau 1 : Distribution pondérée du niveau d'éducation") %>%
+  colformat_double(j = 2, digits = 0, big.mark = " ") %>%
+  autofit()
+
+# Graphique
+ggplot(freq_educ,
+       aes(x = reorder(niveau_educ, prop), y = prop, fill = niveau_educ)) +
+  geom_col() +
+  geom_text(aes(label = prop_label), hjust = -0.1, size = 3) +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title = "Figure 1 : Distribution pondérée du niveau d'éducation",
+    x = NULL, y = "Proportion", fill = "Niveau"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Interprétation :
+
+La population se concentre majoritairement dans les niveaux "Aucun" (23,7 %) et "Primaire" (30,6 %). Le secondaire concerne plus du quart des individus (28,5 %), tandis que le tertiaire reste faible (8,2 %).  Cette structure est typique d'un pays en développement où l'accès à l'éducation de base s'est élargi, mais où les niveaux supérieurs restent un privilège.
+
+# Inégalités de genre dans l'éducation
+
+```{r genre_educ}
+# Tableau croisé pondéré — utilise la variable `sexe` avec vrais labels
+tab_sexe    <- svytable(~sexe + niveau_educ, design_adult)
+chi_sexe    <- svychisq(~sexe + niveau_educ, design_adult)
+cramer_sexe <- CramerV(tab_sexe)
+
+# Mise en forme du tableau
+tab_sexe_df <- as.data.frame.matrix(tab_sexe)
+tab_sexe_df <- cbind(Sexe = rownames(tab_sexe_df), tab_sexe_df)
+
+tab_sexe_df %>%
+  flextable() %>%
+  set_caption("Tableau 2 : Effectifs pondérés par sexe et niveau d'éducation") %>%
+  colformat_double(digits = 0, big.mark = " ") %>%
+  autofit()
+
+# Données pour le graphique
+tab_sexe_long <- as.data.frame(tab_sexe) %>%
+  group_by(sexe) %>%
+  mutate(prop = Freq / sum(Freq)) %>%
+  ungroup()
+
+# Graphique
+ggplot(tab_sexe_long,
+       aes(x = sexe, y = prop, fill = niveau_educ)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = percent(prop, accuracy = 1)),
+            position = position_fill(vjust = 0.5),
+            size = 3, color = "white") +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = percent) +
+  labs(
+    title = "Figure 2 : Répartition pondérée du niveau d'éducation par sexe",
+    x = NULL, y = "Proportion", fill = "Niveau"
+  ) +
+  theme_minimal()
+```
+
+Résultats statistiques
+
+* Chi² de Pearson (pondéré) : `r round(chi_sexe$statistic, 2)`, p‑value = `r format(chi_sexe$p.value, scientific = TRUE)`
+
+* V de Cramer : `r round(cramer_sexe, 3)` (association modérée)
+
+Interprétation :
+
+La différence est significative d'après notre test statistique : le niveau d'éducation dépend du sexe. Les femmes sont surreprésentées dans la catégorie "Aucun" (23 %) comparativement aux hommes (11 %) et sous-représentées dans le secondaire et le tertiaire. Ce déséquilibre pour refléter des normes culturelles, des mariages précoces et des charges domestiques qui limitent la scolarisation des filles, surtout après le primaire.
+
+# Effet de l'âge sur le niveau d'éducation
+
+```{r age_educ}
+# Niveau éducatif numérique
+data_adult <- data_adult %>%
+  mutate(
+    educ_num = case_when(
+      niveau_educ == "Aucun"      ~ 0,
+      niveau_educ == "Primaire"   ~ 1,
+      niveau_educ == "Secondaire" ~ 2,
+      niveau_educ == "Tertiaire"  ~ 3,
+      TRUE                        ~ NA_real_
+    )
+  )
+
+# Boxplot avec les vrais labels de groupe d'âge
+ggplot(data_adult,
+       aes(x = age_group, y = educ_num, fill = age_group, weight = wt_wave4)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Figure 3 : Distribution du niveau d'éducation par groupe d'âge",
+    x = "Groupe d'âge",
+    y = "Niveau éducatif (0 = Aucun, 3 = Tertiaire)",
+    fill = "Âge"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Test de Kruskal-Wallis
+kruskal_educ <- kruskal_test(data_adult, educ_num ~ age_group)
+
+# Test post-hoc de Dunn
+dunn_educ <- dunn_test(data_adult, educ_num ~ age_group,
+                       p.adjust.method = "bonferroni")
+
+kruskal_educ %>%
+  flextable() %>%
+  set_caption("Tableau 3 : Test de Kruskal-Wallis (âge vs éducation)") %>%
+  autofit()
+
+dunn_educ %>%
+  select(-.y., -n1, -n2, -statistic, -p, -p.adj.signif) %>%
+  flextable() %>%
+  set_caption("Tableau 4 : Comparaisons par paires (test de Dunn, Bonferroni)") %>%
+  autofit()
+```
+
+Résultats :
+
+Le test de Kruskal-Wallis rejette l'égalité des distributions (p < 10^-18). Toutes les comparaisons deux à deux sont significatives (p.adj < 0,001). Les jeunes (18-30 ans) ont un niveau médian plus élevé que les 31-45 ans, eux-mêmes plus éduqués que les 46-60 ans, et ainsi de suite.
+
+Interprétation :
+
+On observe une nette amélioration intergénérationnelle de l'éducation, traduisant les efforts du Nigeria pour étendre l'accès à l'école depuis les années 2000 (programme UBE – Universal Basic Education). Les générations nées après 1990 bénéficient d'une offre scolaire plus dense. Toutefois, le niveau reste faible en valeur absolue, avec une médiane toujours proche du primaire chez les moins de 30 ans.
+
+# Scolarisation des enfants (6-17 ans) selon la zone
+
+```{r, fig.width=10, fig.height=6}
+# Tableau croisé pondéré — utilise la variable `zone` avec vrais labels
+tab_zone  <- svytable(~zone + niveau_educ, design_child)
+chi_zone  <- svychisq(~zone + niveau_educ, design_child)
+
+# Proportions par zone
+tab_zone_long <- as.data.frame(tab_zone) %>%
+  group_by(zone) %>%
+  mutate(prop = Freq / sum(Freq)) %>%
+  ungroup()
+
+
+ggplot(tab_zone_long,
+       aes(x = zone, y = prop, fill = niveau_educ)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = percent(prop, accuracy = 1)),
+            position = position_dodge(width = 0.9),
+            vjust = -0.3, size = 3) +
+  scale_fill_viridis_d() +
+  scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.1))) +
+  labs(
+    title = "Figure 4 : Répartition pondérée des enfants par zone et niveau d'éducation",
+    x = NULL, y = "Proportion", fill = "Niveau"
+  ) +
+  theme_minimal()
+
+# Tableau des proportions
+prop_zone_df <- as.data.frame.matrix(prop.table(tab_zone, margin = 1))
+prop_zone_df <- cbind(Zone = rownames(prop_zone_df), prop_zone_df)
+
+prop_zone_df %>%
+  flextable() %>%
+  set_caption("Tableau 5 : Proportions pondérées par zone (enfants 6-17 ans)") %>%
+  colformat_double(digits = 3) %>%
+  autofit()
+```
+
+Résultats :
+
+Le test du Chi² pondéré est très significatif (p = `r format(chi_zone$p.value, scientific = TRUE)`). Les écarts sont frappants : en zone rurale, les enfants sans éducation ou au seul primaire sont nettement surreprésentés par rapport à la zone urbaine.
+
+Interprétation :
+
+Ces disparités territoriales illustrent la fracture éducative entre villes et campagnes. Les zones rurales souffrent d'un manque d'infrastructures, d'une pauvreté plus élevée qui pousse au travail des enfants et d'une offre scolaire limitée au primaire. Les politiques de construction d'écoles et de cantines scolaires doivent cibler en priorité ces zones.
+
+# Disparités régionales : l'analphabétisme par État
+
+```{r regional_educ}
+# Taux pondéré par État — utilise la variable `state` avec vrais labels
+design_adult2 <- svydesign(ids = ~1, weights = ~wt_wave4, data = data_adult)
+
+heat_data <- svyby(
+  ~I(niveau_educ == "Aucun"),
+  ~state,
+  design_adult2,
+  svymean,
+  na.rm = TRUE
+)
+heat_data           <- as.data.frame(heat_data)
+names(heat_data)[2] <- "taux_aucun"
+
+# Top 10
+heat_data %>%
+  arrange(desc(taux_aucun)) %>%
+  slice_head(n = 10) %>%
+  select(État = state, `Taux sans éducation (pondéré)` = taux_aucun) %>%
+  flextable() %>%
+  set_caption("Tableau 6 : États les plus touchés par l'absence d'éducation (pondéré)") %>%
+  colformat_double(digits = 3) %>%
+  autofit()
+
+```
+
+Interprétation :
+
+Deux Etats atteignent 100 % de personnes sans éducation : il s'agit de Rivers er Zamfara. Lagos (98,2%), Delta (97,7 %), et Bayelsa ( 97%). Ces régions du Nord-Est sont confrontées à l’insécurité (Boko Haram), à une pauvreté extrême et à un faible taux de scolarisation, surtout des filles. 
+
+# Synthèse des tests statistiques
+
+```{r synthese}
+tests <- data.frame(
+  Relation    = c("Sexe ~ Éducation",
+                  "Âge ~ Éducation",
+                  "Zone ~ Éducation (enfants)"),
+  Test        = c("Chi² pondéré (svychisq)",
+                  "Kruskal-Wallis",
+                  "Chi² pondéré (svychisq)"),
+  Statistique = c(round(chi_sexe$statistic,    2),
+                  round(kruskal_educ$statistic, 2),
+                  round(chi_zone$statistic,     2)),
+  `p-value`   = c(format(chi_sexe$p.value,  scientific = TRUE),
+                  format(kruskal_educ$p,     scientific = TRUE),
+                  format(chi_zone$p.value,   scientific = TRUE))
+)
+
+tests %>%
+  flextable() %>%
+  set_caption("Tableau 7 : Récapitulatif des tests d'indépendance") %>%
+  bg(j = "p.value", bg = "#90EE90") %>%
+  autofit()
+```
+
+# Discussion et limites
+
+Les résultats confirment l'existence de fortes inégalités éducatives au Nigeria, structurées par le genre, l'âge et le lieu de résidence. L'effet générationnel est encourageant, mais il masque des disparités géographiques profondes. Plusieurs limites doivent être soulignées :
+
+
+  * Variable d'éducation auto-déclarée : possible biais de déclaration (surestimation).
+
+  * Absence de données sur la qualité : le niveau atteint ne dit rien sur les acquis réels.
+
+  * Coupe transversale : impossible d'établir des relations causales.
+
+  * Test de Kruskal-Wallis : appliqué sur données brutes faute d'équivalent pondéré standard dans R.
+
+Malgré ces réserves, l'analyse fournit un diagnostic robuste des déséquilibres actuels.
+
+# Conclusion et recommandations
+
+Cette analyse confirme :
+
+* Des inégalités éducatives persistantes
+* Un effet du genre
+* Une amélioration générationnelle
+* Des disparités territoriales
+
+Recommandations :
+
+* Renforcer l'offre scolaire en milieu rural
+* Promouvoir la scolarisation des filles
+* Investir dans les infrastructures éducatives
+* Mettre en place des programmes d'alphabétisation
