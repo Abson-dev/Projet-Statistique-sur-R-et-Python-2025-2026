@@ -8,7 +8,7 @@ Ce projet analyse le profil démographique des ménages nigérians à partir des
 TP1/
 ├── data/
 │   ├── raw/                 # Données brutes (.dta)
-│   └── processed/           # Données traitées (non utilisées ici)
+│   └── processed/           
 ├── outputs/
 │   ├── graphs/              # Graphiques générés (histogrammes, pyramide des âges, etc.)
 │   └── tables/              # Tableaux CSV et HTML (statistiques, fréquences, etc.)
@@ -16,8 +16,7 @@ TP1/
 │   └── script_TP1.R         # Script principal d'analyse
 ├── docs/
 │   ├── Rapport.Rmd          # Rapport détaillé en R Markdown
-│   ├── Rapport.pdf          # Rapport compilé (si généré)
-│   └── header.tex           # En-tête LaTeX pour le rapport
+│   └── Rapport.docx         # Rapport compilé en word
 ├── README.md                # Ce fichier
 └── TP1.Rproj                # Projet R
 ```

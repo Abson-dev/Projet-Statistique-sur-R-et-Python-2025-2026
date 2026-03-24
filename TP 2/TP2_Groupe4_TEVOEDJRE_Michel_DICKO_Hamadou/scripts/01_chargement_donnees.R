@@ -1,6 +1,7 @@
 library(haven)
 library(dplyr)
 library(forcats)
+library(survey)
 
 # chemins vers les trois fichiers bruts
 path_sect1  <- "data/raw/sect1_harvestw4.dta"
@@ -16,6 +17,12 @@ sect2 <- read_dta(path_sect2)
 
 cat("Chargement de secta_harvestw4.dta ...\n")
 secta <- read_dta(path_secta)
+
+# Extraction des poids de sondage depuis secta
+# Variables : wt_wave4 (poids Wave 4), cluster (UPE), strata (strate)
+wgt_data <- secta %>%
+  select(hhid, wt_wave4, cluster, strata)
+cat("  Ménages avec poids :", nrow(wgt_data), "\n")
 
 # Jointure sect2 + sect1 (sexe, âge)
 cat("\nJointure sect2 x sect1 sur hhid + indiv ...\n")
@@ -92,16 +99,24 @@ state_labels <- c(
 df_educ <- df_educ %>%
   mutate(state_name = state_labels[as.character(state_num)])
 
+# Jointure des poids sur les individus via hhid
+df_educ <- df_educ %>%
+  left_join(wgt_data, by = "hhid")
+
+n_miss_wgt <- sum(is.na(df_educ$wt_wave4))
+cat("  Individus sans poids :", n_miss_wgt, "\n")
+
 # Sous-ensemble adultes (18+)
 df_adultes <- df_educ %>%
-  filter(!is.na(age), age >= 18, !is.na(sexe_label), !is.na(niveau_educ))
+  filter(!is.na(age), age >= 18, !is.na(sexe_label), !is.na(niveau_educ),
+         !is.na(wt_wave4))
 
 cat("\nDimensions df_educ    :", nrow(df_educ),    "x", ncol(df_educ),    "\n")
 cat("Dimensions df_adultes :", nrow(df_adultes), "x", ncol(df_adultes), "\n")
 
 # Données pour taux de scolarisation 6-17 ans
 df_scol <- df_educ %>%
-  filter(!is.na(age), age >= 6, age <= 17) %>%
+  filter(!is.na(age), age >= 6, age <= 17, !is.na(wt_wave4)) %>%
   mutate(
     scolarise = as.numeric(s2aq13) == 1,
     zone_scol = as.character(zone_label)
@@ -110,11 +125,32 @@ df_scol <- df_educ %>%
 
 cat("Données scolarisation 6-17 ans :", nrow(df_scol), "individus\n")
 
+# Plans de sondage
+# plan individus adultes (18+)
+plan_adultes <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = df_adultes,
+  nest    = TRUE
+)
+
+# plan enfants scolarisation (6-17 ans)
+plan_scol <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = df_scol,
+  nest    = TRUE
+)
+
 # Sauvegarde
 dir.create("data/processed", showWarnings = FALSE, recursive = TRUE)
 
-saveRDS(df_educ,    file = "data/processed/df_educ.rds")
-saveRDS(df_adultes, file = "data/processed/df_adultes.rds")
-saveRDS(df_scol,    file = "data/processed/df_scol.rds")
+saveRDS(df_educ,      file = "data/processed/df_educ.rds")
+saveRDS(df_adultes,   file = "data/processed/df_adultes.rds")
+saveRDS(df_scol,      file = "data/processed/df_scol.rds")
+saveRDS(plan_adultes, file = "data/processed/plan_adultes.rds")
+saveRDS(plan_scol,    file = "data/processed/plan_scol.rds")
 
-cat("\n✓ Données sauvegardées dans data/processed/\n")
+cat("\n✓ Données et plans de sondage sauvegardés dans data/processed/\n")

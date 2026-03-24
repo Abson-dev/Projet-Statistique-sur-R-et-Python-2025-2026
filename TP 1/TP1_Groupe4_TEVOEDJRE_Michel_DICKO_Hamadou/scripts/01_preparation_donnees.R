@@ -1,13 +1,21 @@
 library(haven)
 library(dplyr)
 library(naniar)
+library(survey)
 
-# chemin vers le fichier brut
+# chemins vers les fichiers bruts
 path_data <- "data/raw/sect1_harvestw4.dta"
+path_wgt  <- "data/raw/secta_harvestw4.dta"
 
-# Chargement de la base
+# Chargement de la base individus
 data <- read_dta(path_data)
-cat("  Dimensions :", nrow(data), "x", ncol(data), "\n")
+cat("  Dimensions sect1 :", nrow(data), "x", ncol(data), "\n")
+
+# Chargement de la base pondérations (secta_harvestw4)
+# Variables clés : hhid, wt_wave4, strata, cluster (unité primaire de sondage)
+wgt_data <- read_dta(path_wgt) %>%
+  select(hhid, wt_wave4, strata, cluster)
+cat("  Dimensions secta (poids) :", nrow(wgt_data), "x", ncol(wgt_data), "\n")
 
 # Identifiant unique ménage × individu
 data$hhid_indiv <- paste(data$hhid, data$indiv, sep = "_")
@@ -50,7 +58,15 @@ data <- data %>%
                   right  = FALSE, include.lowest = TRUE)
   )
 
-# Base ménages
+# Jointure des pondérations ménage → individus
+# wt_wave4 est un poids ménage ; chaque individu hérite du poids de son ménage
+data <- data %>%
+  left_join(wgt_data, by = "hhid")
+
+n_miss_wgt <- sum(is.na(data$wt_wave4))
+cat("  Individus sans poids :", n_miss_wgt, "\n")
+
+# Base ménages enrichie des poids
 taille_menage <- data %>%
   group_by(hhid) %>%
   summarise(taille_menage = n(), .groups = "drop")
@@ -61,6 +77,9 @@ base_menage <- data %>%
     taille   = n(),
     secteur  = first(secteur),
     zone_geo = first(zone_geo),
+    wt_wave4 = first(wt_wave4),   # poids identique pour tous les membres du ménage
+    strata   = first(strata),
+    cluster  = first(cluster),
     .groups  = "drop"
   )
 
@@ -68,15 +87,36 @@ cat("\n  Ménages total  :", nrow(base_menage), "\n")
 cat("  Ménages Urbain :", sum(base_menage$secteur == "Urbain"), "\n")
 cat("  Ménages Rural  :", sum(base_menage$secteur == "Rural"),  "\n")
 
-# Données individuelles enrichies
+# Données individuelles enrichies (pour gtsummary)
 data_indiv <- data %>%
   left_join(taille_menage, by = "hhid") %>%
   filter(!is.na(secteur))
 
-# Sauvegarde 
+# Objet plan de sondage individus — strate + cluster + poids Wave 4
+# (utilisé pour les estimations pondérées dans 02_analyses.R)
+plan_indiv <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = data %>% filter(!is.na(wt_wave4)),
+  nest    = TRUE
+)
+
+# Objet plan de sondage ménages
+plan_menage <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = base_menage %>% filter(!is.na(wt_wave4)),
+  nest    = TRUE
+)
+
+# Sauvegarde
 dir.create("data/processed", showWarnings = FALSE, recursive = TRUE)
 saveRDS(data,        "data/processed/data_brute.rds")
 saveRDS(data_indiv,  "data/processed/data_indiv.rds")
 saveRDS(base_menage, "data/processed/base_menage.rds")
+saveRDS(plan_indiv,  "data/processed/plan_indiv.rds")
+saveRDS(plan_menage, "data/processed/plan_menage.rds")
 
-cat("\n Données sauvegardées dans data/processed/\n")
+cat("\n Données et plan de sondage sauvegardés dans data/processed/\n")

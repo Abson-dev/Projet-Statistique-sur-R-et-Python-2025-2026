@@ -1,0 +1,6 @@
+"0","#|echo: false"
+"0","#|warning: false"
+"0","#|fig-option: ""H"""
+"0",""
+"0","load(""../output/figures/boxplot_secteur.RDATA"")"
+"0","boxplot_secteur"

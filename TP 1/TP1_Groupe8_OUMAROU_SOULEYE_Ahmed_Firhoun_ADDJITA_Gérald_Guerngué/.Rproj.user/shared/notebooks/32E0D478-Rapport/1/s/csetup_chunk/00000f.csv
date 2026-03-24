@@ -1,0 +1,6 @@
+"0","knitr::opts_chunk$set("
+"0","  echo = F,#empeche l'affichage des codes"
+"0","  message = FALSE,  # supprime les messages"
+"0","  warning = FALSE  # supprime les warnings"
+"0","  )"
+"0","options(OutDec = "","")"

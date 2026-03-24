@@ -1,0 +1,7 @@
+"0","plan_sondage <- svydesign("
+"0","  ids     = ~ea,"
+"0","  strata  = ~strata,"
+"0","  weights = ~wt_wave4,"
+"0","  data    = processed_w4,"
+"0","  nest    = TRUE"
+"0",")"

@@ -1,0 +1,377 @@
+---
+title: "Accès aux services de santé et chocs sanitaires des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel — Wave 4 (2018)"
+author: "Diop Marème, KANE Boubacar"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 4
+)
+```
+
+```{r libraries, include=FALSE}
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+library(scales)
+library(patchwork)
+library(gtsummary)
+library(naniar)
+library(gt)
+library(labelled)
+```
+
+```{r import, include=FALSE}
+sect4a <- read_dta("data/sect4a_harvestw4.dta")
+sect1  <- read_dta("data/sect1_harvestw4.dta")
+cons   <- read_dta("data/totcons_final.dta")
+```
+
+```{r preparation, include=FALSE}
+# Construction de la variable maladie
+df_sante <- sect4a %>%
+  mutate(malade = (s4aq3 == 1) | (s4aq1 == 1 & s4aq2a %in% c(1, 2))) %>%
+  left_join(sect1 %>% select(hhid, indiv, s1q2, s1q4),
+            by = c("hhid", "indiv")) %>%
+  mutate(
+    groupe_age = cut(s1q4,
+                     breaks = c(0, 14, 30, 45, 60, Inf),
+                     labels = c("0-14", "15-30", "31-45", "46-60", "60+"),
+                     right = TRUE,
+                     include.lowest = TRUE),
+    sexe = factor(s1q2, levels = c(1, 2), labels = c("Homme", "Femme"))
+  )
+
+# Dépense totale de santé
+df_sante <- df_sante %>%
+  mutate(
+    depense_totale = rowSums(across(c(s4aq9, s4aq10, s4aq14, s4aq17)),
+                             na.rm = TRUE),
+    depense_totale = ifelse(
+      is.na(s4aq9) & is.na(s4aq10) & is.na(s4aq14) & is.na(s4aq17),
+      NA, depense_totale)
+  )
+
+# Fusion avec cons_agg pour les quintiles
+cons <- cons %>%
+  mutate(quintile = ntile(totcons_adj, 5))
+
+df_sante <- df_sante %>%
+  left_join(cons %>% select(hhid, totcons_adj, quintile), by = "hhid") %>%
+  mutate(
+    consulte = factor(s4aq1, levels = c(1, 2), labels = c("Oui", "Non")),
+    quintile_f = factor(quintile,
+                        labels = c("Q1 (pauvre)", "Q2", "Q3", "Q4", "Q5 (riche)")),
+    milieu = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural"))
+  )
+```
+
+\newpage
+
+# Introduction
+
+Ce rapport analyse les conditions d'accès aux services de santé des ménages nigérians à partir des données de la quatrième vague (2018) du Nigeria General Household Survey (GHS) Panel, collectée dans le cadre du programme LSMS-ISA de la Banque Mondiale.
+
+L'objectif est de décrire les épisodes de maladie, les types de soins consultés et les coûts de santé supportés par les ménages, en analysant les disparités selon le sexe, l'âge, le milieu de résidence et le niveau de richesse. Les analyses sont strictement descriptives et reposent sur des tests statistiques non paramétriques adaptés à la nature des données.
+
+## Données mobilisées
+
+Les analyses reposent sur trois fichiers issus de la Wave 4 Post-Harvest :
+
+- **`sect4a_harvestw4`** : section santé individuelle (26 556 individus, 69 variables) contenant les épisodes de maladie, le recours aux soins et les dépenses engagées.
+- **`sect1_harvestw4`** : section démographique (30 337 individus) fournissant le sexe et l'âge des membres.
+- **`totcons_final`** : agrégats de consommation des ménages pour la construction des quintiles de richesse.
+
+Les fichiers `sect4a` et `sect1` ont été fusionnés via les identifiants `hhid` et `indiv`, sans aucune perte d'observation. La variable de morbidité a été construite en combinant les déclarations de maladie (`s4aq3`) et les consultations motivées par une maladie ou blessure (`s4aq1` et `s4aq2a`).
+
+\newpage
+
+# Taux de morbidité par sexe et groupe d'âge
+
+## Méthodologie
+
+La morbidité est définie comme le fait d'avoir souffert d'une maladie ou d'une blessure au cours des quatre semaines précédant l'enquête. Une personne est considérée malade si elle a déclaré une maladie (`s4aq3 = 1`) ou si elle a consulté un praticien pour raison de maladie ou blessure (`s4aq1 = 1` et `s4aq2a ∈ {1, 2}`). Cette définition tient compte de la structure du questionnaire, où la question sur la maladie n'est pas posée aux personnes ayant déjà consulté.
+
+Sur les 26 556 individus enquêtés, **6 450 sont identifiés comme malades**, soit un taux de morbidité global de **24,3%**.
+
+## Résultats
+
+```{r taux-morbidite-tableau}
+taux_morb <- df_sante %>%
+  group_by(sexe, groupe_age) %>%
+  summarise(
+    n_total  = n(),
+    n_malade = sum(malade, na.rm = TRUE),
+    taux     = n_malade / n_total * 100,
+    ic_bas   = binom.test(n_malade, n_total)$conf.int[1] * 100,
+    ic_haut  = binom.test(n_malade, n_total)$conf.int[2] * 100,
+    .groups  = "drop"
+  )
+
+taux_morb %>%
+  select(sexe, groupe_age, n_total, n_malade, taux, ic_bas, ic_haut) %>%
+  gt() %>%
+  tab_header(title = "Taux de morbidité par sexe et groupe d'âge (Wave 4, 2018)") %>%
+  cols_label(
+    sexe       = "Sexe",
+    groupe_age = "Groupe d'âge",
+    n_total    = "Effectif total",
+    n_malade   = "Nb malades",
+    taux       = "Taux (%)",
+    ic_bas     = "IC bas (%)",
+    ic_haut    = "IC haut (%)"
+  ) %>%
+  fmt_number(columns = c(taux, ic_bas, ic_haut), decimals = 1) %>%
+  tab_source_note("Source : GHS Panel Wave 4, sect4a_harvestw4")
+```
+
+```{r barplot-morbidite, fig.cap="Taux de morbidité par sexe et groupe d'âge avec intervalles de confiance à 95%"}
+ggplot(taux_morb, aes(x = groupe_age, y = taux, fill = sexe)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = ic_bas, ymax = ic_haut),
+                position = position_dodge(0.9), width = 0.25) +
+  geom_text(aes(label = round(taux, 1)),
+            position = position_dodge(0.9),
+            vjust = -2, size = 3) +
+  labs(x = "Groupe d'âge", y = "Taux de morbidité (%)", fill = "Sexe") +
+  theme_minimal()
+```
+
+## Interprétation
+
+Le taux de morbidité augmente de façon régulière avec l'âge pour les deux sexes. Les jeunes hommes de 15 à 30 ans présentent le taux le plus faible (15,8%), tandis que les personnes âgées de 60 ans et plus sont les plus touchées, avec des taux atteignant 46% chez les hommes et 52% chez les femmes. Les femmes âgées apparaissent systématiquement plus malades que leurs homologues masculins, ce qui peut refléter des différences biologiques, de comportement déclaratif ou d'exposition aux facteurs de risque.
+
+\newpage
+
+# Types de maladies et blessures déclarées
+
+## Méthodologie
+
+Les types de maladies ont été recueillis pour les individus ayant déclaré un épisode de maladie ou blessure, avec possibilité de mentionner jusqu'à deux affections par ordre de gravité (`s4aq3b_1` et `s4aq3b_2`). Les deux colonnes ont été combinées pour obtenir la fréquence totale de chaque affection, et les dix plus fréquentes ont été retenues et classées en quatre catégories : infectieuse, chronique, traumatique et symptôme.
+
+## Résultats
+
+```{r barplot-maladies, fig.cap="Dix maladies et blessures les plus fréquentes parmi les individus malades"}
+maladies <- c(df_sante$s4aq3b_1, df_sante$s4aq3b_2) %>%
+  as_factor() %>%
+  table() %>%
+  as.data.frame() %>%
+  setNames(c("maladie", "freq")) %>%
+  arrange(desc(freq)) %>%
+  slice(1:10) %>%
+  mutate(
+    categorie = case_when(
+      maladie %in% c("1. MALARIA", "2. TB", "3. YELLOW FEVER",
+                     "4. TYPHOID", "5. CHOLERA", "6. DIARRHEA",
+                     "7. MENINGITIS", "8. CHICKEN POX", "9. PNEUMONIA",
+                     "10. COMMON COLD", "15. CATARRH", "16. COUGH") ~ "Infectieuse",
+      maladie %in% c("11. INJURY")                                  ~ "Traumatique",
+      maladie %in% c("13. HYPERTENSION", "18. DIABETES",
+                     "24. ULCER/STOMACH PAIN")                      ~ "Chronique",
+      TRUE                                                           ~ "Symptôme"
+    )
+  )
+
+ggplot(maladies, aes(x = reorder(maladie, freq), y = freq, fill = categorie)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = freq), hjust = -0.2, size = 3) +
+  coord_flip() +
+  labs(x = "", y = "Fréquence", fill = "Catégorie") +
+  theme_minimal()
+```
+
+## Interprétation
+
+Le paludisme (*Malaria*) domine nettement avec 2 632 cas déclarés, confirmant son statut d'endémie majeure au Nigeria. Les douleurs corporelles (*Body Pains*, 1 596 cas) et les céphalées (*Headache*, 805 cas) constituent des symptômes non spécifiques très fréquents, pouvant être associés à diverses pathologies. Les affections respiratoires comme la toux et le catarrhe figurent également parmi les dix premières. Les maladies chroniques (hypertension, diabète, ulcère) sont moins fréquentes dans ce classement, ce qui peut s'expliquer par leur moindre déclaration dans un contexte de faible accès aux soins diagnostiques.
+
+\newpage
+
+# Recours aux soins selon le type de prestataire
+
+## Méthodologie
+
+La variable `s4aq6a` renseigne le type de prestataire consulté en premier recours. Seuls les individus ayant effectivement consulté (s4aq1 = 1) sont inclus dans cette analyse, soit 4 731 individus.
+
+## Résultats
+
+```{r barplot-prestataires, fig.cap="Recours aux soins selon le type de prestataire consulté en premier recours"}
+df_sante %>%
+  filter(!is.na(s4aq6a)) %>%
+  mutate(prestataire = as_factor(s4aq6a)) %>%
+  count(prestataire) %>%
+  arrange(desc(n)) %>%
+  ggplot(aes(x = reorder(prestataire, n), y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = n), hjust = -0.1, size = 2.5) +
+  coord_flip() +
+  labs(x = "", y = "Nombre de consultations") +
+  theme_minimal()
+```
+
+## Interprétation
+
+Le chemist (pharmacien de quartier) est de loin le prestataire le plus consulté avec 2 689 recours, suivi du médecin (1 335 cas) et de l'infirmier (447 cas). Ce résultat illustre le rôle central des pharmacies informelles dans le système de santé nigérian, notamment en milieu urbain, où elles constituent souvent le premier point de contact avec le système de soins. Les tradipraticiens et guérisseurs traditionnels restent présents mais minoritaires (235 cas).
+
+\newpage
+
+# Distribution des dépenses de santé
+
+## Méthodologie
+
+La dépense totale de santé a été construite en additionnant quatre composantes : coût de la consultation (`s4aq9`), coût du transport (`s4aq10`), coût des médicaments achetés en pharmacie ou kiosque (`s4aq14`) et coût d'hospitalisation (`s4aq17`). La transformation logarithmique a été appliquée pour lisibilité, les consultations gratuites (dépense = 0) étant exclues du graphique. Sur 8 768 individus ayant au moins une dépense renseignée, 3 907 (44,6%) n'ont rien déboursé.
+
+## Résultats
+
+```{r stats-depenses-tableau}
+df_sante %>%
+  filter(!is.na(depense_totale)) %>%
+  summarise(
+    Min      = min(depense_totale),
+    Q1       = quantile(depense_totale, 0.25),
+    Médiane  = median(depense_totale),
+    Moyenne  = mean(depense_totale),
+    Q3       = quantile(depense_totale, 0.75),
+    Max      = max(depense_totale)
+  ) %>%
+  gt() %>%
+  tab_header(title = "Statistiques descriptives des dépenses totales de santé (en nairas)") %>%
+  fmt_number(everything(), decimals = 0) %>%
+  tab_source_note("Source : GHS Panel Wave 4 — s4aq9 + s4aq10 + s4aq14 + s4aq17")
+```
+
+```{r histogramme-depenses, fig.cap="Distribution des dépenses totales de santé en échelle logarithmique (consultations gratuites exclues)"}
+df_sante %>%
+  filter(!is.na(depense_totale), depense_totale > 0) %>%
+  ggplot(aes(x = log(depense_totale))) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(x = "log(dépenses totales)", y = "Fréquence",
+       caption = "Note : consultations gratuites exclues") +
+  theme_minimal()
+```
+
+## Interprétation
+
+La distribution des dépenses de santé est fortement asymétrique à droite, même après transformation logarithmique. La médiane s'établit à 850 nairas, très inférieure à la moyenne de 4 238 nairas, signe que quelques hospitalisations très coûteuses (jusqu'à 2 500 000 nairas) tirent la moyenne vers le haut. La majorité des dépenses se concentrent entre 150 et 3 000 nairas (e⁵ à e⁸), ce qui correspond aux consultations ambulatoires et aux achats de médicaments courants.
+
+\newpage
+
+# Inégalités d'accès aux soins selon le niveau de richesse
+
+## Méthodologie
+
+Le niveau de richesse est mesuré par les quintiles de consommation par équivalent adulte construits à partir de la variable `totcons_adj` de l'agrégat de consommation. Le recours aux soins (consulté / non consulté) est croisé avec ces quintiles via un tableau de contingence. Un test du chi-deux de Pearson et le V de Cramér sont calculés pour mesurer l'association.
+
+## Résultats
+
+```{r contingence-tableau}
+df17 <- df_sante %>%
+  filter(!is.na(quintile_f))
+
+tab <- table(df17$consulte, df17$quintile_f)
+
+tab %>%
+  as.data.frame.matrix() %>%
+  tibble::rownames_to_column("Consultation") %>%
+  gt() %>%
+  tab_header(title = "Recours aux soins selon le quintile de consommation") %>%
+  tab_source_note(paste0(
+    "Chi-deux = 388.25, ddl = 4, p < 2.2e-16 | V de Cramér = 0.12"
+  ))
+```
+
+```{r barplot-quintiles, fig.cap="Proportion d'individus ayant consulté un prestataire de santé selon le quintile de richesse"}
+df17 %>%
+  count(quintile_f, consulte) %>%
+  group_by(quintile_f) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ggplot(aes(x = quintile_f, y = pct, fill = consulte)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  labs(x = "Quintile de consommation", y = "%", fill = "Consultation") +
+  theme_minimal()
+```
+
+## Interprétation
+
+Le taux de consultation augmente de façon progressive avec le niveau de richesse : il passe de 12,1% dans le quintile le plus pauvre (Q1) à 26,2% dans le quintile le plus riche (Q5). Le test du chi-deux est hautement significatif (p < 2,2×10⁻¹⁶), confirmant que le niveau de richesse est associé au recours aux soins. Le V de Cramér de 0,12 indique toutefois une association statistiquement significative mais d'intensité faible, ce qui suggère que d'autres facteurs (distance, disponibilité des services, culture) jouent également un rôle important.
+
+\newpage
+
+# Disparités des dépenses de santé entre milieux rural et urbain
+
+## Méthodologie
+
+La variable `sector` distingue les zones urbaines (1) et rurales (2). Les dépenses totales de santé sont comparées entre les deux milieux via un test de Wilcoxon-Mann-Whitney, adapté à la distribution non normale des dépenses. Seuls les individus ayant engagé au moins une dépense positive sont inclus.
+
+## Résultats
+
+```{r stats-rural-urbain-tableau}
+df18 <- df_sante %>%
+  filter(!is.na(depense_totale), depense_totale > 0)
+
+df18 %>%
+  group_by(milieu) %>%
+  summarise(
+    N       = n(),
+    Médiane = median(depense_totale),
+    Moyenne = mean(depense_totale),
+    Q1      = quantile(depense_totale, 0.25),
+    Q3      = quantile(depense_totale, 0.75)
+  ) %>%
+  gt() %>%
+  tab_header(title = "Dépenses de santé selon le milieu de résidence (nairas)") %>%
+  fmt_number(columns = c(Médiane, Moyenne, Q1, Q3), decimals = 0) %>%
+  tab_source_note("Test de Wilcoxon : W = 7 801 407, p-value = 0.88")
+```
+
+```{r violin-rural-urbain, fig.cap="Distribution des dépenses totales de santé selon le milieu de résidence"}
+ggplot(df18, aes(x = milieu, y = log(depense_totale), fill = milieu)) +
+  geom_violin(alpha = 0.6) +
+  geom_boxplot(width = 0.2, outlier.shape = NA) +
+  stat_summary(fun = median, geom = "text",
+               aes(label = round(exp(after_stat(y)), 0)),
+               vjust = -0.5, size = 3) +
+  labs(x = "", y = "log(dépenses totales)",
+       caption = "Médiane annotée en nairas") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Interprétation
+
+Les dépenses médianes de santé sont remarquablement proches entre zones urbaines (850 nairas) et rurales (900 nairas). Le test de Wilcoxon ne détecte aucune différence significative (p = 0,88), ce qui suggère que le coût monétaire des soins n'est pas le principal facteur de disparité d'accès entre les deux milieux. Les inégalités d'accès observées précédemment sont donc davantage liées à la distance aux établissements de santé, à la disponibilité des services et aux facteurs socio-culturels qu'aux capacités financières stricto sensu.
+
+\newpage
+
+# Conclusion générale
+
+Cette analyse des données de santé du GHS Panel Wave 4 met en évidence plusieurs résultats majeurs sur l'état sanitaire des ménages nigérians en 2018.
+
+Premièrement, le taux de morbidité global de 24,3% révèle un fardeau sanitaire important, qui s'accentue fortement avec l'âge. Le paludisme demeure la pathologie dominante, confirmant les priorités de santé publique du Nigeria.
+
+Deuxièmement, le système de soins nigérian se caractérise par un fort recours aux pharmacies de quartier (*chemists*), qui constituent le premier point de contact pour la majorité de la population. Ce constat soulève des questions sur la qualité et la régulation de ces soins informels.
+
+Troisièmement, les inégalités socio-économiques d'accès aux soins sont réelles et statistiquement significatives : les ménages du quintile le plus riche consultent plus de deux fois plus souvent que les plus pauvres. Ces inégalités ne semblent cependant pas s'expliquer par les seuls coûts directs des soins, la dépense médiane étant similaire entre milieux rural et urbain.
+
+Ces résultats appellent à des politiques de santé ciblées sur les populations âgées, les ménages pauvres et les zones enclavées, avec un renforcement des infrastructures sanitaires de proximité.

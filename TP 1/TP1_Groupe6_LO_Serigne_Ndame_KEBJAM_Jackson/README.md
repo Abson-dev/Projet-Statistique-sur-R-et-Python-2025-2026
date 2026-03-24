@@ -48,7 +48,21 @@ TP1_profil_demographique/
 └── README.md
 ```
 
+## Structure conceptuelle de la basE
+
+sect1_harvestw4.dta                    secta_harvestw4.dta
+    │                                         │
+    │ (composition du ménage)                 │ (localisation)
+    │                                         │
+    └──────────────┬──────────────────────────┘
+                   │
+                   ▼
+            data_tp1_clean.rds
+    (individus avec leur zone géographique)
+
 ---
+
+
 
 ## Ordre d'exécution
 
@@ -116,11 +130,11 @@ install.packages(c(
 
 ## Résultats clés (Wave 4, 2018)
 
-- **Âge médian :** 18 ans — population très jeune, pyramide à base large
-- **Composition :** enfants 49% | autre famille 21% | chefs de ménage 16% | conjoints 14%
+- **Âge médian :** 15 ans — population très jeune, pyramide à base large
+- **Composition :** enfants 62% | autre famille 21% | chefs de ménage 16% | conjoints 14%
 - **Normalité :** rejetée (Shapiro-Wilk p < 0,001) → tests non paramétriques justifiés
 - **Taille ménage :** différence significative rural/urbain (Wilcoxon p < 0,001, r grand)
-- **Genre :** répartition 50/50 hommes/femmes, sans différence entre zones (p = 0,5)
+- **Genre :** répartition 50/50 hommes/femmes, sans différence entre zones (p = 0,4)
 
 ---
 

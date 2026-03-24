@@ -1,0 +1,2 @@
+"0","sect1_harvestw4 <- processed_w4 %>%"
+"0","    select(hhid, indiv,strata, ea,starts_with(""harvest_""),wt_wave4)"

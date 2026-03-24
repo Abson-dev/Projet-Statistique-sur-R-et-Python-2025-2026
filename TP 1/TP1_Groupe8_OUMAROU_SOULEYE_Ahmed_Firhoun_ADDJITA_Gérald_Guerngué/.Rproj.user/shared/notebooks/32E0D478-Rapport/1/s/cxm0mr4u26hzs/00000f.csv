@@ -1,0 +1,5 @@
+"0","nrow(unique(sect1_harvestw4[, c(""hhid"", ""indiv"")]))==nrow(sect1_harvestw4)"
+"1","[1]"
+"1"," TRUE"
+"1","
+"

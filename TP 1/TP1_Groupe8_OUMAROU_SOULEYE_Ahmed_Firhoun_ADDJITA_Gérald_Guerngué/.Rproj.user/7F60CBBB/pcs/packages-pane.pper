@@ -1,0 +1,7 @@
+{
+    "installOptions": {
+        "installFromRepository": true,
+        "libraryPath": "C:/Users/Ahmed Firhoun/Documents/ENSAE/ISE/ISE1-Eco/Semestre 2/Projet statistique R/TP R/TPs/TP1_Groupe8_OUMAROU_SOULEYE_Ahmed_ADDJITA_Gerald/renv/library/windows/R-4.4/x86_64-w64-mingw32",
+        "installDependencies": true
+    }
+}

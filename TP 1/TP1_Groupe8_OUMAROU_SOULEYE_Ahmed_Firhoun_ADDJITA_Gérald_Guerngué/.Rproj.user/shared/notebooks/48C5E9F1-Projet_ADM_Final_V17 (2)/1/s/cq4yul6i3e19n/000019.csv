@@ -1,0 +1,16 @@
+"0","# ============================================================"
+"0","# CHARGEMENT DES PACKAGES"
+"0","# ============================================================"
+"0",""
+"0","# Manipulation et visualisation des données"
+"0","library(readxl)      # Lecture des fichiers Excel"
+"0","library(dplyr)       # Manipulation de données (tidyverse)"
+"0","library(tibble)      # Gestion des rownames"
+"0","library(ggplot2)     # Visualisations avancées"
+"0","library(knitr)       # Formatage des tableaux (kable)"
+"0",""
+"0","# Analyse factorielle"
+"0","library(FactoMineR)  # ACP, AFD, HCPC"
+"2","Erreur dans library(FactoMineR) : 
+  aucun package nommé ‘FactoMineR’ n'est trouvé
+"

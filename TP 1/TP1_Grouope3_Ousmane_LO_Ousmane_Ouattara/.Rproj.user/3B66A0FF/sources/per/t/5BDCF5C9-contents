@@ -1,0 +1,121 @@
+---
+title: "Analyse Socio-Démographique du Nigeria"
+subtitle: "Étude des structures familiales et des disparités Urbain/Rural"
+author: 
+  - "LO Ousmane"
+  - "OUATTARA Ousmane"
+date: "2026-03-24"
+format:
+  docx:
+    toc: true
+    toc-title: "Table des Matières"
+    number-sections: true
+    highlight-style: github
+---
+
+# Introduction
+
+Ce rapport présente le profil démographique des ménages au Nigeria à partir de la vague 4 (2018-2019) de l'enquête **General Household Survey (GHS) Panel**. Cette base de données, issue du programme **LSMS-ISA** de la Banque Mondiale, est essentielle pour comprendre la structure sociale du pays le plus peuplé d'Afrique. L'objectif est d'analyser la composition des foyers, la pyramide des âges et les disparités entre les zones urbaines et rurales.
+
+# Méthodologie et Préparation des Données
+
+Conformément aux consignes, nous utilisons les sections `sect1_harvestw4` (composition du ménage) et `secta_harvestw4` (localisation géographique).
+
+L'exploration initiale des données via les méthodes `glimpse()` et `vis_miss()` permet de s'assurer de l'intégrité des données sur la variable **hhid** qui répresente l'identifiant du ménage. Les variables **hhid** et **indiv_id** couplées ne présentent aucun doublons. Toutefois, sur l'ensemble des observations, le nombre de valeurs manquantes est assez important (59.1%).
+
+```{r echo = FALSE }
+load("../output/figures/donnees_manquantes.RDATA")
+donnees_manquantes
+
+```
+
+# Analyse Univariée de l'Âge
+
+L'âge est une variable pivot. Nous étudions sa distribution pour identifier la maturité démographique de la population nigérienne.
+
+L'analyse de l'histogramme suivant les différentes tranches d'âge révèle une population extrêmement jeune, avec une forte concentration dans les premières tranches d'âge.
+
+L'analyse du boxplot montre que la médiane est inférieur à 20 ans. C'est à dire que 50% de la population a moins de 20 ans.
+
+Le test de **Shapiro-Wilk** confirme la non-normalité de cette distribution, justifiant l'usage de tests non-paramétriques par la suite.
+
+```{r}
+#| layout-ncol: 2
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 5
+load("../output/figures/histogramme_age.RDATA")
+load("../output/figures/boxplot_age.RDATA")
+histogramme_age
+boxplot_age
+
+```
+
+# Pyramide des Âges (Vague 4)
+
+La pyramide des âges permet de visualiser le rapport de dépendance et l'équilibre homme-femme.
+
+La base très large de la pyramide indique un taux de natalité élevé. On observe aussi dans l'ensemble une réduction progressive des effectifs avec l'âge et un rapport homme/femme assez équilibré. Cette situation est typique des pays en développement.
+
+```{r}
+#| echo: false
+#| fig-height: 5
+#| warning: false
+load("../output/figures/pyramide_age.RDATA")
+pyramide_plot
+```
+
+# Structure de Parenté au sein des Ménages
+
+Nous analysons ici la fréquence des liens de parenté ( variable **s1q3**) pour comprendre l'organisation des cellules familiales.
+
+L'analyse montre que les enfants prédominent, bien que la part des autres reste significative, ce qui suggère la persistance du modèle de famille élargie.
+
+```{r echo=FALSE}
+#|echo: false
+#|message: false
+load("../output/figures/diagrame_baton_lien.RDATA")
+lien_plot
+```
+
+# Comparaison Urbain/Rural : Taille des Ménages
+
+L'une des tâches centrales consiste à comparer la taille des ménages entre les zones rurales et urbaines. L'analyse des box-plots montre que la taille des ménages est plus élevée en milieu rural qu'en milieu urbain. En milieu rural, 50 % des ménages comptent en moyenne plus de 6 membres contre 5 en milieu urbain.
+
+Le test de **Wilcoxon-Mann-Whitney** confirme une différence de rangs significatives (p \< 0.001). Pour quantifier l’ampleur de la divergence, on a calculé la taille d'effet $r= 0,14$ .
+
+Selon la grille d'interprétation de Cohen :
+
+-   $0,10 \leq r < 0,30$ : Effet de petite taille (faible).
+
+-   $0,30 \leq r < 0,50$ : Effet modéré.
+
+-   $r \geq 0,50$ : Effet de grande taille (fort).
+
+Avec un $r = 0,14$, nous concluons que si la zone de résidence influence statistiquement la taille des ménages, cette influence reste **modeste**. Cela signifie qu'un ménage rural n'est pas systématiquement beaucoup plus grand qu'un ménage urbain ; il existe un fort recouvrement entre les deux distributions."
+
+```{r echo = FALSE , warning= FALSE }
+#|echo: false
+#|warning: false
+#|fig-pos: 'H'
+
+load("../output/figures/boxplot_secteur.RDATA")
+boxplot_secteur
+```
+
+# Synthèse Démographique Stratifiée
+
+Le tableau suivant récapitule les indicateurs clés (âge, sexe, taille du ménage) stratifiés par zone.
+
+Ce tableau de synthèse, produit via `gtsummary`, offre une lecture directe des disparités géographiques et de leur significativité statistique.
+
+```{r echo=FALSE , warning=FALSE}
+
+load("../output/tables/tableau_racapitulatif.RDATA")
+tableau_recap
+```
+
+# Conclusion
+
+Cette analyse descriptive confirme le profil d'une population nigériane jeune avec des structures de ménages variant sensiblement selon le milieu de résidence. Les résultats obtenus constituent une base solide pour des études plus approfondies sur le capital humain ou le bien-être économique.

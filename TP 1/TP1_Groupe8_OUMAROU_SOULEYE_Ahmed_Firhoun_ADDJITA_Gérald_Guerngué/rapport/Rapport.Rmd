@@ -1,0 +1,729 @@
+---
+title: "Analyse 1 - Profil démographique des ménages nigérians"
+author: "Ahmed Firhoun OUMAROU SOULEYE & Gérald Guerngué ADDJITA"
+date: "2026-03-12"
+output:
+  word_document: 
+    reference_docx: "style/template.docx"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = F,#empeche l'affichage des codes
+  message = FALSE,  # supprime les messages
+  warning = FALSE  # supprime les warnings
+  )
+options(OutDec = ",")
+```
+
+
+
+```{r}
+packages <- c(
+  "haven", "labelled", "dplyr", "Hmisc", "stringr",
+  "ggplot2", "PropCIs", "forcats", "rcompanion",
+  "survey", "gt", "gtsummary", "naniar", "visdat",
+  "webshot2", "scales"
+)
+
+# Installer les packages manquants
+packages_manquants <- packages[!packages %in% installed.packages()[, "Package"]]
+
+if (length(packages_manquants) > 0) {
+  cat("Installation des packages manquants :", paste(packages_manquants, collapse = ", "), "\n")
+  install.packages(packages_manquants)
+} else {
+  cat("Tous les packages sont déjà installés\n")
+}
+
+```
+
+```{r echo=T}
+library(haven)
+library(dplyr)
+library(visdat)
+library(ggplot2)
+library(PropCIs)
+library(forcats)
+library(rcompanion)
+#Pour le plan de sondage 
+library(survey)
+#Pour les tableaux
+library(gt)
+library(gtsummary)
+#Pour les quartiles pondérés
+library(Hmisc)
+```
+# 0. Préliminaires
+## 0.1. Concernant le traitement des non-réponses et repondération
+
+## 0.1.1.Non-réponses
+Lors de l'exploration des données, nous avons constaté que certains membres des ménages présentent des valeurs manquantes sur l'ensemble des variables d'intérêt 
+(`s1q2`, `s1q3`, `s1q4` pour la base période de soudure (harvest)), nous les considérons donc comme des non-réponses totales. Ces individus représentent environ 13% de l'échantillon initial.
+
+Afin de maintenir la représentativité de l'échantillon, nous avons procédé à une re-pondération, selon la méthodologie 
+décrite dans selon la méthodologie décrite dans [Nations Unies (2010, Série F N°98, section 6.5.3, page 132)](documentation/NationsUnies_guide_conception_enquetes.pdf). Nous suivrons ainsi la démarche qui suit:
+
+**Étape 1.** Identification des non-répondants, définis comme les individus pour lesquels toutes les variables d'intérêt sont manquantes.
+
+**Étape 2.** Décomposition de l'échantillon en sous-groupes  (correspondant ici aux strates de sondage) et calcul des taux pondérés de non réponses $\frac{r_h}{n_h}$ où $n_h$ désigne le nombre total d'individus sélectionnés dans la strate $h$ et $r_h$ le nombre d'individus répondants. 
+
+**Étape 3.** Pour chaque strate $h$, calcul du facteur de correction $w_{2h}$ défini comme l'inverse du taux de réponse :
+
+$$w_{2h} = \frac{n_h}{r_h}$$
+
+**Étape 4.** Calcul de la pondération ajustée $w_h^*$ pour chaque répondant $i$ de la strate $h$ :
+
+$$w_i^* = w_{1i} \times w_{2h}$$
+
+où $w_{1i}$ est la pondération initiale de l'individu $i$.
+
+**Étape 5.** Suppression des non-répondants de l'échantillon.
+
+Cette approche garantit que la somme totale des pondérations est conservée après suppression des non-répondants, maintenant ainsi la représentativité de l'échantillon.
+
+
+### 0.1.2.Pondérations manquantes
+24 membres de ménages n'avaient pas de pondération, nous les avons supprimé de l'échantillon.
+
+## 0.2.Chargement des données
+La base processed_w4 est la fusions des bases sect1_harvestwX.dta, secta_harvestw4.dta et sect1_plantingw4.dta suivant la clé `hhid+indiv`.
+```{r}
+processed_w4 <- read_dta("../data/processed/processed_w4.dta")
+processed_w4 <- processed_w4 %>%
+  mutate(across(-c(hhid, indiv, starts_with("wt_wave"),ends_with("s1q4")), ~ as_factor(.x)))
+```
+Toutes les bases sont chargées et les variables qualitatives sont converties en facteurs.
+
+## 0.3. Plan de sondage et méthode d'échantillonnage
+
+L'enquête GHS-Panel repose sur un sondage aléatoire à deux degrés 
+([NBS, 2012](documentation/General_Household_Survey-Panel_2010-2011.pdf)), 
+conçu pour être représentatif au niveau national et zonal (urbain/rural).
+
+**Premier degré - Sélection des Zones de Dénombrement (ZD)** \
+Les unités primaires de sondage (PSU) sont les Zones de Dénombrement (ZD), 
+appelées *Enumeration Areas* (EAs) en anglais. Un total de 500 ZD ont été 
+sélectionnées par la méthode de **probabilité proportionnelle à la taille** 
+(PPT), en tenant compte du nombre total de ménages recensés dans chaque ZD, 
+par État et par le Territoire de la Capitale Fédérale (FCT) d'Abuja.
+
+**Deuxième degré - Sélection des ménages** \
+Au sein de chaque ZD sélectionnée, **10 ménages** ont été tirés par 
+**sélection systématique**. L'intervalle de sondage $SI$ est calculé comme :
+
+$$SI = \frac{N_{ZD}}{10}$$
+
+où $N_{ZD}$ est le nombre total de ménages recensés dans la ZD. Un point de 
+départ aléatoire $r$ est tiré, puis les ménages suivants sont sélectionnés en 
+ajoutant successivement $SI$ à $r$. Au total, **5 000 ménages** répartis dans 
+les 500 ZD ont été enquêtés, sans remplacement.
+
+**Implications pour l'analyse** \
+ C'est pourquoi toutes nos analyses intègrent le plan de 
+sondage via la fonction `svydesign()` du package `survey` ([Lumley, 2010](#)), 
+en spécifiant :
+```{r}
+plan_sondage <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = processed_w4,
+  nest    = TRUE
+)
+```
+- **`ids = ~ea`** : les ZD comme unités primaires de sondage
+- **`strata = ~strata`** : les strates de sondage
+- **`weights = ~wt_wave4`** : les poids de sondage calibrés
+- **`nest = TRUE`** : les ZD étant numérotées au sein de chaque strate
+
+# 1. Charger sect1_harvestw4 avec haven. Explorer la structure: str(), glimpse(), summary(). Vérifier les doublons sur hhid + indiv_id et les valeurs manquantes (naniar::vis_miss).
+
+## 1.a. Charger les données et explorer la structure
+Nous sélectionnerons uniquement les variables de `sect1_harvestw4` dans la base `processed`.
+```{r echo=T}
+sect1_harvestw4 <- processed_w4 %>%
+    select(hhid, indiv,strata, ea,starts_with("harvest_"),wt_wave4)
+```
+
+Les variables semblent être dans le bon format :
+```{r}
+str(sect1_harvestw4)
+```
+
+```{r}
+glimpse(sect1_harvestw4)
+```
+Nous n'appliquerons le `summary` qu'aux variables qui ne sont pas des ID :
+```{r}
+sect1_harvestw4 %>% 
+  select(-c(hhid,indiv)) %>% 
+  summary()
+```
+## 1.b. Vérifier les doublons
+On compare le nombre de ligne de la base ```sect1_harvestw4``` au nombre de combinaison hhid+indiv uniques, s'ils sont égaux (c'est-à-dire que le code suivant renvoie `TRUE`), il n'y a pas de doublons dans la base.
+```{r}
+nrow(unique(sect1_harvestw4[, c("hhid", "indiv")]))==nrow(sect1_harvestw4)
+```
+Il n'y a donc pas de doublons sur `hhid+indiv`.
+
+
+## 1.c. Valeurs manquantes
+Comme nous pouvons le voir, toutes les valeurs manquantes ont été traitées comme expliqué précédemment.
+
+```{r fig.width=12, fig.height=9}
+visdat::vis_miss(
+  sect1_harvestw4 %>% 
+    setNames(c("ID Ménage", "ID Membre du ménage", "Strate","Zone de dénombrement (Enumeration Area)","Sexe", "Lien de parenté avec le chef de ménage", "Age du membre", "Pondération (vague 4)"))
+) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 14,face = "bold"),  # labels colonnes
+    axis.text.y = element_text(size = 16),                          # labels axe Y
+    axis.title  = element_text(size = 16),                          # titre des axes
+    plot.title  = element_text(size = 18, face = "bold"),           # titre principal
+    legend.text = element_text(size = 16)                           # légende
+  ) +
+  labs(title = "Valeurs manquantes pour la Section 1 - Période de soudure (Harvest) - Vague 4",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)")
+```
+
+
+
+# 2. Analyse univariée de l'âge des membres: histogramme (binwidth = 5), boîte à moustaches, statistiques descriptives (moyenne, médiane, Q1, Q3, CV, asymétrie). Tester la normalité avec Shapiro-Wilk.
+
+## 2.a.Distribution de l'âge des membres
+Soient `x` l'âge du membre du ménage et `w` le poids qui lui est association :
+```{r}
+x <- sect1_harvestw4$harvest_s1q4
+w <- sect1_harvestw4$wt_wave4
+```
+
+- **Coefficient d'asymétrie de Fisher** \
+Le coefficient d'asymétrie de Fisher est défini par :
+$$g_1 = \frac{\mu_3}{\sigma^3}$$
+
+où $\mu_3$ est le moment centré d'ordre 3 :
+
+$$\mu_3 = \frac{1}{n}\sum_{i=1}^{n}(x_i - \bar{x})^3$$
+
+et $\sigma$ l'écart-type :
+
+$$\sigma = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(x_i - \bar{x})^2}$$
+
+Dans le cadre d'une enquête par sondage, chaque individu $i$ est associé à un poids $w_i$ (tel que $\sum_{i=1}^{n} w_i = 1$), nous substituons alors la moyenne simple par la moyenne pondérée :
+
+$$\bar{x}_w = \sum_{i=1}^{n} w_i x_i$$
+
+Le moment pondéré et l'écart-type deviennent :
+
+$$\mu_3^w = \sum_{i=1}^{n} w_i(x_i - \bar{x}_w)^3 \qquad 
+\sigma_w = \sqrt{\sum_{i=1}^{n} w_i(x_i - \bar{x}_w)^2}$$
+
+Le coefficient d'asymétrie pour le cas pondéré est alors :
+
+$$g_1^w = \frac{\mu_3^w}{(\sigma_w)^3}$$$\text{où} \quad \bar{x}_w = \frac{\sum_{i=1}^{n} w_i x_i}{\sum_{i=1}^{n} w_i}$
+```{r}
+# Suppression des NA
+ok <- !is.na(x) & !is.na(w)
+x_clean  <- x[ok]
+w_clean  <- w[ok]
+
+# Normalisation des poids
+w_clean <- w_clean / sum(w_clean)
+
+# Moyenne pondérée
+x_bar_w <- sum(w_clean * x_clean)
+
+# Ecart-type pondéré
+sigma_w <- sqrt(sum(w_clean * (x_clean - x_bar_w)^2))
+
+# Moment centré d'ordre 3 pondéré
+mu3_w <- sum(w_clean * (x_clean - x_bar_w)^3)
+
+# Coefficient d'asymétrie pondéré
+g1_w <- mu3_w / sigma_w^3
+
+cat("Coefficient d'asymétrie pondéré :", round(g1_w, 4))
+```
+
+Le coefficient d'asymétrie de Fisher s'établit à `r format(round(g1_w, 4), decimal.mark = ",")`, nous avons donc $\gamma>0$. La distribution est donc étalée vers la droite (ou oblique à gauche).
+
+
+- **Histogramme**
+
+Le resultat du coefficient d'asymétrie est corroboré par l'histogramme suivant. Nous avons bien une distribution étalée vers la droite.Et la majorité des ménages ayant moins de trente ans.
+
+```{r fig.height=3}
+ggplot(sect1_harvestw4, aes(x = harvest_s1q4, weight = wt_wave4 / sum(wt_wave4, na.rm = TRUE))) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "black") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_continuous(breaks = seq(0, 130, by = 10)) +
+  labs(title = "Distribution de l'âge des membres des ménages",
+       x = "Âge",
+       y = "Proportion",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)")
+```
+Les résultats précédents sont également confirmé par la boîte à moustache qui suit. Premièrement, comme l'indiquait l'histogramme, la distribution est étalée à gauche, l'intervalle $[Q_1;M_e]$ étant moint étendu que l'intervalle $[M_e;Q_3$. Il n'y a également aucune valeurs aberrantes. En effet, durant le nettoyage des données, une winsorization a été appliquée, qui consiste en ramener les valeurs aberrantes aux bornes inférieure ($Q1-1,5\times (Q_3-Q_1)$) et supérieure  ($Q_3+1,5\times (Q_3-Q_1)$).
+
+```{r fig.height=3.5}
+# Calcul des quantiles pondérés via svydesign
+q_age <- svyquantile(~harvest_s1q4, plan_sondage, 
+                      quantiles = c(0.25, 0.5, 0.75), 
+                      na.rm = TRUE)
+
+Q1  <- coef(q_age)[1]
+Med <- coef(q_age)[2]
+Q3  <- coef(q_age)[3]
+IQR_pond  <- Q3 - Q1
+borne_inf <- Q1 - 1.5 * IQR_pond
+borne_sup <- Q3 + 1.5 * IQR_pond
+
+df_box <- data.frame(
+  x      = "Âge",
+  ymin   = borne_inf,
+  lower  = Q1,
+  middle = Med,
+  upper  = Q3,
+  ymax   = borne_sup
+)
+
+ggplot(df_box, aes(x = x, ymin = ymin, lower = lower,
+                    middle = middle, upper = upper, ymax = ymax)) +
+  geom_boxplot(stat = "identity", fill = "steelblue", 
+               color = "black", width = 0.4) +
+  labs(title = "Boxplot pondéré de l'âge des membres des ménages",
+       x     = "",
+       y     = "Âge",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)") +
+  theme_minimal()
+```
+
+## 2.b.Caractéristiques de tendance centrale et de dispersion
+Le tableau ci-dessous permet de remarque qu'environ un quart des membres des ménages nigérians ont un âge d'au plus 8 ans. Quant à l'âge médian, s'établissant à 17 ans, il signifie que la moitié de la population nigérianne à moins de 17 ans. Et un quart des nigérians ont plus de 35 ans. Ces quartiles permettent de conclure que l'intervalle interquartile est $[8; 35]$ signifiant que la moitié de la population nigérianne a entre 8 et 35 ans.
+
+```{r}
+q_age <- svyquantile(~harvest_s1q4, plan_sondage, 
+                      quantiles = c(0.25, 0.5, 0.75), 
+                      na.rm = TRUE)
+
+Q1 <- coef(q_age)[1]
+Q2 <- coef(q_age)[2]
+Q3 <- coef(q_age)[3]
+IQR_pond  <- Q3 - Q1
+borne_inf <- Q1 - 1.5 * IQR_pond
+borne_sup <- Q3 + 1.5 * IQR_pond
+
+# Tableau des quartiles
+tibble(
+  Quartile = c("Q1 (25%)", "Q2 (50%)", "Q3 (75%)"),
+  Valeur   = c(Q1, Q2, Q3)
+) %>%
+  gt() %>%
+  tab_header(title = "Quartiles")
+```
+```{r}
+# Avec plan de sondage complet
+moy_pond <- coef(svymean(~harvest_s1q4, plan_sondage, na.rm = TRUE))
+sd_pond  <- sqrt(coef(svyvar(~harvest_s1q4, plan_sondage, na.rm = TRUE)))
+cv       <- sd_pond / moy_pond
+
+cat("Moyenne :", round(moy_pond, 2), "\n")
+cat("Coefficient de variation :", round(cv, 2))
+```
+L'âge moyen d'un nigérian est de `r format(round(moy_pond, 2), decimal.mark = ",")` ans, ce qui est au dessus de l'age médian de près de `r round(moy_pond-Q2)` ans. Cela pouvant s'expliquer par la distribution oblique à gauche. Le coefficient de variation s'élève quant à lui à `r format(round(cv, 2), decimal.mark = ",")`, nous avons $CV>\frac{1}{3}$, donc la distribution est hétérogène.
+
+## 2.c. Normalité
+Nous effectuerons le tests de normalité sans les poids.
+
+### i. Diagramme quantile-quantile
+Le diagramme quantile-quantile (appelé Q-Q plot en anglais) est un graphique permettant de juger de la normalité d'une variable. Le graphique compare les quantiles des données observées aux quantiles de notre distribution théorique (distribution normale). Nous avons ainsi en abscisse les quantiles théoriques de la loi normale et en ordonnée ceux issus des données réelles. 
+
+Si les données suivent de près la distribution théorique, les points du graphique Q-Q se déplacent sur une ligne diagonale. Les écarts par rapport à cette ligne indiquent des écarts par rapport à la distribution attendue. Les points situés au-dessus ou au-dessous de la ligne indiquent une asymétrie ou des valeurs aberrantes, et les motifs tels que les courbes ou les écarts en forme de S indiquent une distribution non normale. Pour notre cas, les données s'écartent de la diagonale et forment un "S", donc nous pouvons dès lors soupçonner que la variable ne suit pas une loi normale.
+
+```{r fig.height=3}
+ggplot(sect1_harvestw4, aes(sample = harvest_s1q4)) +
+  stat_qq() +
+  stat_qq(color = "steelblue") +
+  stat_qq_line(color = "red") +
+  labs(title = "QQ-plot de l'âge des membres des ménages",
+       x = "Quantiles théoriques",
+       y = "Quantiles observés",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)")
+```
+
+### ii. Test de Shapiro-Wilks
+
+Le test de Shapiro-Wilks nous permettra de conclure formellement sur la normalité de notre variable d'intérêt. Cependant, le logiciel `R` ne supporte pas le test pour des échantillons de plus de 5000 observations, ce qui est notre cas. Nous tirerons donc aléatoirement un échantillon de 5000 individus. Avec `set_seed(123)`, nous "fixons" l'aléatoire pour empêcher que les résultats ne diffèrent entre chaque exécution.
+```{r}
+set.seed(123)
+age_clean <- sect1_harvestw4$harvest_s1q4[!is.na(sect1_harvestw4$harvest_s1q4)]
+age_sample <- sample(age_clean, size = 5000)
+
+test <- shapiro.test(age_sample)
+
+data.frame(
+  N                = length(age_sample),
+  Statistique_W    = round(test$statistic, 4),
+  p_value          = format(test$p.value, scientific = TRUE, digits = 3)
+) %>%
+  setNames(c("Taille de l'échantillon (N)","Statistique de test","p-value")) %>% 
+  gt() %>%
+  tab_header(title = "Test de Shapiro-Wilk")
+```
+Le p-value étant proche de 0 (`r format(test$p.value, scientific = TRUE, digits = 3,decimal.mark = ",")`), donc inférieure à 0,05, nous pouvons rejetter l'hypothèse de normalité au seuil de 5%.
+
+# 3. Pyramide des âges (groupes de 5 ans) par sexe pour la vague 4 (package apyramid ou ggplot2 + coord_flip). Commenter la structure d'ensemble.
+
+Les tranches d'âge inférieures à 20 ans concentrent près de la moitié de la population totale. Les 5-9 ans constituent le mode de cette distribution, atteignant 8,7% chez les hommes et 8,1% chez les femmes. Notre pyramide des âges est de type progressive, le nombre de personnes dans les intervalles diminue à mesure que l’âge augmente. Il s'agit d'une structure pyramidale typique pour les pays en développement. La cause de cette structure pourrait être la conséquence de taux de natalité élevés et d’un taux mortalité augmentant avec l’âge
+Le sommet est effilé au-delà de 60 ans, les effectifs deviennent très faibles, aucune tranche ne dépassant 1,5% de la population totale. Cela reflète une espérance de vie encore modeste.
+
+```{r}
+
+pyramid_data <- processed_w4 %>%
+  filter(!is.na(harvest_s1q4), !is.na(harvest_s1q2),
+         harvest_s1q4 >= 0, harvest_s1q4 <= 110) %>%
+  mutate(
+    groupe_age = cut(harvest_s1q4,
+      breaks = c(0,5,10,15,20,25,30,35,40,45,
+                 50,55,60,65,70,75,80,Inf),
+      labels = c("0-4","5-9","10-14","15-19","20-24",
+                 "25-29","30-34","35-39","40-44","45-49",
+                 "50-54","55-59","60-64","65-69","70-74",
+                 "75-79","80+"),
+      right = FALSE)
+  ) %>%
+  filter(!is.na(groupe_age))
+
+n_total_pyr <- sum(pyramid_data$wt_wave4, na.rm = TRUE)
+
+pyr_count <- pyramid_data %>%
+  group_by(groupe_age, harvest_s1q2) %>%
+  summarise(n = sum(wt_wave4, na.rm = TRUE), .groups = "drop") %>%
+  mutate(
+    pct_plot  = ifelse(harvest_s1q2 == "Homme",
+                       -n / n_total_pyr * 100,
+                        n / n_total_pyr * 100),
+    label_pct = format(abs(round(pct_plot, 1)),decimal.mark=",")
+  )
+
+y_lim <- max(abs(pyr_count$pct_plot)) * 1.28
+
+ggplot(pyr_count,
+  aes(x = groupe_age, y = pct_plot, fill = harvest_s1q2)) +
+  geom_col(width = 0.88, alpha = 0.92) +
+  geom_text(
+    aes(label = label_pct),
+    hjust = ifelse(pyr_count$harvest_s1q2 == "Homme", 1.18, -0.18),
+    size  = 3, color = "#2D3436", fontface = "bold"
+  ) +
+  scale_fill_manual(
+    values = c("Homme" = "steelblue", "Femme" = "#FF6B6B"),
+    name   = "Sexe"
+  ) +
+  scale_y_continuous(
+    labels = function(x) abs(x),
+    limits = c(-y_lim, y_lim),
+    breaks = seq(-8, 8, 2)
+  ) +
+  coord_flip() +
+  geom_hline(yintercept = 0, color = "#2D3436", linewidth = 0.9) +
+  annotate("text", x = 17.5, y = -y_lim * 0.75,
+           label = "◄  HOMMES", fontface = "bold",
+           color = "steelblue", size = 4.5) +
+  annotate("text", x = 17.5, y = y_lim * 0.75,
+           label = "FEMMES  ►", fontface = "bold",
+           color = "#FF6B6B", size = 4.5) +
+  labs(
+    title    = "Pyramide des âges des membres des ménages",
+    subtitle = paste0("Nigeria GHS Panel — Wave 4 (2018) | N = ",
+                      format(nrow(pyramid_data), big.mark = " "),
+                      " individus"),
+    x       = "Groupe d'âge (années)",
+    y       = "Part de la population (%)",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)"
+  ) +
+  theme(
+    legend.position    = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_line(color = "#EEEEEE", linewidth = 0.5)
+  )
+```
+
+# 4. Fréquences du lien de parenté (chef de ménage, conjoint, enfant, autre): diagramme en barres horizontales ordonné par fréquence. Calculer les proportions avec IC à 95% (package PropCIs ou binom.test).
+```{r}
+df_lien <- processed_w4 %>%
+  mutate(harvest_s1q3 = fct_collapse(harvest_s1q3,
+    "Chef de ménage"        = "Chef de ménage",
+    "Conjoint(e)"           = "Conjoint(e)",
+    "Enfant"                = "Enfant",
+    "Petit-enfant"          = "Petit-enfant",
+    "Frère/Sœur"            = "Frère/Sœur",
+    "Père/Mère"             = "Père/Mère",
+    "Autres apparentés"     = c("Beau-fils/Belle-fille", "Enfant adopté(e)",
+                                "Neveu/Nièce", "Beau-frère/Belle-sœur",
+                                "Beau-père/Belle-mère",
+                                "Autre membre de la famille"),
+    "Autres non apparentés" = c("Employé(e) domestique",
+                                "Autre personne non apparentée")
+  ))
+
+plan_lien <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = df_lien,
+  nest    = TRUE
+)
+
+modalites <- levels(droplevels(df_lien$harvest_s1q3))
+
+freq_table <- do.call(rbind, lapply(modalites, function(m) {
+  df_lien$indicatrice <- as.integer(df_lien$harvest_s1q3 == m)
+  plan_tmp <- svydesign(ids = ~ea, strata = ~strata,
+                         weights = ~wt_wave4, data = df_lien, nest = TRUE)
+  res <- svyciprop(~indicatrice, plan_tmp, method = "logit")
+  data.frame(
+    harvest_s1q3 = m,
+    prop         = as.numeric(coef(res)),
+    prop_inf     = as.numeric(confint(res)[1]),
+    prop_sup     = as.numeric(confint(res)[2]),
+    n            = sum(df_lien$harvest_s1q3 == m)
+  )
+}))
+get_prop <- function(modalite) {
+  round(freq_table$prop[freq_table$harvest_s1q3 == modalite] * 100, 1)
+}
+prop_enfant   <- get_prop("Enfant")
+prop_chef     <- get_prop("Chef de ménage")
+prop_conjoint <- get_prop("Conjoint(e)")
+```
+
+La majorité des membres de ménages sont des enfants du chef de ménage. En effet, ils représentent `r prop_enfant`% des membres de ménages nigérians. Les chefs de ménage quant à eux constituent `r prop_chef`% des membres, tandis que leurs conjoints(es) en représentent `r prop_conjoint`%. Ces trois catégories regroupent à elles seules `r prop_enfant + prop_chef + prop_conjoint`% des membres des ménages.
+
+```{r fig.height=3.5}
+ggplot(freq_table, aes(x = reorder(harvest_s1q3, prop), y = prop)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  geom_errorbar(aes(ymin = prop_inf, ymax = prop_sup), width = 0.2) +
+  geom_text(
+    aes(label = round(prop * 100, 1)),
+    hjust = -0.5,
+    size  = 3,
+    color = "#2D3436",
+    fontface = "bold"
+  ) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    limits = c(0, max(freq_table$prop_sup) * 1.25)
+  ) +
+  labs(
+    title   = "Distribution du lien de parenté (Vague 4)",
+    x       = "Lien de parenté",
+    y       = "Proportion pondérée en % (IC 95%)",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)"
+  ) +
+  theme_minimal()
+```
+
+
+# 5. Comparer la taille moyenne des ménages entre zones rurales et urbaines (variable zone dans secta): boxplot groupé + test de Wilcoxon-Mann-Whitney. Interpréter la taille d'effet (r de rang).
+
+```{r}
+menages <- processed_w4 %>%
+  filter(!is.na(hhid), !is.na(sector)) %>%
+  group_by(hhid, sector, ea, strata) %>%
+  summarise(
+    taille_menage = n(),
+    poids         = first(wt_wave4),
+    .groups       = "drop"
+  )
+
+plan_menage <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~poids,
+  data    = menages,
+  nest    = TRUE
+)
+
+# Quantiles par secteur séparément
+get_stats_secteur <- function(secteur) {
+  plan_s <- subset(plan_menage, sector == secteur)
+  q <- svyquantile(~taille_menage, plan_s, 
+                    quantiles = c(0.25, 0.5, 0.75), na.rm = TRUE)
+  Q1  <- coef(q)[1]
+  Med <- coef(q)[2]
+  Q3  <- coef(q)[3]
+  IQR_s <- Q3 - Q1
+  data.frame(
+    sector    = secteur,
+    Q1        = Q1,
+    mediane   = Med,
+    Q3        = Q3,
+    borne_inf = pmax(Q1 - 1.5 * IQR_s, 0),
+    borne_sup = Q3 + 1.5 * IQR_s
+  )
+}
+
+stats_sector <- rbind(
+  get_stats_secteur("Rural"),
+  get_stats_secteur("Urbain")
+)
+
+# Variables pour commentaires
+stats_rural  <- stats_sector %>% filter(sector == "Rural")
+stats_urbain <- stats_sector %>% filter(sector == "Urbain")
+
+Q1_rural   <- stats_rural$Q1
+med_rural  <- stats_rural$mediane
+Q3_rural   <- stats_rural$Q3
+binf_rural <- stats_rural$borne_inf
+bsup_rural <- stats_rural$borne_sup
+
+Q1_urbain   <- stats_urbain$Q1
+med_urbain  <- stats_urbain$mediane
+Q3_urbain   <- stats_urbain$Q3
+binf_urbain <- stats_urbain$borne_inf
+bsup_urbain <- stats_urbain$borne_sup
+```
+
+Nous constatons que la taille des ménages est moins élevée en milieu urbain et rural. En effet, les ménages nigérians résidant en milieu rural ont une taille médiane de `r  med_rural` personnes tandis qu'en milieu rural la taille est de `r med_urbain`. De plus, grâce aux intervales interquartiles, nous pouvons constater 50% des ménages ruraux ont une taille comprise entre `r Q1_rural` et `r Q3_rural` tandis que les ménages urbains abritent entre `r Q1_urbain` et `r Q3_urbain`. 
+```{r fig.height=3}
+# Boxplot
+ggplot(stats_sector,
+       aes(x = sector, ymin = borne_inf, lower = Q1,
+           middle = mediane, upper = Q3, ymax = borne_sup,
+           fill = sector)) +
+  geom_boxplot(stat = "identity") +
+  labs(
+    title   = "Taille des ménages selon le milieu de résidence",
+    x       = "Milieu de résidence",
+    y       = "Taille du ménage",
+    caption = "Source : World Bank LSMS-ISA | Section 1 (Vague 4)"
+  ) +
+  scale_fill_manual(values = c("Rural" = "lightgreen", "Urbain" = "steelblue")) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+Le test de Mann-Whitney-Wilcoxon est un test non paramétrique qui compare les distributions de deux groupes indépendants, ici la taille des ménages ruraux et urbains. Il ne suppose pas la normalité des données.
+L'hypothèse nulle $H_0$ est que les deux distributions sont identiques (pas de différence selon le milieu de résidence), contre $H_1$ qu'il existe une différence.
+Quant à la taille d'effet $r$ de Rosenthal, elle mesure l'ampleur pratique de la différence entre les deux groupes, indépendamment de la taille de l'échantillon. 
+Elle est définie comme :
+
+$$r = \frac{Z}{\sqrt{N}}$$
+
+où $Z$ est la statistique de test standardisée et $N$ le nombre total d'observations. Elle varie entre 0 et 1 et s'interprète selon les critères de Cohen (1988) :
+
+- $r < 0,1$ : effet **négligeable**
+- $0,1 \leq r < 0,3$ : effet **faible**  
+- $0,3 \leq r < 0,5$ : effet **modéré**
+- $r \geq 0,5$ : effet **fort**
+
+Comme pour les autres tests, nous n'utiliserons pas les pondérations :
+```{r}
+wilcox_res <- wilcox.test(
+  taille_menage ~ sector,
+  data  = menages,
+  exact = FALSE
+)
+
+wilcox_effsize <- wilcoxonR(
+  x = menages$taille_menage,
+  g = menages$sector
+)
+
+# Variables pour commentaires dynamiques
+W_stat    <- round(wilcox_res$statistic, 0)
+p_val     <- format(wilcox_res$p.value, scientific = TRUE, digits = 3)
+r_effet   <- round(abs(wilcox_effsize), 3)
+
+# Interprétation automatique de la taille d'effet
+interpretation_r <- case_when(
+  abs(wilcox_effsize) < 0.1 ~ "négligeable",
+  abs(wilcox_effsize) < 0.3 ~ "faible",
+  abs(wilcox_effsize) < 0.5 ~ "modérée",
+  TRUE                      ~ "forte"
+)
+
+# Conclusion automatique
+conclusion <- ifelse(wilcox_res$p.value < 0.05, 
+                     "rejetons $H_0$", 
+                     "ne rejetons pas $H_0$")
+
+data.frame(
+  W        = W_stat,
+  p_value  = p_val,
+  r        = r_effet
+) %>%
+  setNames(c("Statistique W", "p-value", "Taille d'effet (r)")) %>%
+  gt() %>%
+  tab_header(title = "Test de Mann-Whitney-Wilcoxon")
+```
+
+Avec une p-value de `r p_val`, très largement inférieure au seuil de 5%, conduit au rejet de l'hypothèse nulle. Il existe donc une différence statistiquement significative entre la taille des ménages ruraux et urbains. Cependant, la taille d'effet $r =$ `r r_effet` est `r interpretation_r` 
+selon les critères de Cohen, ce qui signifie que bien que la différence soit statistiquement significative, elle reste faible.
+
+
+# 6. Tableau récapitulatif gtsummary stratifié par zone (rural/urbain) pour l'âge, le sexe et la taille du ménage, avec p-valeurs des tests de comparaison.
+
+La tableau ci-dessous nous permet de constater que la majorité des
+La répartition par sexe est quasi-équilibrée entre hommes (49,7%) et femmes (50,3%) au niveau national. Il n'y a également aucune différence significative entre milieu urbain et rural (p = 0,8).
+L'âge moyen des membres des ménages est de 23,6 ans au niveau national. Les membres des ménages urbains sont légèrement plus âgés (24,9 ans) que ceux des ménages ruraux (23,1 ans). Cette différence est statistiquement significative (p = 0,007).
+Quant à la taille, les ménages ruraux sont en moyenne plus grands (7,9 membres) que les ménages urbains (6,5 membres), avec une moyenne nationale de 7,5 membres. Cette différence est également statistiquement significative (p = 0,003).
+```{r}
+# Plan de sondage pour gtsummary
+plan_recap <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = processed_w4 %>%
+    group_by(hhid) %>%
+    mutate(taille_menage = n()) %>%
+    ungroup(),
+  nest    = TRUE
+)
+tableau_recap <- tbl_svysummary(
+  data    = plan_recap,
+  by      = sector,
+  include = c(harvest_s1q2, harvest_s1q4, taille_menage),
+  statistic = list(
+    all_continuous()  ~ "{mean}",
+    all_categorical() ~ "{n} ({p}%)"
+  ),
+  digits = list(
+    all_continuous()  ~ 1,
+    all_categorical() ~ c(0, 1)
+  ),
+  label = list(
+    harvest_s1q4  ~ "Âge (années)",
+    harvest_s1q2  ~ "Sexe",
+    taille_menage ~ "Taille du ménage"
+  ),
+  missing = "no"
+) %>%
+  add_p(
+    test = list(
+      harvest_s1q4  ~ "svy.t.test",
+      harvest_s1q2  ~ "svy.chisq.test",
+      taille_menage ~ "svy.t.test"
+    )
+  ) %>%
+  add_overall() %>%
+  add_n() %>%
+  bold_labels() %>%
+  italicize_levels() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_caption("**Tableau 1. Caractéristiques sociodémographiques selon le milieu de résidence**")
+
+tableau_recap
+```
+# Références
+
+- Federal Republic of Nigeria, National Bureau of Statistics (2012). 
+*Basic Information Document — Nigeria General Household Survey Panel*. 
+Mars 2012. [Accès au document](documentation/General_Household_Survey-Panel_2010-2011.pdf)
+
+- Nations Unies, Département des affaires économiques et sociales, 
+Division de statistique (2010). *Guide pratique pour la conception 
+d'enquêtes sur les ménages.* Études méthodologiques, Série F, N° 98. 
+New York : Nations Unies. [Accès au document](documentation/NationsUnies_guide_conception_enquetes.pdf)

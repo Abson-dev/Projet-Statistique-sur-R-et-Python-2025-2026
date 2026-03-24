@@ -3,6 +3,8 @@
 # ==============================================================================
 
 
+
+
 # ==============================================================================
 # ÉTAPE 0 : INITIALISATION – LIBRAIRIES ET DOSSIERS
 # ==============================================================================
@@ -12,13 +14,15 @@
 
 if (!require("pacman")) install.packages("pacman")
 library(pacman)
-p_load(haven, dplyr, ggplot2, naniar, tidyr, scales, rstatix, moments, coin, gtsummary, gt)
+p_load(haven, dplyr, ggplot2, naniar, tidyr, scales, rstatix, moments, coin, gtsummary, gt, survey, Hmisc)
 
 
 # 0.2. Création des dossiers de sortie
 
 #dir.create("outputs/tables", recursive = TRUE, showWarnings = FALSE)
 #dir.create("outputs/graphs", recursive = TRUE, showWarnings = FALSE)
+
+
 
 
 # ==============================================================================
@@ -34,11 +38,11 @@ secta_w4 <- read_dta("data/raw/secta_harvestw4.dta")
 
 # 1.2. Examen de la structure
 
-cat("\n--- Structure de sect1_w4 ---\n")
+cat("\n Structure de sect1_w4 \n")
 str(sect1_w4, max.level = 1)
 glimpse(sect1_w4)
 
-cat("\n--- Structure de secta_w4 ---\n")
+cat("\n Structure de secta_w4 \n")
 str(secta_w4, max.level = 1)
 glimpse(secta_w4)
 
@@ -49,12 +53,13 @@ doublons_s1 <- sect1_w4 %>%
   group_by(hhid, indiv) %>%
   filter(n() > 1) %>%
   nrow()
-cat("\nDoublons dans sect1_w4 :", doublons_s1, "\n")
+
+cat("\n Doublons dans sect1_w4 :", doublons_s1, "\n")
 
 
 # 1.4. Analyse des valeurs manquantes
 
-# --- Variables clés pour l'analyse ---
+#  Variables clés pour l'analyse 
 vars_cles <- c("s1q2", "s1q4", "s1q3", "sector")
 
 # Graphique gg_miss_var
@@ -67,26 +72,32 @@ p_miss_s1 <- sect1_w4 %>%
     y = "% de NA"
   ) +
   theme_minimal()
+
 print(p_miss_s1)
 ggsave("outputs/graphs/missing_sect1_tp1.png", p_miss_s1, width = 8, height = 5, dpi = 300)
 
 # Graphique vis_miss pour les patterns
+
 p_vis_s1 <- sect1_w4 %>%
   select(any_of(vars_cles)) %>%
   vis_miss(warn_large_data = FALSE) +
   labs(title = "Patterns de valeurs manquantes - Sect1 (démographie)")
+
 print(p_vis_s1)
 ggsave("outputs/graphs/vis_miss_sect1_tp1.png", p_vis_s1, width = 8, height = 5, dpi = 300)
 
 # Tableau récapitulatif des NA (toutes variables)
+
 missing_s1 <- sect1_w4 %>%
   summarise(across(everything(), ~ sum(is.na(.)))) %>%
   pivot_longer(everything(), names_to = "variable", values_to = "nb_na") %>%
   mutate(pct_na = round(nb_na / nrow(sect1_w4) * 100, 2)) %>%
   arrange(desc(nb_na))
+
 write.csv(missing_s1, "outputs/tables/missing_summary_sect1_tp1.csv", row.names = FALSE)
 
-# --- Secta_w4 : aperçu des NA sur variables géographiques ---
+# Secta_w4 : aperçu des NA sur variables géographiques
+
 vars_secta <- c("sector", "zone", "state", "lga")
 p_miss_secta <- secta_w4 %>%
   select(any_of(vars_secta)) %>%
@@ -97,6 +108,7 @@ p_miss_secta <- secta_w4 %>%
     y = "% de NA"
   ) +
   theme_minimal()
+
 print(p_miss_secta)
 ggsave("outputs/graphs/missing_secta_tp1.png", p_miss_secta, width = 8, height = 5, dpi = 300)
 
@@ -105,6 +117,7 @@ missing_secta <- secta_w4 %>%
   pivot_longer(everything(), names_to = "variable", values_to = "nb_na") %>%
   mutate(pct_na = round(nb_na / nrow(secta_w4) * 100, 2)) %>%
   arrange(desc(nb_na))
+
 write.csv(missing_secta, "outputs/tables/missing_summary_secta_tp1.csv", row.names = FALSE)
 
 cat("Graphiques et tableaux des valeurs manquantes sauvegardés.\n")
@@ -125,6 +138,17 @@ communs <- intersect(unique(sect1_w4$hhid), unique(secta_w4$hhid))
 cat("\nNombre de ménages communs entre sect1 et secta :", length(communs), "\n")
 
 
+# 1.7. Intégration des poids depuis secta_w4
+# Left join sur hhid : sect1_w4 est la table principale (niveau individu).
+# Les quelques ménages absents de secta auront NA sur wt_wave4 (MCAR) et seront exclus des analyses utilisants les poids.
+
+sect1_w4 <- sect1_w4 %>%
+  left_join(secta_w4 %>% select(hhid, wt_wave4), by = "hhid")
+
+cat("\n Ménages sans poids (wt_wave4 NA) :", sum(is.na(sect1_w4$wt_wave4)), "\n")
+
+
+
 
 
 # ==============================================================================
@@ -133,44 +157,48 @@ cat("\nNombre de ménages communs entre sect1 et secta :", length(communs), "\n"
 
 
 # 2.1. Filtrage : individus avec âge non manquant
+# NA sur s1q4 < 0.5% (MCAR : membres absents) → suppression justifiée
 
 age_data <- sect1_w4 %>%
-  filter(!is.na(s1q4)) %>%
-  select(s1q4)
+  filter(!is.na(s1q4), !is.na(wt_wave4)) %>%
+  select(s1q4, wt_wave4)
 
 
 # 2.2. Statistiques descriptives
 
 stats_age <- age_data %>%
   summarise(
-    moyenne    = mean(s1q4, na.rm = TRUE),
-    mediane    = median(s1q4, na.rm = TRUE),
-    Q1         = quantile(s1q4, 0.25, na.rm = TRUE),
-    Q3         = quantile(s1q4, 0.75, na.rm = TRUE),
-    min        = min(s1q4, na.rm = TRUE),
+    moyenne    = weighted.mean(s1q4, wt_wave4),
+    mediane    = Hmisc::wtd.quantile(s1q4, weights = wt_wave4, probs = 0.50),
+    Q1         = Hmisc::wtd.quantile(s1q4, weights = wt_wave4, probs = 0.25),
+    Q3         = Hmisc::wtd.quantile(s1q4, weights = wt_wave4, probs = 0.75),
+    min        = min(s1q4, na.rm = TRUE),  #ici on a 0 comme minimum car l'age est demandé en année compléte
     max        = max(s1q4, na.rm = TRUE),
-    ecart_type = sd(s1q4, na.rm = TRUE),
+    ecart_type = sqrt(Hmisc::wtd.var(s1q4, weights = wt_wave4)),
     cv         = ecart_type / moyenne,
-    skewness   = moments::skewness(s1q4, na.rm = TRUE)
+    skewness   = moments::skewness(s1q4, na.rm = TRUE) # indicatif, sans poids
   )
 
+print(stats_age)
 write.csv(stats_age, "outputs/tables/stats_age_univariees.csv", row.names = FALSE)
 
 
 # 2.3. Test de normalité de Shapiro-Wilk (échantillon ≤ 5000)
+# Shapiro-Wilk ne supporte pas les poids → appliqué sur données brutes (indicatif)
 
 set.seed(123)
 age_sample <- sample(age_data$s1q4, size = min(5000, nrow(age_data)))
 shapiro_test <- shapiro.test(age_sample)
+print(shapiro_test)
 capture.output(print(shapiro_test), file = "outputs/tables/shapiro_age.txt")
 
 
 # 2.4. Graphique : Histogramme (binwidth = 5)
 
-p_hist <- ggplot(age_data, aes(x = s1q4)) +
+p_hist <- ggplot(age_data, aes(x = s1q4, weight = wt_wave4)) +
   geom_histogram(binwidth = 5, fill = "steelblue", color = "white", boundary = 0) +
+  scale_y_continuous(labels = function(x) paste0(x / 1e6, "M")) +
   labs(
-    title = "Distribution de l'âge des membres des ménages",
     x = "Âge (années)",
     y = "Effectif"
   ) +
@@ -181,17 +209,17 @@ ggsave("outputs/graphs/histogramme_age.png", p_hist, width = 8, height = 5, dpi 
 
 
 # 2.5. Graphique : Boxplot
+# Boxplot non pondéré (ggplot2 ne supporte pas les poids) → diagnostic visuel uniquement
 
 p_box <- ggplot(age_data, aes(y = s1q4)) +
   geom_boxplot(fill = "lightblue") +
   labs(
-    title = "Boîte à moustaches de l'âge",
     y = "Âge (années)"
   ) +
   theme_minimal()
 
 print(p_box)
-ggsave("outputs/graphs/boxplot_age.png", p_box, width = 5, height = 5, dpi = 300)
+ggsave("outputs/graphs/boxplot_age.png", p_box, width = 5.55, height = 3.67, dpi = 300)
 
 
 # 2.6. Affichage console pour validation
@@ -210,9 +238,10 @@ print(shapiro_test)
 
 
 # 3.1. Préparation des données : âge et sexe non manquants
+# NA sur s1q2 et s1q4 < 0.5% (MCAR) → suppression justifiée
 
 pyramid_data <- sect1_w4 %>%
-  filter(!is.na(s1q4), !is.na(s1q2)) %>%
+  filter(!is.na(s1q4), !is.na(s1q2), !is.na(wt_wave4)) %>%
   mutate(
     age_group = cut(
       s1q4,
@@ -225,14 +254,14 @@ pyramid_data <- sect1_w4 %>%
   )
 
 
-# 3.2. Comptage des effectifs par groupe d'âge et sexe
+# 3.2. Comptage pondéré : somme des poids = effectif estimé dans la population
 
 pyramid_counts <- pyramid_data %>%
   group_by(age_group, sexe) %>%
-  summarise(n = n(), .groups = "drop") %>%
+  summarise(n = sum(wt_wave4), .groups = "drop") %>%
   mutate(n_plot = ifelse(sexe == "Homme", -n, n))
 
-write.csv(pyramid_counts %>% select(-n_plot), 
+write.csv(pyramid_counts %>% select(-n_plot),
           "outputs/tables/effectifs_pyramide_age.csv", row.names = FALSE)
 
 
@@ -242,23 +271,24 @@ p_pyramid <- ggplot(pyramid_counts, aes(x = age_group, y = n_plot, fill = sexe))
   geom_col(position = "identity", width = 0.8) +
   coord_flip() +
   scale_y_continuous(
-    labels = abs,
-    breaks = seq(-3000, 3000, by = 1000),
+    labels = function(x) paste0(abs(x) / 1e6, "M"),
+    breaks = seq(-15000000, 15000000, by = 5000000),
     limits = c(
       -max(abs(pyramid_counts$n_plot)) * 1.1,
       max(abs(pyramid_counts$n_plot)) * 1.1
     )
   ) +
   labs(
-    title = "Pyramide des âges de la population enquêtée (vague 4)",
-    subtitle = "Effectifs par groupe d'âge quinquennal et par sexe",
     x = "Groupe d'âge",
     y = "Effectif",
-    fill = "Sexe"
+    fill = NULL
   ) +
   theme_minimal() +
   theme(legend.position = "bottom") +
-  scale_fill_manual(values = c("Homme" = "steelblue", "Femme" = "firebrick"))
+  scale_fill_manual(
+    values = c("Homme" = "steelblue", "Femme" = "firebrick"),
+    breaks = c("Homme", "Femme")
+    )
 
 print(p_pyramid)
 ggsave("outputs/graphs/pyramide_ages.png", p_pyramid, width = 8, height = 6, dpi = 300)
@@ -266,7 +296,7 @@ ggsave("outputs/graphs/pyramide_ages.png", p_pyramid, width = 8, height = 6, dpi
 
 # 3.4. Affichage console : résumé des effectifs
 
-cat("\n--- Effectifs par groupe d'âge et sexe ---\n")
+cat("\n Effectifs par groupe d'âge et sexe \n")
 print(pyramid_counts %>% select(-n_plot) %>% arrange(age_group, sexe))
 
 
@@ -278,10 +308,10 @@ print(pyramid_counts %>% select(-n_plot) %>% arrange(age_group, sexe))
 
 
 # 4.1. Création de la variable de relation simplifiée
-# Codes : 1 = HEAD, 2 = SPOUSE, 3 = OWN CHILD
+# NA sur s1q3 < 0.5% (MCAR : membres absents) → suppression justifiée
 
 relation_data <- sect1_w4 %>%
-  filter(!is.na(s1q3)) %>%
+  filter(!is.na(s1q3), !is.na(wt_wave4)) %>%
   mutate(
     relation = case_when(
       s1q3 == 1 ~ "Chef",
@@ -292,31 +322,40 @@ relation_data <- sect1_w4 %>%
   )
 
 
-# 4.2. Calcul des effectifs et proportions avec IC à 95%
+# 4.2. Calcul des effectifs et proportions pondérées avec IC à 95%
+# svydesign + svymean : proportions et IC tenant compte du plan de sondage
+
+design_relation <- svydesign(ids = ~hhid, weights = ~wt_wave4,
+                             data = relation_data, nest = TRUE)
+
+prop_pond  <- svymean(~relation, design_relation, na.rm = TRUE)
+ic_pond    <- confint(prop_pond)
+noms_rel   <- gsub("^relation", "", names(prop_pond))
 
 relation_summary <- relation_data %>%
   group_by(relation) %>%
   summarise(n = n(), .groups = "drop") %>%
   mutate(
-    prop      = n / sum(n),
-    ic_low    = mapply(function(x, tot) binom.test(x, tot)$conf.int[1], n, sum(n)),
-    ic_high   = mapply(function(x, tot) binom.test(x, tot)$conf.int[2], n, sum(n)),
+    prop       = as.numeric(prop_pond)[match(relation, noms_rel)],
+    ic_low     = ic_pond[match(relation, noms_rel), 1],
+    ic_high    = ic_pond[match(relation, noms_rel), 2],
     prop_label = paste0(round(prop * 100, 1), "%")
   ) %>%
   arrange(desc(n))
 
+print(relation_summary)
 write.csv(relation_summary, "outputs/tables/lien_parente_frequences.csv", row.names = FALSE)
 
 
 # 4.3. Graphique : Barplot horizontal avec intervalles de confiance
 
-p_relation <- ggplot(relation_summary, aes(x = reorder(relation, n), y = n, fill = relation)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = ic_low * sum(n), ymax = ic_high * sum(n)), width = 0.2) +
-  geom_text(aes(label = paste0(n, " (", prop_label, ")")), hjust = -0.1, size = 3) +
+p_relation <- ggplot(relation_summary,
+                     aes(x = reorder(relation, n), y = n)) +
+  geom_col(fill = "steelblue", width = 0.5) +
+  geom_text(aes(label = paste0(n, " (", prop_label, ")")),
+            hjust = -0.1, size = 3) +
   coord_flip() +
   labs(
-    title = "Répartition des liens de parenté dans les ménages",
     x = NULL,
     y = "Effectif"
   ) +
@@ -325,12 +364,13 @@ p_relation <- ggplot(relation_summary, aes(x = reorder(relation, n), y = n, fill
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 
 print(p_relation)
+
 ggsave("outputs/graphs/lien_parente_barplot.png", p_relation, width = 7, height = 5, dpi = 300)
 
 
 # 4.4. Affichage console
 
-cat("\n--- Fréquences des liens de parenté ---\n")
+cat("\n Fréquences des liens de parenté \n")
 print(relation_summary)
 
 
@@ -356,31 +396,36 @@ secteur <- sect1_w4 %>%
 
 
 # 5.3. Jointure et filtrage
+# Left join : taille_menage est la table principale.
+# On ajoute secteur et wt_wave4 ; NA sur wt_wave4 (MCAR) → exclus.
 
 menage_taille <- taille_menage %>%
   left_join(secteur, by = "hhid") %>%
-  filter(!is.na(sector))
+  left_join(secta_w4 %>% select(hhid, wt_wave4), by = "hhid") %>%
+  filter(!is.na(sector), !is.na(wt_wave4))
 
 
-# 5.4. Statistiques descriptives par zone
+# 5.4. Statistiques descriptives pondérées par zone
 
 stats_taille <- menage_taille %>%
   group_by(zone = ifelse(sector == 1, "Urbain", "Rural")) %>%
   summarise(
     n_menages  = n(),
-    moyenne    = mean(taille),
-    mediane    = median(taille),
-    ecart_type = sd(taille),
-    Q1         = quantile(taille, 0.25),
-    Q3         = quantile(taille, 0.75),
+    moyenne    = weighted.mean(taille, wt_wave4),
+    mediane    = Hmisc::wtd.quantile(taille, weights = wt_wave4, probs = 0.50),
+    ecart_type = sqrt(Hmisc::wtd.var(taille, weights = wt_wave4)),
+    Q1         = Hmisc::wtd.quantile(taille, weights = wt_wave4, probs = 0.25),
+    Q3         = Hmisc::wtd.quantile(taille, weights = wt_wave4, probs = 0.75),
     min        = min(taille),
     max        = max(taille)
   )
+
 print(stats_taille)
 write.csv(stats_taille, "outputs/tables/stats_taille_menage_par_zone.csv", row.names = FALSE)
 
 
 # 5.5. Test de Wilcoxon-Mann-Whitney et taille d'effet
+# Wilcoxon appliqué sur données brutes (pas d'utilisation de poids possible avec rstatix)
 
 wilcox_test <- wilcox.test(taille ~ sector, data = menage_taille)
 print(wilcox_test)
@@ -394,11 +439,10 @@ write.csv(effet, "outputs/tables/effet_taille_menage.csv", row.names = FALSE)
 
 # 5.6. Graphique : Boxplot groupé
 
-p_box <- ggplot(menage_taille, aes(x = factor(sector, labels = c("Urbain", "Rural")), 
+p_box <- ggplot(menage_taille, aes(x = factor(sector, labels = c("Urbain", "Rural")),
                                    y = taille, fill = factor(sector))) +
   geom_boxplot() +
   labs(
-    title = "Taille des ménages selon le milieu de résidence",
     x = NULL,
     y = "Nombre de personnes"
   ) +
@@ -411,12 +455,11 @@ ggsave("outputs/graphs/boxplot_taille_menage_par_zone.png", p_box, width = 6, he
 
 # 5.7. Graphique optionnel : Violin plot
 
-p_violin <- ggplot(menage_taille, aes(x = factor(sector, labels = c("Urbain", "Rural")), 
+p_violin <- ggplot(menage_taille, aes(x = factor(sector, labels = c("Urbain", "Rural")),
                                       y = taille, fill = factor(sector))) +
   geom_violin(trim = FALSE) +
   geom_boxplot(width = 0.1, fill = "white") +
   labs(
-    title = "Distribution de la taille des ménages par milieu",
     x = NULL,
     y = "Nombre de personnes"
   ) +
@@ -435,14 +478,15 @@ ggsave("outputs/graphs/violin_taille_menage_par_zone.png", p_violin, width = 6, 
 
 
 # 6.1. Préparation de la base individuelle (âge, sexe, zone)
+# NA sur s1q2, s1q4 < 0.5% (MCAR) → suppression justifiée
 
 individus <- sect1_w4 %>%
-  filter(!is.na(s1q2), !is.na(s1q4)) %>%
+  filter(!is.na(s1q2), !is.na(s1q4), !is.na(wt_wave4)) %>%
   mutate(
     sexe = factor(s1q2, levels = c(1, 2), labels = c("Homme", "Femme")),
     zone = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural"))
   ) %>%
-  select(hhid, zone, sexe, age = s1q4)
+  select(hhid, zone, sexe, age = s1q4, wt_wave4)
 
 
 # 6.2. Ajout de la taille du ménage
@@ -452,34 +496,43 @@ menage_taille <- menage_taille %>%
 
 
 # 6.3. Jointure finale
+# Left join : individus est la table principale.
+# Tous les hhid de individus sont dans menage_taille (même source : sect1_w4).
 
 base_finale <- individus %>%
   left_join(menage_taille, by = "hhid")
 
 
-# 6.4. Création du tableau avec gtsummary
+# 6.4. Création de l'objet survey pondéré
+# tbl_svysummary utilise svydesign pour produire des estimations pondérées
 
-tableau <- base_finale %>%
-  select(zone, sexe, age, taille_menage) %>%
-  tbl_summary(
-    by = zone,
-    statistic = list(
-      age           ~ "{mean} ({sd})",
-      taille_menage ~ "{median} ({p25}, {p75})",
-      sexe          ~ "{n} ({p}%)"
-    ),
-    digits = list(age = 1, taille_menage = 0, sexe = 0),
-    label = list(
-      age           = "Âge (années)",
-      sexe          = "Sexe",
-      taille_menage = "Taille du ménage"
-    )
-  ) %>%
+design_final <- svydesign(ids = ~hhid, weights = ~wt_wave4,
+                          data = base_finale, nest = TRUE)
+
+
+# 6.5. Création du tableau avec tbl_svysummary (remplace tbl_summary pour analyses pondérées)
+
+tableau <- tbl_svysummary(
+  data = design_final,
+  by = zone,
+  include = c(sexe, age, taille_menage),
+  statistic = list(
+    age           ~ "{mean} ({sd})",
+    taille_menage ~ "{median} ({p25}, {p75})",
+    sexe          ~ "{n_unweighted} ({p}%)"
+  ),
+  digits = list(age = 1, taille_menage = 0, sexe = 0),
+  label = list(
+    age           = "Âge (années)",
+    sexe          = "Sexe",
+    taille_menage = "Taille du ménage"
+  )
+) %>%
   add_p(
     test = list(
-      age           ~ "wilcox.test",
-      taille_menage ~ "wilcox.test",
-      sexe          ~ "chisq.test"
+      age           ~ "svy.wilcox.test",
+      taille_menage ~ "svy.wilcox.test",
+      sexe          ~ "svy.chisq.test"
     )
   ) %>%
   add_overall() %>%
@@ -487,11 +540,10 @@ tableau <- base_finale %>%
   modify_spanning_header(c("stat_1", "stat_2") ~ "**Zone de résidence**") %>%
   modify_caption("**Tableau 1 : Caractéristiques démographiques des ménages selon la zone**")
 
-# Affichage
 tableau
 
 
-# 6.5. Export du tableau (HTML et TXT)
+# 6.6. Export du tableau (HTML et TXT)
 
 tableau %>%
   as_gt() %>%
@@ -500,3 +552,5 @@ tableau %>%
 tableau %>%
   as_kable() %>%
   writeLines("outputs/tables/tableau_recap_demographie.txt")
+
+

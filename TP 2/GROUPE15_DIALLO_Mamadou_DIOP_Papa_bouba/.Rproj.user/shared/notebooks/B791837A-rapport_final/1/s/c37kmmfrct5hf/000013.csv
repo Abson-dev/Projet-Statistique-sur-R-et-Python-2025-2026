@@ -1,0 +1,8 @@
+"0","# Export
+tab_recap %>%
+  as_gt() %>%
+  gt::gtsave(""output/tables/tableau_recapitulatif.html"")
+"
+"2","Erreur dans tab_recap %>% as_gt() %>% gt::gtsave(""output/tables/tableau_recapitulatif.html"") : 
+  impossible de trouver la fonction ""%>%""
+"

@@ -1,0 +1,8 @@
+"0","ggplot(sect1_harvestw4, aes(x = harvest_s1q4, weight = wt_wave4 / sum(wt_wave4, na.rm = TRUE))) +"
+"0","  geom_histogram(binwidth = 5, fill = ""steelblue"", color = ""black"") +"
+"0","  scale_y_continuous(labels = scales::percent) +"
+"0","  scale_x_continuous(breaks = seq(0, 130, by = 10)) +"
+"0","  labs(title = ""Distribution de l'âge des membres des ménages"","
+"0","       x = ""Âge"","
+"0","       y = ""Proportion"","
+"0","    caption = ""Source : World Bank LSMS-ISA | Section 1 (Vague 4)"")"

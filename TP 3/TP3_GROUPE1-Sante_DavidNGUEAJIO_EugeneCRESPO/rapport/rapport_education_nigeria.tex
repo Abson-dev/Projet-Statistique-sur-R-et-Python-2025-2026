@@ -1,0 +1,526 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{5}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Analyse des inégalités éducatives au Nigeria},
+  pdfauthor={Licence en Économie},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Analyse des inégalités éducatives au Nigeria}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Nigeria General Household Survey -- Panel Wave 4}
+\author{Licence en Économie}
+\date{17 March 2026}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Introduction}\label{introduction}
+
+L'éducation constitue l'un des piliers fondamentaux du développement
+économique. Dans la théorie du capital humain, initiée par Becker (1964)
+et Schultz (1961), l'investissement en éducation améliore la
+productivité individuelle, stimule la croissance économique et réduit
+les inégalités de revenus. Pour un pays comme le Nigeria --- première
+économie d'Afrique subsaharienne et nation la plus peuplée du continent
+--- la question de l'accès à l'éducation revêt une importance
+stratégique majeure.
+
+Malgré des progrès notables depuis l'indépendance en 1960, le Nigeria
+continue de faire face à des inégalités éducatives profondes,
+structurées par le genre, l'âge, le milieu de résidence et la
+localisation géographique. Ce rapport propose une analyse quantitative
+de ces inégalités à partir des données du \textbf{Nigeria General
+Household Survey (GHS) -- Panel Wave 4}.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Contexte éducatif du
+Nigeria}\label{contexte-uxe9ducatif-du-nigeria}
+
+\subsection{Structure du système
+éducatif}\label{structure-du-systuxe8me-uxe9ducatif}
+
+Le système éducatif nigérian est organisé selon le schéma
+\textbf{6-3-3-4} : six ans d'enseignement primaire, trois ans de collège
+(\emph{Junior Secondary School}), trois ans de lycée (\emph{Senior
+Secondary School}), et quatre ans d'enseignement supérieur.
+L'enseignement primaire est officiellement obligatoire depuis
+l'Universal Basic Education Act de 2004, qui étend cette obligation aux
+neuf premières années de scolarité.
+
+\subsection{Engagements
+internationaux}\label{engagements-internationaux}
+
+Le Nigeria s'est engagé dans le cadre de l'\textbf{ODD 4} visant à
+assurer l'accès de tous à une éducation de qualité. Les analyses qui
+suivent permettent d'évaluer, à partir de données récentes, la distance
+qui sépare encore le pays de cet objectif.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Données et méthodologie}\label{donnuxe9es-et-muxe9thodologie}
+
+\subsection{Source des données}\label{source-des-donnuxe9es}
+
+Les données proviennent du \textbf{Nigeria General Household Survey
+(GHS) -- Panel Wave 4}, collecté par le National Bureau of Statistics
+(NBS) en partenariat avec la Banque mondiale. Deux sections sont
+mobilisées : sect1\_harvestw4 et sect2\_harvestw4, portant
+respectivement sur la démographie et le niveau d'instruction.
+
+\subsection{Construction de la base
+analytique}\label{construction-de-la-base-analytique}
+
+Les deux sections sont fusionnées par un \textbf{full join} sur les
+identifiants \texttt{hhid} et \texttt{indiv}, afin de conserver
+l'intégralité des observations.
+
+\subsection{Variable d'intérêt : niveau
+d'éducation}\label{variable-dintuxe9ruxeat-niveau-duxe9ducation}
+
+La variable \texttt{s2aq10} est recodée en cinq catégories ordonnées
+:Aucun, Primaire, Junior Secondary, Senior Secondary, Tertiaire. Note :
+D'après l'OCDE, le niveau d'éducation est spécifique au diploe obtenu.
+Par conséquent, nous l'avons défini sur la base de la variable s2aq10.
+Il est donc possible qu'il y ait des individus qui sont scolarisé mais
+n'ayant aucun diplome; des enfants par exemple, ces individus seront
+considéré comme ayant aucun niveau d'instructions.
+
+\subsection{Méthodes statistiques}\label{muxe9thodes-statistiques}
+
+Les méthodes suivantes sont mobilisées, avec un seuil de significativité
+\textbf{α = 0,05} :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Statistiques descriptives} : fréquences et proportions,
+  tableaux de contingence.
+\item
+  \textbf{Test du chi-deux de Pearson} : indépendance entre deux
+  variables catégorielles.
+\item
+  \textbf{V de Cramer} : intensité de l'association entre deux variables
+  catégorielles (0 = aucune, 1 = parfaite).
+\item
+  \textbf{Test de Kruskal-Wallis} : Le test de Kruskal-Wallis (d'après
+  William Kruskal et Wilson Allen Wallis), aussi appelé ANOVA
+  unidirectionnelle sur rangs (ou ANOVA à un facteur contrôlé sur rangs)
+  est une méthode non paramétrique utilisée pour tester si des
+  échantillons trouvent leur origine dans la même distribution. Ce test
+  s'intéresse aux médianes de k populations (k⩾3) (ou treatment dans la
+  littérature en anglais) et propose comme hypothèse nulle que les k
+  échantillons sont confondus et proviennent d'un même échantillon
+  (combiné) d'une population.
+\item
+  \textbf{Test post-hoc de Dunn} (correction de Bonferroni) :
+  comparaisons par paires après Kruskal-Wallis significatif.
+\item
+  \textbf{Intervalles de confiance à 95\%} : approximation normale pour
+  les proportions.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Distribution du niveau
+d'éducation}\label{distribution-du-niveau-duxe9ducation}
+
+\subsection{Tableau des fréquences}\label{tableau-des-fruxe9quences}
+
+\begin{longtable}[]{@{}lrr@{}}
+\toprule\noalign{}
+niveau\_educ & n & proportion \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Aucun & 7628 & 39.58279 \\
+Primaire & 3975 & 20.62685 \\
+Senior Secondary & 3755 & 19.48524 \\
+Tertiaire & 1975 & 10.24856 \\
+Junior Secondary & 1938 & 10.05656 \\
+\end{longtable}
+
+\subsection{Visualisation}\label{visualisation}
+
+\begin{figure}
+
+{\centering \includegraphics{rapport_education_nigeria_files/figure-latex/barplot-educ-1} 
+
+}
+
+\caption{Figure 1 — Répartition de la population par niveau d'éducation}\label{fig:barplot-educ}
+\end{figure}
+
+\subsection{Interprétation}\label{interpruxe9tation}
+
+La distribution du niveau d'éducation reflète les caractéristiques
+structurelles du système éducatif nigérian. La part d'individus sans
+instruction formelle illustre les déficits historiques d'accès à
+l'éducation, particulièrement pour les générations plus âgées. La
+pyramide éducative --- avec un poids décroissant à mesure que l'on
+progresse vers les niveaux supérieurs --- est cohérente avec les
+phénomènes d'abandon scolaire et de sélection qui caractérisent les
+systèmes éducatifs des pays à revenu intermédiaire.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Inégalités éducatives selon le
+sexe}\label{inuxe9galituxe9s-uxe9ducatives-selon-le-sexe}
+
+\subsection{Tableau de contingence}\label{tableau-de-contingence}
+
+Aucun Junior.Secondary Primaire Senior.Secondary Tertiaire 1 710 494
+1087 1994 1146 2 922 473 1202 1514 803
+
+\subsection{Visualisation}\label{visualisation-1}
+
+\begin{figure}
+
+{\centering \includegraphics{rapport_education_nigeria_files/figure-latex/barplot-sexe-1} 
+
+}
+
+\caption{Figure 2 — Distribution du niveau d'éducation par sexe (adultes 18+)}\label{fig:barplot-sexe}
+\end{figure}
+
+\subsection{Test du chi-deux et V de
+Cramér}\label{test-du-chi-deux-et-v-de-cramuxe9r}
+
+\begin{verbatim}
+## 
+##  Pearson's Chi-squared test
+## 
+## data:  tab
+## X-squared = 134.31, df = 4, p-value < 2.2e-16
+\end{verbatim}
+
+\begin{verbatim}
+## X-squared 
+## 0.1139446
+\end{verbatim}
+
+\begin{longtable}[t]{ll}
+\caption{\label{tab:resultats-chi2}Résultats du test du chi-deux et V de Cramér (sexe × niveau d'éducation)}\\
+\toprule
+Statistique & Valeur\\
+\midrule
+Chi-deux (χ²) & 134.313\\
+Degrés de liberté & 4\\
+p-valeur & <2e-16\\
+V de Cramér & 0.114\\
+\bottomrule
+\end{longtable}
+
+\subsection{Interprétation}\label{interpruxe9tation-1}
+
+Le test du chi-deux est \textbf{significatif} (χ² = 134.31, p =
+\textless2e-16). Le V de Cramér (0.114) indique une association
+\textbf{faible} entre le sexe et le niveau d'éducation.
+
+Les inégalités de genre dans l'éducation au Nigeria s'expliquent par une
+combinaison de facteurs : normes socioculturelles favorisant la priorité
+aux garçons, mariage et maternité précoces pour les filles, et
+contraintes économiques conduisant à des arbitrages défavorables aux
+filles dans les zones rurales et du Nord.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Inégalités éducatives selon
+l'âge}\label{inuxe9galituxe9s-uxe9ducatives-selon-luxe2ge}
+
+\subsection{Construction des groupes
+d'âge}\label{construction-des-groupes-duxe2ge}
+
+Dans cette partie spécifiquement, nous avons fait supprimé les valeurs
+manquantes car elles sont incompatibles avec les tests qui vont suivre.
+
+\subsection{Visualisation}\label{visualisation-2}
+
+\begin{figure}
+
+{\centering \includegraphics{rapport_education_nigeria_files/figure-latex/boxplot-age-1} 
+
+}
+
+\caption{Figure 3 — Distribution du niveau d'éducation par groupe d'âge (adultes 18+)}\label{fig:boxplot-age}
+\end{figure}
+
+Les seules valeurs abérantes à considérer sont dans le groupe des
+``18-30''. \#\# Test de Kruskal-Wallis
+
+\begin{verbatim}
+## $statistic
+## Kruskal-Wallis chi-squared 
+##                   287.2767 
+## 
+## $parameter
+## df 
+##  3 
+## 
+## $p.value
+## [1] 5.639694e-62
+## 
+## $method
+## [1] "Kruskal-Wallis rank sum test"
+## 
+## $data.name
+## [1] "niveau_educ_num by groupe_age"
+\end{verbatim}
+
+Le test de Kruskal-Wallis est hautement significatif : \textbf{X² =
+287.28}, df = 3, \textbf{p \textless2e-16}. Il existe des différences
+statistiquement significatives de niveau d'éducation entre au moins deux
+groupes d'âge.
+
+\subsection{Test post-hoc de Dunn (correction de
+Bonferroni)}\label{test-post-hoc-de-dunn-correction-de-bonferroni}
+
+\begin{longtable}[t]{lrll}
+\caption{\label{tab:tableau-dunn}Test post-hoc de Dunn avec correction de Bonferroni}\\
+\toprule
+Comparaison & Statistique Z & p-valeur ajustée & Significatif\\
+\midrule
+18-30 - 31-45 & 4.594 & 1.30e-05 & Oui *\\
+18-30 - 46-60 & 9.129 & < 2e-16 & Oui *\\
+31-45 - 46-60 & 4.956 & 2.16e-06 & Oui *\\
+18-30 - 60+ & 15.844 & < 2e-16 & Oui *\\
+31-45 - 60+ & 12.598 & < 2e-16 & Oui *\\
+\addlinespace
+46-60 - 60+ & 8.295 & 3.26e-16 & Oui *\\
+\bottomrule
+\end{longtable}
+
+\subsection{Interprétation}\label{interpruxe9tation-2}
+
+Toutes les paires de groupes d'âge diffèrent significativement. La
+statistique Z croît avec l'écart entre les groupes : la différence la
+plus prononcée oppose les \textbf{18-30 ans} aux \textbf{60 ans et
+plus}, confirmant un fort \textbf{effet de génération}. Ce gradient
+reflète l'expansion du système éducatif nigérian depuis les années 1970.
+Du point de vue économique, ce résultat est cohérent avec la théorie du
+capital humain : les investissements publics en éducation ont produit
+des effets mesurables sur le niveau d'instruction des cohortes les plus
+récentes.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Scolarisation des 6--17 ans selon le milieu de
+résidence}\label{scolarisation-des-617-ans-selon-le-milieu-de-ruxe9sidence}
+
+\subsection{Tableau de contingence}\label{tableau-de-contingence-1}
+
+\begin{longtable}[t]{lrr}
+\caption{\label{tab:tableau-scol}Taux de scolarisation (%) par milieu de résidence (6-17 ans)}\\
+\toprule
+ & Scolarisé & Non scolarisé\\
+\midrule
+Urbain & 92.3 & 7.7\\
+Rural & 88.5 & 11.5\\
+\bottomrule
+\end{longtable}
+
+Une majorité de la population entre 6 et 17 ans sont scolarisé dans les
+milieux urbains comme ruraux. Cependant, la proportion de jeunes non
+scolarisé est plus forte dans le milieu rural. \textbf{Test du chi-deux
+:} χ² = 24.63, df = 1, p = 6.94e-07.
+
+\subsection{Visualisation}\label{visualisation-3}
+
+\begin{figure}
+
+{\centering \includegraphics{rapport_education_nigeria_files/figure-latex/barplot-scolar-1} 
+
+}
+
+\caption{Figure 4 — Taux de scolarisation (6-17 ans) par milieu de résidence avec IC à 95\%}\label{fig:barplot-scolar}
+\end{figure}
+
+\subsection{Interprétation}\label{interpruxe9tation-3}
+
+L'écart de scolarisation entre milieu urbain et rural s'explique par des
+mécanismes agissant à la fois sur l'offre et la demande d'éducation. Du
+côté de l'offre, les zones rurales sont moins bien dotées en
+infrastructures scolaires. Du côté de la demande, le coût d'opportunité
+de la scolarisation est plus élevé en milieu rural, où les enfants
+participent davantage aux activités agricoles familiales, et les revenus
+des ménages sont en moyenne plus faibles.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Disparités géographiques entre
+États}\label{disparituxe9s-guxe9ographiques-entre-uxe9tats}
+
+\subsection{Visualisation}\label{visualisation-4}
+
+\begin{figure}
+
+{\centering \includegraphics{rapport_education_nigeria_files/figure-latex/heatmap-1} 
+
+}
+
+\caption{Figure 5 — Part d'adultes sans instruction par État nigérian (quintiles)}\label{fig:heatmap}
+\end{figure}
+
+\subsection{Interprétation}\label{interpruxe9tation-4}
+
+Les disparités géographiques en matière d'éducation reflètent de
+profondes inégalités régionales de développement économique. La fracture
+Nord-Sud constitue la ligne de clivage principale : les États du
+Nord-Ouest et du Nord-Est --- régions moins intégrées aux circuits
+économiques formels et affectées par l'insécurité --- tendent à
+concentrer les déficits éducatifs les plus importants. À l'inverse, les
+États du Sud-Ouest (Lagos, Ogun, Oyo) et du Sud-Est bénéficient d'une
+tradition plus ancienne de scolarisation. Ces disparités contribuent à
+la persistance des inégalités régionales de productivité et justifient
+des politiques ciblées de rattrapage éducatif.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Limites méthodologiques}\label{limites-muxe9thodologiques}
+
+\textbf{Causalité vs.~corrélation.} Les associations mises en évidence
+sont de nature descriptive. L'identification de mécanismes causaux
+nécessiterait des méthodes économétriques adaptées (variables
+instrumentales, discontinuités de régression).
+
+\textbf{Qualité vs.~quantité.} Le niveau d'éducation atteint ne
+renseigne pas sur la qualité des apprentissages, qui peut varier
+fortement selon l'établissement, la région et la période de
+scolarisation.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\section{Conclusion}\label{conclusion}
+
+Cette analyse des données du Nigeria GHS Wave 4 met en lumière quatre
+résultats structurants sur les inégalités éducatives au Nigeria.
+
+Premièrement, la \textbf{distribution globale} révèle un déficit
+significatif d'instruction formelle dans la population, avec une part
+non négligeable d'individus n'ayant jamais fréquenté l'école.
+
+Deuxièmement, les \textbf{inégalités de genre} sont statistiquement
+significatives et économiquement substantielles, reflétant des normes
+socioculturelles et des contraintes économiques qui ont historiquement
+limité l'accès des femmes à l'éducation.
+
+Troisièmement, le \textbf{gradient générationnel} constitue le résultat
+le plus marquant : le test de Kruskal-Wallis (χ² = 287.28 ; p
+\textless{} 0,001) et les comparaisons post-hoc de Dunn confirment que
+chaque génération est significativement plus instruite que la
+précédente, témoignant de l'impact réel des politiques d'éducation
+universelle depuis les années 1970.
+
+Quatrièmement, les \textbf{fractures spatiales} --- entre milieu rural
+et urbain, et entre États du Nord et du Sud --- confirment la
+persistance d'inégalités géographiques profondes qui se superposent aux
+inégalités de genre et de génération.
+
+Ces résultats plaident en faveur de politiques éducatives différenciées,
+ciblant en priorité les femmes des zones rurales et les États du Nord,
+et articulant des interventions sur l'offre (infrastructures,
+enseignants) et la demande (transferts monétaires conditionnels,
+sensibilisation).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\emph{Packages R utilisés : \texttt{haven}, \texttt{dplyr},
+\texttt{ggplot2}, \texttt{scales}, \texttt{dunn.test}, \texttt{knitr},
+\texttt{kableExtra}.}
+
+\end{document}
