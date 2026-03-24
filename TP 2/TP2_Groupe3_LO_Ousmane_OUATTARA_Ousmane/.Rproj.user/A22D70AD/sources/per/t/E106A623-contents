@@ -1,22 +1,11 @@
 ---
-title: ""
-
+title: "Rapport final TP2"
+author: "Ouattara Ousmane"
 format:
-  pdf:
-    toc: false
+  docx:
+    toc: true
     number-sections: true
-    latex-auto-install: true
-    geometry:
-      - top=30mm
-      - left=25mm
-      - right=25mm
-      - bottom=30mm
-    header-includes: |
-      \usepackage{fancyhdr}
-      \usepackage{graphicx}
-      \pagestyle{fancy}
-      \fancyhead[L]{Rapport d'Analyse GHS-LSMS}
-      \fancyhead[R]{Nigeria Wave 4}
+    prefer-html: true
 ---
 
 ```{r echo = FALSE , fig.with = 10 , fig.height= 5}
@@ -27,38 +16,6 @@ message = FALSE,
 fig.align = "center"
 )
 ```
-
-\begin{titlepage}
-    \begin{flushleft}
-        % Vérifiez que le nom du fichier est exactement logo.png
-        % \includegraphics[width=4cm]{data/images/ensae.jpg} 
-    \end{flushleft}
-    
-    \centering
-    \vspace*{2cm}
-    
-    {\huge \textbf{Éducation et alphabétisation du Nigeria}} \\
-    \vspace{0.5cm}
-    {\Large Analyse den l'éducation et alphabétisation des membres des ménages du Nigéria} \\
-    
-    \vfill
-    
-    {\Large \textbf{Membres du groupe :}} \\
-    \vspace{0.8cm}
-    {\large LO Ousmane} \\
-    \vspace{0.4cm}
-    {\large OUATTARA Ousmane} \\
-    
-    \vfill
-    
-    {\large Travail réalisé dans le cadre du Projet Statistique sous R et Python} \\
-    {\large \textbf{ENSAE Pierre NDIAYE} --- Année 2025-2026}
-    \vspace{1cm}
-\end{titlepage}
-\newpage
-\renewcommand{\contentsname}{Table des Matières}
-\tableofcontents
-\newpage
 
 # Introduction
 
@@ -88,15 +45,13 @@ library(here)
 
 dist_educ_sexe <- readRDS(here("outputs", "tables", "dist_educ_sexe.rds"))
 
+
+
 knitr::kable(
   dist_educ_sexe,
   caption = "Tableau 1 : Répartition du niveau d'éducation selon le sexe",
   booktabs = TRUE
-) %>%
-  kable_styling(
-    position = "center",
-    latex_options = c("hold_position")
-  )
+)
 ```
 
 Les hommes sont nettement plus nombreux que les femmes dans l'enseignement secondaire (junior et senior) et tertiaire, suggérant un avantage masculin dans l'accès aux études supérieures. À l'inverse, les femmes sont surreprésentées dans la catégorie "Aucun" (presque deux fois plus d'effectifs) et légèrement plus nombreuses au niveau primaire. Ces écarts révèlent des inégalités persistantes en défaveur des femmes dans le système éducatif nigérian.
@@ -112,11 +67,7 @@ knitr::kable(
   chi2,
   caption = "Tableau 2 : Test de chi2 entre le niveau d'éducation et le sexe",
   booktabs = TRUE
-) %>%
-  kable_styling(
-    position = "center",
-    latex_options = c("hold_position")
-  )
+)
 ```
 
 Le test du chi-deux est très significatif (p-value \< 0,001), confirmant un lien statistique entre le sexe et le niveau d'éducation. Cependant, le V de Cramér (0,092) indique une association très faible, suggérant que d'autres facteurs que le sexe expliquent davantage les disparités éducatives.
@@ -143,19 +94,15 @@ Le graphique montre que les individus sans instruction sont en moyenne plus âg�
 
 ```{r echo = FALSE , fig.with = 10 , fig.height= 5}
 library(kableExtra)
+library(here)
 
 dist_sco_resi <- readRDS(here("outputs", "tables", "dist_sco_resi.rds"))
-
 
 knitr::kable(
   dist_sco_resi,
   caption = "Tableau 3 : Tableau de contingence entre la scolarisation et le milieu de résidence",
   booktabs = TRUE
-) %>%
-  kable_styling(
-    position = "center",
-    latex_options = c("hold_position")
-  )
+)
 ```
 
 Le taux de non-scolarisation est 12 fois plus élevé en zone rurale (1212) qu'en zone urbaine (98). Les effectifs scolarisés en ville (2315) restent inférieurs à ceux des campagnes (5515) malgré une population rurale bien plus nombreuse. Ces chiffres confirment un retard éducatif majeur du milieu rural.
@@ -172,11 +119,7 @@ knitr::kable(
   chi_deux,
   caption = "Tableau 4 : Test de chi2 entre la scolarisation et le milieu de résidence",
   booktabs = TRUE
-) %>%
-  kable_styling(
-    position = "center",
-    latex_options = c("hold_position")
-  )
+)
 ```
 
 Le test du chi-deux très significatif confirme un lien statistique entre la scolarisation et le milieu de résidence. Le V de Cramér (0,175) indique une association modérée, plus forte que pour le sexe. L'accès à l'éducation dépend donc significativement du lieu d'habitation, sans pour autant être déterminé uniquement par ce facteur.
