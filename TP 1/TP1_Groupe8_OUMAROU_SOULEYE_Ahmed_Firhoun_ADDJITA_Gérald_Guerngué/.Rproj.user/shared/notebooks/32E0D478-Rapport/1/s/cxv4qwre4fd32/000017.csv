@@ -1,0 +1,8 @@
+"0","ggplot(sect1_harvestw4, aes(sample = harvest_s1q4)) +"
+"0","  stat_qq() +"
+"0","  stat_qq(color = ""steelblue"") +"
+"0","  stat_qq_line(color = ""red"") +"
+"0","  labs(title = ""QQ-plot de l'âge des membres des ménages"","
+"0","       x = ""Quantiles théoriques"","
+"0","       y = ""Quantiles observés"","
+"0","    caption = ""Source : World Bank LSMS-ISA | Section 1 (Vague 4)"")"
