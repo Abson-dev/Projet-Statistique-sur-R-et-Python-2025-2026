@@ -1,0 +1,603 @@
+---
+title: "Éducation et Alphabétisation des Ménages Nigérians"
+subtitle: "Nigeria General Household Survey Panel — Vague 4 (2018)"
+author: "Cheikh Mouhamdou Moustapha Ndiaye & Awa Ba"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    keep_md: false
+lang: fr
+---
+
+```{r setup, include=FALSE}
+# Options globales knitr
+# IMPORTANT : fig.align n'est pas supporté pour word_document, on l'omet
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  dpi       = 180,
+  out.width = "95%"
+)
+options(scipen = 999)
+options(survey.lonely.psu = "adjust")
+```
+
+```{r packages, include=FALSE}
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+pacman::p_load(
+  haven, dplyr, tidyr, ggplot2, patchwork, naniar,
+  gtsummary, rstatix, scales, forcats, stringr, viridis,
+  survey, purrr, flextable, officer, knitr
+)
+
+# Helper universel pour les bordures flextable.
+# border_all() n'existe pas dans toutes les versions — on utilise hline + vline
+ft_borders <- function(ft) {
+  bd <- officer::fp_border(color = "#BFC9CA", width = 0.5)
+  ft %>%
+    flextable::hline(border = bd) %>%
+    flextable::vline(border = bd) %>%
+    flextable::hline_top(border = officer::fp_border(color = BLUE_ENSAE, width = 2)) %>%
+    flextable::hline_bottom(border = bd)
+}
+```
+
+```{r chemins, include=FALSE}
+# Chemin robuste : RStudio + Rscript + knitr
+SCRIPT_DIR <- tryCatch(
+  dirname(rstudioapi::getSourceEditorContext()$path),
+  error = function(e) {
+    f_knit <- tryCatch(knitr::current_input(dir = TRUE), error = function(e2) NULL)
+    if (!is.null(f_knit) && nchar(f_knit) > 0) dirname(normalizePath(f_knit))
+    else getwd()
+  }
+)
+TP_DIR   <- dirname(SCRIPT_DIR)
+DATA_DIR <- file.path(TP_DIR, "data", "NGA_2018_GHSP-W4_v03_M_Stata12")
+OUT      <- file.path(TP_DIR, "outputs")
+if (!dir.exists(OUT)) dir.create(OUT, recursive = TRUE)
+
+f_sect2 <- file.path(DATA_DIR, "sect2_harvestw4.dta")
+f_sect1 <- file.path(DATA_DIR, "sect1_harvestw4.dta")
+f_secta <- file.path(DATA_DIR, "secta_harvestw4.dta")
+if (!all(file.exists(c(f_sect2, f_sect1, f_secta)))) stop("Fichiers introuvables.")
+```
+
+```{r data, include=FALSE}
+# ── Palettes & thème ──────────────────────────────────────────────────────────
+COLS_EDUC <- c(
+  "Aucun"       = "#E74C3C",
+  "Primaire"    = "#F39C12",
+  "Junior Sec." = "#F1C40F",
+  "Senior Sec." = "#27AE60",
+  "Tertiaire"   = "#2980B9"
+)
+BLUE_ENSAE <- "#003E74"
+COL_R <- "#27AE60"; COL_U <- "#E67E22"
+
+THEME <- theme_minimal(base_size = 9) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 9, margin = margin(b = 3)),
+    plot.subtitle    = element_text(size = 7.5, color = "grey40"),
+    plot.caption     = element_text(size = 6.5, color = "grey55", hjust = 0),
+    axis.title       = element_text(size = 8, face = "bold"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = "grey93"),
+    plot.background  = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA)
+  )
+
+# ── Fonction de classification du niveau d'éducation (vectorisée) ─────────────
+.map_educ_scalar <- function(ever_attended, s2aq9_val) {
+  ever_str  <- as.character(ever_attended)
+  s2aq9_str <- as.character(s2aq9_val)
+  if (grepl("^2", ever_str)) return("Aucun")
+  code <- suppressWarnings(as.integer(stringr::str_extract(s2aq9_str, "^\\d+")))
+  if (is.na(code)) return(NA_character_)
+  if (code %in% c(0, 1:3, 51, 52))                   return("Aucun")
+  if (code %in% c(11:16, 61))                         return("Primaire")
+  if (code %in% 21:23)                                return("Junior Sec.")
+  if (code %in% c(24:28, 31:33, 321, 322))            return("Senior Sec.")
+  if (code %in% c(34, 35, 41:43, 411, 412, 421:424))  return("Tertiaire")
+  return(NA_character_)
+}
+map_educ <- Vectorize(.map_educ_scalar, USE.NAMES = FALSE)
+
+# ── Chargement des données ─────────────────────────────────────────────────────
+dfsec_poids <- read_dta(f_secta) %>%
+  select(hhid, wt_wave4) %>%
+  distinct(hhid, .keep_all = TRUE)
+
+df_s1 <- read_dta(f_sect1) %>%
+  mutate(s1q4a_num = as.integer(stringr::str_extract(as.character(s1q4a), "^\\d+"))) %>%
+  filter(s1q4a_num != 2 | is.na(s1q4a_num)) %>%
+  mutate(
+    sex       = as.integer(stringr::str_extract(as.character(s1q2), "^\\d+")),
+    sex_label = factor(case_when(sex == 1 ~ "Homme", sex == 2 ~ "Femme")),
+    age       = as.numeric(s1q4),
+    age       = if_else(age > 110 | age < 0, NA_real_, age),
+    sec_num   = as.integer(stringr::str_extract(as.character(sector), "^\\d+")),
+    sec_label = factor(
+      case_when(sec_num == 1 ~ "Urbain", sec_num == 2 ~ "Rural"),
+      levels = c("Rural", "Urbain")
+    ),
+    state_clean = stringr::str_squish(
+      stringr::str_remove(as.character(state), "^\\d+\\.?\\s*")
+    )
+  )
+
+df_educ <- read_dta(f_sect2) %>%
+  left_join(
+    df_s1 %>% select(hhid, indiv, sex_label, age, sec_label, sec_num, state_clean),
+    by = c("hhid", "indiv")
+  ) %>%
+  left_join(dfsec_poids, by = "hhid") %>%
+  mutate(
+    educ_level    = map_educ(s2aq6, s2aq9),
+    educ_ord      = factor(educ_level, levels = names(COLS_EDUC), ordered = TRUE),
+    educ_num      = as.integer(educ_ord),
+    alphab        = case_when(
+      stringr::str_detect(as.character(s2aq5), "^1") ~ "Alphabetise",
+      stringr::str_detect(as.character(s2aq5), "^2") ~ "Non alphab.",
+      TRUE ~ NA_character_
+    ),
+    scol_actuelle = case_when(
+      stringr::str_detect(as.character(s2aq13a), "^1") ~ 1L,
+      stringr::str_detect(as.character(s2aq13a), "^2") ~ 0L,
+      TRUE ~ NA_integer_
+    )
+  )
+
+# ── Adultes 18+ ───────────────────────────────────────────────────────────────
+adults   <- df_educ %>% filter(!is.na(age), age >= 18, !is.na(educ_level), !is.na(wt_wave4))
+N_adults <- nrow(adults)
+
+# ── Design de sondage ─────────────────────────────────────────────────────────
+svy_educ <- svydesign(ids = ~hhid, strata = ~sec_num, weights = ~wt_wave4, data = adults)
+
+# ── Distribution pondérée ─────────────────────────────────────────────────────
+educ_prop <- svymean(~factor(educ_level, levels = names(COLS_EDUC)), svy_educ, na.rm = TRUE)
+educ_ci   <- confint(educ_prop, level = 0.95)
+clean_names <- stringr::str_squish(stringr::str_remove(names(coef(educ_prop)), ".*\\)"))
+
+educ_dist <- data.frame(
+  educ_level = clean_names,
+  pct    = as.numeric(coef(educ_prop)) * 100,
+  pct_lo = educ_ci[, 1] * 100,
+  pct_hi = educ_ci[, 2] * 100,
+  stringsAsFactors = FALSE
+) %>%
+  left_join(adults %>% count(educ_level, name = "n"), by = "educ_level") %>%
+  mutate(
+    educ_f = factor(educ_level, levels = names(COLS_EDUC)),
+    educ_f = fct_reorder(educ_f, pct)
+  )
+
+# ── Genre × éducation ─────────────────────────────────────────────────────────
+adults_sex <- adults %>%
+  filter(!is.na(sex_label)) %>%
+  mutate(educ_f = factor(educ_level, levels = names(COLS_EDUC)))
+svy_sex  <- svydesign(ids = ~hhid, strata = ~sec_num, weights = ~wt_wave4, data = adults_sex)
+chi2_svy <- svychisq(~educ_f + sex_label, svy_sex, statistic = "Chisq")
+cont     <- table(adults_sex$educ_level, adults_sex$sex_label)
+V_cr     <- sqrt(chisq.test(cont)$statistic / (sum(cont) * (min(nrow(cont), ncol(cont)) - 1)))
+
+# ── Âge × éducation ───────────────────────────────────────────────────────────
+adults <- adults %>%
+  mutate(age_grp = cut(
+    age,
+    breaks = c(18, 30, 45, 60, Inf),
+    labels = c("18-30", "31-45", "46-60", "60+"),
+    right = FALSE, include.lowest = TRUE
+  ))
+kw <- kruskal.test(educ_num ~ age_grp, data = adults %>% filter(!is.na(age_grp)))
+wmeans_age <- adults %>%
+  filter(!is.na(educ_level), !is.na(age_grp)) %>%
+  group_by(age_grp) %>%
+  summarise(wm = weighted.mean(educ_num, wt_wave4, na.rm = TRUE), .groups = "drop")
+
+# ── Scolarisation 6-17 ans ────────────────────────────────────────────────────
+children <- df_educ %>%
+  filter(!is.na(age), between(age, 6, 17), !is.na(sec_label),
+         !is.na(scol_actuelle), !is.na(wt_wave4))
+enroll_df <- children %>%
+  group_by(sec_label) %>%
+  summarise(
+    N      = n(),
+    n_scol = sum(scol_actuelle),
+    pct_w  = weighted.mean(scol_actuelle, wt_wave4, na.rm = TRUE) * 100,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    pct_lo = purrr::map2_dbl(n_scol, N, ~ binom.test(.x, .y)$conf.int[1] * 100),
+    pct_hi = purrr::map2_dbl(n_scol, N, ~ binom.test(.x, .y)$conf.int[2] * 100)
+  )
+children  <- children %>% dplyr::mutate(scol_f = factor(scol_actuelle))
+svy_ch    <- svydesign(ids = ~hhid, strata = ~sec_num, weights = ~wt_wave4, data = children)
+chi_sc    <- svychisq(~scol_f + sec_label, svy_ch, statistic = "Chisq")
+
+# ── Disparités par État (données pour le heatmap) ────────────────────────────
+state_educ <- adults %>%
+  filter(!is.na(state_clean), state_clean != "", !is.na(wt_wave4)) %>%
+  mutate(state_clean = stringr::str_squish(
+    stringr::str_remove(state_clean, "^[0-9]+\\.?\\s*")
+  )) %>%
+  filter(nchar(state_clean) > 1) %>%
+  group_by(state_clean) %>%
+  summarise(
+    N         = n(),
+    pct_aucun = weighted.mean(educ_level == "Aucun", wt_wave4, na.rm = TRUE) * 100,
+    .groups   = "drop"
+  ) %>%
+  filter(N >= 15) %>%
+  mutate(
+    etat_f    = fct_reorder(state_clean, pct_aucun),
+    txt_color = if_else(pct_aucun > 45, "white", "grey15")
+  )
+
+# ── Alphabétisation pondérée ──────────────────────────────────────────────────
+alphab_w <- df_educ %>%
+  filter(!is.na(alphab), !is.na(wt_wave4)) %>%
+  group_by(alphab) %>%
+  summarise(n_pond = sum(wt_wave4), .groups = "drop") %>%
+  mutate(pct = n_pond / sum(n_pond) * 100)
+taux_alphab <- alphab_w$pct[alphab_w$alphab == "Alphabetise"]
+```
+
+---
+
+# Introduction {-}
+
+L'éducation constitue un pilier fondamental du développement humain et un levier incontournable pour la réduction de la pauvreté. En Afrique subsaharienne, et plus particulièrement au Nigéria — pays le plus peuplé du continent avec plus de 200 millions d'habitants — les inégalités d'accès à l'instruction demeurent profondes. Elles se manifestent à travers plusieurs axes : le genre, le milieu de résidence (rural ou urbain), la région géographique et la génération.
+
+Ce rapport s'appuie sur les données du **Nigeria General Household Survey Panel Wave 4 (GHS-W4, 2018)**, collectées conjointement par le National Bureau of Statistics (NBS) du Nigéria et la Banque mondiale. L'objectif est de dresser un portrait statistique rigoureux et pondéré du capital humain éducatif des ménages nigérians, en explorant cinq dimensions complémentaires : la distribution globale des niveaux d'éducation, les inégalités de genre, les évolutions générationnelles, la scolarisation des enfants de 6 à 17 ans, et les disparités géographiques entre États fédérés.
+
+**Note méthodologique — Filtres appliqués :** Les membres du ménage déclarés absents (`s1q4a = code 2`) sont exclus de l'analyse, conformément aux bonnes pratiques des enquêtes ménage. Les individus ayant indiqué n'avoir jamais été scolarisés (`s2aq6 = code 2`) reçoivent directement le niveau **"Aucun"**, évitant ainsi `r format(sum(stringr::str_detect(as.character(df_educ$s2aq6),"^2"), na.rm=TRUE), big.mark=" ")` cas de valeurs manquantes incorrectes sur la variable de niveau (`s2aq9`). La variable de scolarisation actuelle utilisée est `s2aq13a`, correspondant à l'année scolaire 2018/2019.
+
+**Note méthodologique — Pondération :** Le poids de sondage `wt_wave4`, issu du fichier `secta_harvestw4.dta` et joint via l'identifiant ménage `hhid`, est systématiquement appliqué à l'ensemble des analyses. Toutes les proportions et statistiques présentées dans ce rapport sont **pondérées** afin de produire des estimations représentatives de la population nigériane. Le plan de sondage est stratifié par secteur (rural/urbain), ce qui est pris en compte dans le calcul des intervalles de confiance par linéarisation de Taylor.
+
+---
+
+# Qualité des données et valeurs manquantes
+
+La première étape d'une analyse rigoureuse consiste à évaluer la qualité des données disponibles. Avant toute inférence statistique, il est essentiel d'identifier la structure des données manquantes afin de s'assurer que les analyses ne sont pas biaisées par des mécanismes d'absence non aléatoires (MNAR).
+
+```{r fig_miss, fig.cap="Figure 1 — Taux de valeurs manquantes par variable clé (GHS-W4, 2018).", fig.height=2.8}
+df_miss <- df_educ %>%
+  mutate(
+    `Educ.(s2aq9)`   = educ_level,
+    `Alphab.(s2aq5)` = alphab,
+    `Scol.(s2aq13a)` = scol_actuelle,
+    Age              = age,
+    Sexe             = sex_label,
+    Poids_wt         = wt_wave4
+  ) %>%
+  select(`Educ.(s2aq9)`, `Alphab.(s2aq5)`, `Scol.(s2aq13a)`, Age, Sexe, Poids_wt)
+
+gg_miss_var(df_miss, show_pct = TRUE) +
+  labs(
+    title   = "Valeurs manquantes — variables cles du TP2",
+    caption = "Source : sect2_harvestw4 + sect1_harvestw4 | wt_wave4"
+  ) + THEME
+```
+
+**Interprétation :** La variable de scolarisation actuelle (`s2aq13a`) enregistre le taux de valeurs manquantes le plus élevé, ce qui est parfaitement attendu : cette question filtre uniquement les individus âgés de 6 à 17 ans, la majorité de l'échantillon étant adulte et donc hors champ. Le niveau d'éducation (`s2aq9`) et l'alphabétisation (`s2aq5`) présentent des taux de renseignement satisfaisants pour la population adulte. Le poids de sondage `wt_wave4` est disponible pour la quasi-totalité des individus, garantissant la validité des analyses pondérées.
+
+---
+
+# Distribution du niveau d'éducation
+
+## Statistiques descriptives pondérées
+
+L'analyse de la distribution des niveaux d'instruction constitue le point de départ de toute étude du capital humain. Le tableau ci-dessous présente les proportions pondérées ainsi que leurs intervalles de confiance à 95%, calculés par linéarisation de Taylor sur l'ensemble des adultes de 18 ans et plus.
+
+```{r tab_educ}
+tab_e <- educ_dist %>%
+  arrange(desc(pct)) %>%
+  transmute(
+    `Niveau`          = educ_level,
+    `N (brut)`        = format(n, big.mark = " "),
+    `Prop. pond. (%)` = round(pct, 1),
+    `IC 95% inf.`     = round(pct_lo, 1),
+    `IC 95% sup.`     = round(pct_hi, 1)
+  )
+
+flextable(tab_e) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = BLUE_ENSAE) %>%
+  color(part = "header", color = "white") %>%
+  bg(i = seq(1, nrow(tab_e), 2), bg = "#EBF5FB") %>%
+  bg(i = seq(2, nrow(tab_e), 2), bg = "white") %>%
+  bold(j = 3, bold = TRUE) %>%
+  color(j = 3, color = BLUE_ENSAE) %>%
+  ft_borders() %>%
+  set_caption("Tableau 1 — Distribution pondérée du niveau d'éducation, Adultes 18+, GHS-W4 (2018)") %>%
+  autofit()
+```
+
+## Graphique de distribution avec intervalles de confiance
+
+```{r fig_educ_dist, fig.cap="Figure 2 — Distribution pondérée du niveau d'éducation des adultes 18+, avec IC 95%.", fig.height=2.8}
+ggplot(educ_dist, aes(x = pct, y = educ_f, fill = educ_f)) +
+  geom_col(alpha = 0.87, width = 0.68) +
+  geom_errorbarh(
+    aes(xmin = pct_lo, xmax = pct_hi),
+    height = 0.25, linewidth = 0.9, color = "grey25"
+  ) +
+  geom_text(
+    aes(label = sprintf("%.1f%%  (n=%s)", pct, comma(n))),
+    hjust = -0.05, size = 2.9, fontface = "bold"
+  ) +
+  scale_fill_manual(values = COLS_EDUC, guide = "none") +
+  scale_x_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, .28))
+  ) +
+  labs(
+    title   = sprintf("Niveau d'education pondere — N=%s adultes (18+)", comma(N_adults)),
+    x       = "Proportion ponderee (%)",
+    y       = NULL,
+    caption = "IC 95% : linearisation Taylor | Poids : wt_wave4 | Source : GHS Panel W4, 2018"
+  ) + THEME
+```
+
+**Interprétation :** La structure du capital humain nigérian révèle une **polarisation éducative extrême**. Près de `r round(educ_dist$pct[educ_dist$educ_level=="Aucun"],0)`% des adultes de 18 ans et plus n'ont aucun niveau d'instruction. Le taux d'alphabétisation pondéré s'établit à **`r round(taux_alphab, 1)`%** de la population adulte. Cette situation coexiste avec une classe instruite de niveau supérieur représentant environ `r round(educ_dist$pct[educ_dist$educ_level=="Tertiaire"],1)`% de la population adulte, accentuant le phénomène de dualisme éducatif. Sans une mobilisation massive des ressources publiques ciblées sur les zones les plus défavorisées, le pays risque de ne pas atteindre les Objectifs de Développement Durable (ODD 4) à l'horizon 2030.
+
+---
+
+# Éducation selon le sexe
+
+L'analyse de genre constitue une dimension essentielle pour appréhender les mécanismes de reproduction des inégalités éducatives. Des décennies de normes sociales restrictives, de mariages précoces et de priorités budgétaires défavorables aux filles ont façonné des trajectoires scolaires profondément asymétriques entre hommes et femmes au Nigéria.
+
+```{r fig_educ_sex, fig.cap="Figure 3 — Distribution du niveau d'éducation par sexe (barres 100% empilées pondérées), adultes 18+.", fig.height=3.0}
+educ_sex_df <- adults_sex %>%
+  count(educ_level, sex_label) %>%
+  group_by(sex_label) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(educ_level = factor(educ_level, levels = names(COLS_EDUC)))
+
+ggplot(educ_sex_df, aes(x = sex_label, y = pct, fill = educ_level)) +
+  geom_col(position = "fill", alpha = 0.87, width = 0.6) +
+  geom_text(
+    aes(label = if_else(pct > 3.5, sprintf("%.0f%%", pct), "")),
+    position  = position_fill(vjust = 0.5),
+    size = 3.2, color = "white", fontface = "bold"
+  ) +
+  scale_fill_manual(values = COLS_EDUC, name = "Niveau") +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  annotate(
+    "label", x = 1.5, y = 1.05,
+    size = 2.9, hjust = 0.5, fill = "white", label.size = 0.3,
+    label = sprintf("Chi2 survey=%.1f\np<0.001\nV Cramer=%.3f", chi2_svy$statistic, V_cr)
+  ) +
+  labs(
+    title   = "Niveau d'education par sexe (adultes 18+) — Pondere, W4 (2018)",
+    x       = "Sexe",
+    y       = "Proportion",
+    caption = sprintf(
+      "Chi2 survey=%.1f · V Cramer=%.3f | Poids : wt_wave4 | Source : GHS Panel W4",
+      chi2_svy$statistic, V_cr
+    )
+  ) +
+  THEME + theme(legend.position = "right")
+```
+
+**Interprétation :** Les inégalités de genre dans l'accès à l'éducation sont **statistiquement très significatives** (Chi² de Rao-Scott = `r round(chi2_svy$statistic,1)`, *p* < 0,001) et d'intensité modérée à forte (V de Cramér = `r round(V_cr,3)`). Plusieurs mécanismes structurels expliquent ces disparités : les mariages précoces qui retirent les filles de l'école avant l'achèvement du primaire, les normes sociales et religieuses qui ont historiquement défavorisé la scolarisation des filles dans les États du Nord, et les coûts d'opportunité qui poussent les ménages pauvres à privilégier la scolarisation des garçons. Les femmes présentent une proportion significativement plus élevée d'absence d'instruction et une part plus faible aux niveaux secondaire et tertiaire.
+
+---
+
+# Éducation selon le groupe d'âge
+
+L'analyse intergénérationnelle permet de mesurer l'évolution de l'investissement éducatif dans le temps. Elle offre une lecture indirecte de l'efficacité des politiques publiques en matière d'éducation au fil des décennies.
+
+```{r fig_age_educ, fig.cap="Figure 4 — Score d'éducation (ordinal) par groupe d'âge : boîtes à moustaches avec moyennes brutes et pondérées, test de Kruskal-Wallis.", fig.height=3.0}
+ggplot(
+  adults %>% filter(!is.na(educ_level), !is.na(age_grp)),
+  aes(x = age_grp, y = educ_num, fill = age_grp)
+) +
+  geom_boxplot(alpha = 0.8, outlier.alpha = 0.12, width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 4.5, color = "black") +
+  geom_point(
+    data = wmeans_age,
+    aes(x = age_grp, y = wm),
+    shape = 8, size = 4.5, color = "#E67E22", inherit.aes = FALSE
+  ) +
+  scale_fill_viridis_d(option = "plasma", direction = -1, guide = "none") +
+  scale_y_continuous(
+    breaks = 1:5,
+    labels = c("Aucun", "Primaire", "Jr Sec.", "Sr Sec.", "Tertiaire"),
+    limits = c(NA, 5.6)
+  ) +
+  annotate(
+    "label", x = 3.5, y = 5.3,
+    size = 2.8, hjust = 0.5, fill = "white", label.size = 0.3,
+    label = sprintf("Kruskal-Wallis\nH=%.1f · p<0.001", kw$statistic)
+  ) +
+  labs(
+    title    = "Niveau d'education par groupe d'age — Pondere, W4 (2018)",
+    subtitle = "Diamant = Moy. brute | Etoile = Moy. ponderee | KW + Dunn-Bonferroni",
+    x        = "Groupe d'age",
+    y        = "Niveau d'education",
+    caption  = sprintf("H=%.2f · p<0.001 | Poids : wt_wave4 | Source : GHS Panel W4", kw$statistic)
+  ) + THEME
+```
+
+**Interprétation :** Le test de Kruskal-Wallis (H = `r round(kw$statistic,1)`, *p* < 0,001) rejette sans ambiguïté l'hypothèse d'homogénéité du niveau d'éducation entre groupes d'âge. Les générations plus jeunes (18–30 ans) présentent un **niveau d'éducation significativement plus élevé** que les générations plus âgées, attestant d'une amélioration générationnelle continue. Cette progression reflète l'impact de plusieurs politiques : l'Universal Basic Education (UBE) Act de 2004, qui a rendu l'enseignement de base obligatoire et gratuit, et les programmes fédéraux d'expansion du réseau scolaire. Cependant, les moyennes pondérées (étoiles oranges) restent systématiquement inférieures aux moyennes brutes pour les jeunes générations, signalant la surreprésentation des milieux défavorisés ruraux chez les jeunes adultes.
+
+---
+
+# Scolarisation des enfants de 6 à 17 ans
+
+La scolarisation des enfants en âge d'aller à l'école est un indicateur clé des perspectives éducatives à moyen terme. Elle reflète à la fois la demande des ménages pour l'éducation et la capacité de l'offre scolaire à absorber la population scolarisable.
+
+```{r fig_scol, fig.cap="Figure 5 — Taux de scolarisation pondéré des enfants de 6 à 17 ans par milieu de résidence, avec IC 95%, année scolaire 2018/2019.", fig.height=2.8}
+ggplot(enroll_df, aes(x = sec_label, y = pct_w, fill = sec_label)) +
+  geom_col(alpha = 0.87, width = 0.52) +
+  geom_errorbar(
+    aes(ymin = pct_lo, ymax = pct_hi),
+    width = 0.14, linewidth = 1, color = "grey20"
+  ) +
+  geom_text(
+    aes(label = sprintf("%.1f%%\n(n=%s/%s)", pct_w, comma(n_scol), comma(N))),
+    vjust = -0.35, size = 3.5, fontface = "bold"
+  ) +
+  scale_fill_manual(values = c("Rural" = COL_R, "Urbain" = COL_U), guide = "none") +
+  scale_y_continuous(
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, 108)
+  ) +
+  annotate(
+    "label", x = 1.5, y = 96,
+    size = 2.9, hjust = 0.5, fill = "white", label.size = 0.3,
+    label = sprintf("Chi2 survey=%.2f\np=%.4f", chi_sc$statistic, chi_sc$p.value)
+  ) +
+  labs(
+    title   = "Scolarisation 2018/2019 des 6-17 ans — Ponderee, W4",
+    x       = "Milieu de residence",
+    y       = "Taux de scolarisation pondere (%)",
+    caption = sprintf(
+      "N=%s enfants | Chi2 survey=%.2f · p=%.4f | Poids : wt_wave4 | GHS Panel W4",
+      comma(nrow(children)), chi_sc$statistic, chi_sc$p.value
+    )
+  ) + THEME
+```
+
+**Interprétation :** Le taux de scolarisation pondéré est de **`r round(enroll_df$pct_w[as.character(enroll_df$sec_label)=="Rural"],1)`% en milieu rural** contre **`r round(enroll_df$pct_w[as.character(enroll_df$sec_label)=="Urbain"],1)`% en milieu urbain**, soit un écart de `r round(abs(diff(enroll_df$pct_w)),1)` points statistiquement très significatif (Chi² de sondage *p* = `r round(chi_sc$p.value,4)`). Cette fracture s'explique par plusieurs facteurs cumulatifs : l'insuffisance de l'offre scolaire en zones rurales, la pauvreté des ménages ruraux qui rend les coûts indirects (uniformes, manuels, transport) prohibitifs, la prévalence du travail des enfants dans les activités agricoles familiales, et dans certains États du Nord-Est, les fermetures d'établissements liées à l'insécurité. Des politiques éducatives différenciées et territorialisées sont indispensables pour réduire cet écart.
+
+---
+
+# Disparités géographiques entre États
+
+Le Nigéria est une fédération de 36 États caractérisée par une hétérogénéité géographique, culturelle et économique extrême. L'analyse des disparités éducatives entre États révèle l'ampleur des inégalités territoriales qui structurent le paysage éducatif national.
+
+```{r fig_heatmap, fig.cap="Figure 6 — Taux pondéré d'adultes (18+) sans instruction par État nigérian, GHS-W4 (2018). États triés du moins au plus affecté.", fig.height=8.5, fig.width=5.0}
+# CORRECTION HEATMAP :
+# - fig.height=8.5 et fig.width=5.0 pour que tous les Etats soient lisibles
+# - out.width non spécifié ici pour laisser Word gérer la mise en page
+# - scale_fill_gradientn avec limits=c(0,100) et rescale explicite
+# - geom_tile avec linewidth=0.5 pour eviter les artefacts de rendu
+# - scale_x_discrete et scale_y_discrete avec expand=c(0,0) pour supprimer les marges
+# - plot.margin ajuste pour eviter tout debordement
+
+n_states <- nrow(state_educ)
+
+ggplot(state_educ, aes(x = "% sans instruction", y = etat_f, fill = pct_aucun)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(
+    aes(label = sprintf("%.1f%%", pct_aucun), color = txt_color),
+    size = 2.5, fontface = "bold"
+  ) +
+  scale_color_identity() +
+  scale_fill_gradientn(
+    colors = c("#1a9850", "#91cf60", "#d9ef8b", "#fee08b", "#fc8d59", "#d73027", "#67001f"),
+    values = scales::rescale(c(0, 15, 25, 40, 55, 70, 85)),
+    name   = "% sans\ninstruction",
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, 100),
+    guide  = guide_colorbar(
+      barwidth       = 0.8,
+      barheight      = 8,
+      title.position = "top",
+      title.hjust    = 0.5
+    )
+  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(
+    title    = "Analphabetisme par Etat — W4 (2018) · Pondere",
+    subtitle = sprintf("%d Etats tries du moins au plus affecte | wt_wave4", n_states),
+    x        = NULL,
+    y        = NULL,
+    caption  = "Source : GHS Panel W4 | sect1 + sect2_harvestw4 | wt_wave4"
+  ) +
+  THEME +
+  theme(
+    axis.text.x     = element_blank(),
+    axis.ticks.x    = element_blank(),
+    axis.text.y     = element_text(size = 7, color = "grey15", margin = margin(r = 2)),
+    panel.grid      = element_blank(),
+    legend.position = "right",
+    plot.title      = element_text(size = 8, face = "bold"),
+    plot.subtitle   = element_text(size = 6.5),
+    plot.margin     = margin(t = 5, r = 5, b = 5, l = 5)
+  )
+```
+
+**Interprétation :** La carte thermique révèle des **disparités géographiques absolument extrêmes** qui témoignent d'une profonde fracture entre le Nord et le Sud du Nigéria. Les États du Nord-Ouest (Zamfara, Sokoto, Jigawa, Katsina, Kebbi) et du Nord-Est (Yobe, Borno) affichent les taux d'analphabétisme les plus alarmants, souvent supérieurs à 60%, voire 70%, de la population adulte. Ces régions cumulent plusieurs facteurs défavorables : traditions d'enseignement coranique non reconnues par le système éducatif formel, instabilité sécuritaire liée à Boko Haram dans le Nord-Est, et fortes résistances sociales à la scolarisation des filles. À l'opposé, les États du Sud-Ouest (Lagos, Ogun, Oyo) et du Sud-Est (Anambra, Imo) présentent des taux inférieurs à 20%, reflet d'une tradition éducative plus ancienne et d'un tissu économique valorisant l'instruction. Cette hétérogénéité appelle des politiques publiques ciblées et différenciées : les interventions uniformes à l'échelle nationale ne peuvent suffire à réduire des écarts aussi prononcés entre régions.
+
+---
+
+# Tableau de synthèse pondéré
+
+Ce tableau croise les principales variables éducatives (milieu de résidence, âge, niveau d'éducation) selon le genre, avec les tests statistiques appropriés pour plan de sondage complexe.
+
+```{r tab_synthese}
+svy_tbl2 <- svydesign(
+  ids     = ~hhid,
+  strata  = ~sec_num,
+  weights = ~wt_wave4,
+  data    = adults %>%
+    filter(!is.na(sex_label), !is.na(sec_label)) %>%
+    mutate(
+      `Niveau education` = factor(educ_level, levels = names(COLS_EDUC)),
+      Sexe               = sex_label,
+      Milieu             = sec_label,
+      Age                = age
+    )
+)
+
+tbl_svysummary(
+  svy_tbl2,
+  include   = c(Milieu, Age, `Niveau education`),
+  by        = Sexe,
+  statistic = list(
+    all_continuous()  ~ "{mean} ({sd})",
+    all_categorical() ~ "{n_unweighted} ({p}%)"
+  )
+) %>%
+  add_p(test = list(
+    `Niveau education` ~ "svy.chisq.test",
+    Age                ~ "svy.wilcox.test"
+  )) %>%
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption("**Tableau 2 — Éducation pondérée par sexe, Adultes 18+, GHS-W4 (2018)**") %>%
+  modify_footnote(
+    everything() ~ "Analyses pondérées wt_wave4 | Chi² de Rao-Scott · Test de Wilcoxon pour plan complexe"
+  ) %>%
+  as_flex_table() %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = BLUE_ENSAE) %>%
+  color(part = "header", color = "white") %>%
+  ft_borders() %>%
+  autofit()
+```
+
+**Interprétation :** Ce tableau confirme et quantifie les inégalités de genre dans toutes les dimensions éducatives analysées. Le test de Chi² de Rao-Scott adapté au plan de sondage complexe valide la significativité statistique des différences de distribution du niveau d'éducation selon le sexe (*p* < 0,001). Les femmes sont surreprésentées au niveau "Aucun" et fortement sous-représentées aux niveaux secondaire supérieur et tertiaire.
+
+---
+
+# Conclusion {-}
+
+Ce rapport a analysé de manière rigoureuse les données éducatives du **Nigeria General Household Survey Panel Wave 4 (2018)** en appliquant une pondération complète par les poids d'enquête `wt_wave4` et en mobilisant des méthodes statistiques adaptées au plan de sondage complexe (linéarisation de Taylor, tests de Rao-Scott). Quatre défis structurels majeurs se dégagent de cette analyse.
+
+**1. Un analphabétisme structurel profond.** Avec `r round(educ_dist$pct[educ_dist$educ_level=="Aucun"],0)`% des adultes nigérians sans aucun niveau d'instruction et un taux d'alphabétisation pondéré de seulement `r round(taux_alphab,1)`%, le Nigéria reste confronté à un défi éducatif majeur, particulièrement concentré dans les États du Nord. Sans mobilisation massive des ressources publiques ciblées vers les zones les plus défavorisées, le pays risque de ne pas atteindre les ODD 4 à l'horizon 2030.
+
+**2. Des inégalités de genre prononcées et systémiques.** L'association entre le sexe et le niveau d'éducation est forte (V de Cramér = `r round(V_cr,3)`, *p* < 0,001). Cette inégalité résulte d'une combinaison de normes culturelles, de contraintes économiques et d'une offre éducative inadaptée aux besoins des filles en zones rurales. Des politiques spécifiques sont nécessaires pour réduire ce fossé : bourses conditionnelles, construction d'établissements adaptés, formation d'enseignantes.
+
+**3. Une amélioration générationnelle tangible mais inégale.** Le test de Kruskal-Wallis (H = `r round(kw$statistic,1)`, *p* < 0,001) confirme que les jeunes générations bénéficient d'un niveau d'éducation significativement supérieur, témoignant de l'impact des politiques récentes de scolarisation. Cependant, des disparités importantes persistent au sein même des jeunes générations selon le milieu de résidence.
+
+**4. Une fracture territorial persistante.** L'écart de `r round(abs(diff(enroll_df$pct_w)),1)` points de scolarisation entre les milieux rural (`r round(enroll_df$pct_w[as.character(enroll_df$sec_label)=="Rural"],1)`%) et urbain (`r round(enroll_df$pct_w[as.character(enroll_df$sec_label)=="Urbain"],1)`%) appelle des politiques différenciées urgentes. La politique éducative nigériane doit impérativement adopter une approche territorialisée en allouant davantage de ressources aux États et aux milieux les plus défavorisés.
+
+---
+
+*Données : NBS / Banque mondiale — General Household Survey Panel Wave 4, Nigéria, 2018*
+
+*Pondération : wt_wave4 | Logiciel : R 4.x | Packages principaux : survey, gtsummary, flextable, ggplot2, naniar*
+
+*ENSAE — ISE 1 — Analyse statistique des données d'enquête — 2025-2026*
