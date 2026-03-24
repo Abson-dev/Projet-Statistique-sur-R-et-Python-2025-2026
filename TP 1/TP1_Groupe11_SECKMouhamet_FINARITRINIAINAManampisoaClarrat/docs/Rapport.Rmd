@@ -1,0 +1,229 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  word_document:
+    reference_docx: template.docx
+    toc: false
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 5,      # largeur par défaut pour tous les graphiques
+  fig.height = 3.5     # hauteur par défaut
+)
+library(knitr)
+library(dplyr)
+
+chemin <- "C:/Users/HP/Desktop/ISE1 CL/Semestre2/Projet statistique avec R ou python/Dossier R/TP/TP1"
+```
+
+# Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP1, à partir des données de la Nigeria General Household Survey (GHS) Panel -- vague 4 (2018--2019). L'objectif est d'étudier le profil démographique des ménages nigérians : structure par âge, répartition par sexe, liens de parenté, taille des ménages et disparités entre milieux rural et urbain.
+
+# Méthodologie
+
+## Données et Variables Clés
+
+Les fichiers suivants ont été utilisés :
+
+- **sect1_harvestw4.dta** : 30 337 individus, variables démographiques (sexe, âge, lien de parenté, secteur).
+
+- **secta_harvestw4.dta** : 5 025 ménages, informations de couverture et poids de sondage (`wt_wave4`).
+
+Les variables clés retenues sont :
+
+- **Sexe** : `s1q2` (1 = MALE, 2 = FEMALE).
+
+- **Age** : `s1q4` (en années).
+
+- **Lien de parenté** : `s1q3` (recodé en quatre catégories : Chef, Conjoint, Enfant, Autre).
+
+- **Milieu de résidence** : `sector` (1 = Urban, 2 = Rural).
+
+- **Taille du ménage** : calculée comme le nombre d'individus par `hhid`.
+
+- **Poids de sondage** : `wt_wave4` (poids coupe transversale, issu de `secta_harvestw4.dta`). Elle sera utilisée dans les analyses  descriptives et les estimations de proportions afin que les résultats obtenus soient représentatifs de la population nigériane. Le poids longitudinal `wt_longpanel` n'est pas utilisé, l'analyse ne portant pas sur des comparaisons inter-vagues.
+
+## Traitements Effectués
+
+```{r traitements, eval=FALSE, echo=TRUE}
+# Exploration : vérification des doublons, analyse des valeurs manquantes,
+# cohérence des identifiants entre sect1 et secta
+
+# Intégration des poids : left join de wt_wave4 depuis secta_w4 sur sect1_w4
+# (left join justifié : sect1_w4 est la table principale, les individus
+# sans poids sont exclus des analyses pondérées — mécanisme MCAR)
+
+# Analyse univariée de l'âge : statistiques descriptives pondérées
+# (weighted.mean, wtd.quantile), test de Shapiro-Wilk (indicatif),
+# histogramme pondéré, boxplot
+
+# Pyramide des âges : groupes quinquennaux, effectifs pondérés (sum(wt_wave4))
+
+# Lien de parenté : proportions pondérées (svydesign + svymean),
+# intervalles de confiance à 95 %
+
+# Taille des ménages : statistiques pondérées par zone,
+# test de Wilcoxon-Mann-Whitney, taille d'effet r de rang,
+# boxplot, violin plot
+
+# Tableau récapitulatif : construction manuelle des statistiques pondérées
+# (tbl_svysummary non utilisé pour compatibilité avec dplyr 1.1.4)
+```
+
+Les traitements réalisés comprennent l'exploration des fichiers (vérification des doublons, analyse des valeurs manquantes, cohérence des identifiants), l'intégration des poids de sondage, l'analyse univariée de l'âge avec statistiques descriptives et test de normalité de Shapiro-Wilk, la construction de la pyramide des âges par groupes quinquennaux, l'analyse des liens de parenté avec proportions et intervalles de confiance à 95 %, la comparaison de la taille des ménages entre milieux rural et urbain via un test de Wilcoxon-Mann-Whitney, et un tableau récapitulatif stratifié par zone de résidence.
+
+# Résultats
+
+## Qualité des Données et Valeurs Manquantes
+
+L'examen des valeurs manquantes sur les variables clés révèle une situation très satisfaisante. Dans `sect1_w4`, les variables démographiques `s1q2` (sexe), `s1q4` (âge) et `s1q3` (lien de parenté) présentent moins de 1 % de valeurs manquantes, principalement pour les individus partis ou non membres du ménage, ce qui est structurellement attendu (mécanisme MCAR). La variable `sector` (milieu de résidence) est complète. Par ailleurs, 4 980 ménages sont communs entre `sect1` et `secta` sur les 5 025 de `secta`, confirmant la cohérence des identifiants. Aucun doublon n'a été détecté sur la clé (`hhid`, `indiv`). Les quelques NA présents sont exclus des analyses concernées, la perte étant négligeable (< 0,5 %).
+
+## Analyse Univariée de l'Age
+
+L'analyse porte sur les individus ayant un âge renseigné et un poids de sondage disponible. Les statistiques descriptives ci-dessous sont pondérées par `wt_wave4`.
+
+```{r tab_stats_age}
+stats_age <- read.csv(paste0(chemin, "/outputs/tables/stats_age_univariees.csv"))
+kable(stats_age,
+      caption = "Statistiques descriptives de l'âge",
+      digits  = 1,
+      align   = "c")
+```
+
+La population enquêtée est très jeune : la moyenne est de 24,0 ans et la médiane de 18 ans, ce qui signifie que plus de la moitié des individus ont moins de 18 ans. Le coefficient de variation (0,82) traduit une forte dispersion des âges, tandis que le coefficient d'asymétrie (skewness = 1,00) indique une distribution étirée vers la droite, avec une queue de personnes âgées relativement peu nombreuses. La valeur maximale déclarée de 130 ans constitue vraisemblablement une erreur de déclaration. Le test de Shapiro-Wilk (sur un échantillon de 5 000, appliqué sur données brutes car le test ne supporte pas les poids) rejette très nettement la normalité (p < 2,2e-16), ce qui est cohérent avec la structure par âge d'une population en développement à base large et sommet étroit. L'histogramme illustre cette concentration des effectifs dans les premières classes d'âge avec un pic chez les 0--4 ans, puis une décroissance progressive typique d'une population jeune.
+
+::: {custom-style="Figure Caption"}
+Figure 1 : Distribution de l'âge des membres des ménages (histogramme)
+:::
+
+```{r fig_hist_age}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/histogramme_age.png"))
+```
+
+La présence de valeurs extrêmes aux âges élevés, confirmée par le boxplot ci-dessous, et la médiane basse à 18 ans traduisent la structure démographique particulièrement jeune de la population nigériane.
+
+::: {custom-style="Figure Caption"}
+Figure 2 : Distribution de l'âge des membres des ménages (boxplot)
+:::
+
+```{r fig_boxplot_age}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/boxplot_age.png"))
+```
+
+## Pyramide des Ages par Sexe
+
+La pyramide des âges (groupes quinquennaux) visualise la structure par sexe de la population. La pyramide présente une base large (classe 0--4 ans la plus fournie derrière 5--9 et 10--14), caractéristique d'une population jeune à forte natalité. Ce profil suit une forme expansive typique des pays en développement, où chaque génération est plus nombreuse que la précédente. On observe un déséquilibre entre les sexes dans les classes d'âge actives (15--30 ans), où les hommes sont plus nombreux, probablement en raison d'une migration masculine temporaire vers les zones d'emploi. A partir de 30 ans, les femmes deviennent progressivement plus nombreuses, conformément aux tendances démographiques liées à une espérance de vie féminine plus élevée.
+
+::: {custom-style="Figure Caption"}
+Figure 3 : Pyramide des âges (groupes de 5 ans)
+:::
+
+```{r fig_pyramide}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/pyramide_ages.png"))
+```
+
+## Lien de Parenté
+
+La variable `s1q3` a été regroupée en quatre catégories : Chef, Conjoint, Enfant, Autre. Les proportions sont estimées par pondération (`svymean`) avec intervalles de confiance à 95 % tenant compte du plan de sondage. Les enfants représentent 55,1 % des membres enquêtés, soit plus de la moitié de la population, ce qui confirme la jeunesse de la structure démographique nigériane. Les chefs de ménage constituent 18,8 % de l'échantillon et les conjoints 16,1 %, proportions cohérentes avec une structure familiale où chaque ménage compte en moyenne un chef, un conjoint et plusieurs enfants. La catégorie Autre (10,0 %) regroupe des situations diverses telles que les parents, beaux-parents et neveux/nièces, reflétant la fréquence des ménages élargis au Nigeria.
+
+```{r tab_parente}
+parente <- read.csv(paste0(chemin, "/outputs/tables/lien_parente_frequences.csv"))
+kable(parente[, c("relation", "n", "prop_label", "ic_low", "ic_high")],
+      caption   = "Fréquences des liens de parenté",
+      col.names = c("Relation", "Effectif", "Proportion", "IC bas", "IC haut"),
+      digits    = 3,
+      align     = c("c", "c", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 4 : Répartition des liens de parenté dans les ménages
+:::
+
+```{r fig_parente}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/lien_parente_barplot.png"))
+```
+
+## Taille des Ménages et Comparaison Rural / Urbain
+
+La taille des ménages a été calculée par décompte des individus membres effectifs par `hhid`, conformément à la définition du ménage dans l'enquête. Le recours à une échelle d'équivalence adulte n'est pas approprié ici, cette dernière étant réservée aux analyses de consommation ou de bien-être. En zone rurale, la taille moyenne pondérée est de 6,4 personnes (médiane 6), avec un écart-type de 3,8 et un maximum de 33 personnes. En zone urbaine, elle est plus faible : 5,5 personnes en moyenne (médiane 5), écart-type 3,3, maximum 27. Le test de Wilcoxon-Mann-Whitney, appliqué sur données brutes (pas de version pondérée standard disponible en R), confirme une différence très significative entre les deux distributions (p < 2,2e-16). La taille d'effet (r = 0,12) est qualifiée de faible selon les conventions de Cohen, indiquant que si la différence est statistiquement robuste, son amplitude pratique reste modeste et que d'autres facteurs tels que le niveau d'éducation, l'accès aux services et la fécondité contribuent également à expliquer la composition des ménages.
+
+```{r tab_taille_menage}
+taille <- read.csv(paste0(chemin, "/outputs/tables/stats_taille_menage_par_zone.csv"))
+kable(taille,
+      caption = "Taille des ménages selon le milieu de résidence",
+      digits  = 1,
+      align   = "c")
+```
+
+Le boxplot ci-dessous confirme des médianes distinctes (6 vs 5) et une dispersion plus forte en milieu rural, traduisant la présence de ménages très nombreux en zone rurale.
+
+::: {custom-style="Figure Caption"}
+Figure 5 : Distribution de la taille des ménages par milieu
+:::
+
+```{r fig_boxplot_taille}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/boxplot_taille_menage_par_zone.png"))
+```
+
+## Tableau Récapitulatif
+
+Le tableau ci-dessous synthétise les principales caractéristiques démographiques selon la zone de résidence. Les statistiques sont pondérées par `wt_wave4` ; les effectifs affichés sont les effectifs bruts de l'échantillon.
+
+```{r tab_recap}
+tableau_recap <- data.frame(
+  Caracteristique = c("Sexe", "  Homme", "  Femme",
+                      "Age (annees)",
+                      "Taille du menage"),
+  Overall         = c("", "13 189 (50%)", "13 368 (50%)",
+                      "24,0 (19,7)",
+                      "7 (5, 10)"),
+  Urbain          = c("", "3 730 (49%)", "3 837 (51%)",
+                      "25,0 (19,4)",
+                      "6 (5, 9)"),
+  Rural           = c("", "9 459 (50%)", "9 531 (50%)",
+                      "23,6 (19,8)",
+                      "8 (5, 11)"),
+  p_value         = c("", "0,4", "",
+                      "< 0,001",
+                      "< 0,001")
+)
+
+kable(tableau_recap,
+      col.names = c("Caracteristique",
+                    "Overall (N = 26 557)",
+                    "Urbain (N = 7 567)",
+                    "Rural (N = 18 990)",
+                    "p-value"),
+      caption   = "Caracteristiques demographiques des menages selon la zone",
+      align     = c("c", "c", "c", "c", "c"))
+```
+
+L'âge moyen est légèrement plus élevé en ville (25,5 ans contre 23,2 ans en milieu rural), différence significative au test de Wilcoxon (p < 0,001), probablement liée à une migration des jeunes adultes vers les zones urbaines. La répartition hommes/femmes est comparable dans les deux zones (environ 47--48 % d'hommes), sans différence significative (chi-deux, p = 0,4), ce qui indique une structure de genre homogène entre milieux. La taille des ménages reste la caractéristique la plus discriminante entre les deux zones, comme analysé à la section précédente.
+
+# Discussion
+
+Les analyses confirment une structure démographique typique d'un pays en développement à forte croissance démographique. La population est très jeune (âge médian 18 ans) avec une forte proportion d'enfants, ce qui se traduit par une pyramide des âges à base large caractéristique d'une fécondité élevée. Les ménages ruraux sont significativement plus grands que les ménages urbains (6,4 contre 5,5 personnes en moyenne), reflet de structures familiales élargies, d'une fécondité plus forte et d'un moindre accès aux services de planification familiale en zone rurale. Le déséquilibre observé dans les classes d'âge actives (15--30 ans), où les hommes sont surreprésentés, suggère l'existence de flux migratoires masculins temporaires, phénomène courant dans les économies en développement.
+
+Au-delà des disparités quantitatives, ces résultats soulèvent la question de la pression démographique sur les ressources des ménages. Une population majoritairement composée d'enfants et de jeunes dépendants implique un ratio de dépendance élevé, susceptible de peser sur les capacités d'épargne et d'investissement des ménages, en particulier en milieu rural où les ménages sont déjà plus nombreux.
+
+**Limites :**
+
+- L'analyse repose sur une coupe transversale (vague 4) ; elle ne permet pas d'étudier les évolutions temporelles de la structure démographique.
+
+- La catégorie Autre pour le lien de parenté regroupe des situations diverses ; une ventilation plus fine pourrait apporter des nuances sur la prévalence des ménages élargis.
+
+- La valeur maximale d'âge déclarée (130 ans) n'a pas été corrigée dans cette analyse ; une procédure de nettoyage des valeurs aberrantes d'âge pourrait améliorer la qualité des statistiques descriptives.
+
+- Le test de Wilcoxon-Mann-Whitney est appliqué sur données brutes, faute de version pondérée standard disponible dans les packages courants de R. Les statistiques descriptives restent les principaux indicateurs.
+
+# Conclusion
+
+Ce travail a permis de dresser un portrait démographique détaillé des ménages nigérians à partir de la vague 4 du GHS Panel, en tenant compte des poids de sondage pour produire des estimations représentatives de la population. Il met en évidence une population très jeune, des ménages ruraux significativement plus grands, et une structure familiale dominée par les enfants. Le déséquilibre de genre observé dans les classes d'âge actives suggère des flux migratoires masculins temporaires. Ces résultats constituent une base solide pour des analyses ultérieures portant sur l'éducation, la santé ou l'agriculture, qui exploiteront d'autres modules de l'enquête.
