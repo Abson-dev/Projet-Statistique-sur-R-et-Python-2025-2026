@@ -12,17 +12,17 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "287,77",
-        "scrollLine": "277",
+        "cursorPosition": "181,17",
+        "scrollLine": "154",
         "quartoPreviewFormat": "html",
-        "last_setup_crc32": "569ee9343d006008"
+        "last_setup_crc32": "3a21dfc83d006008"
     },
     "folds": "",
-    "lastKnownWriteTime": 1774347266,
+    "lastKnownWriteTime": 1774352756,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1774347266720,
+    "last_content_update": 1774352756333,
     "read_only": false,
     "read_only_alternatives": []
 }

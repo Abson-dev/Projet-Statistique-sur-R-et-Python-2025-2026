@@ -160,18 +160,18 @@ data_pyramid <- data %>%
   select(age = s1q4, sexe = s1q2, poids = wt_wave4) %>% 
   filter(!is.na(age), !is.na(sexe), !is.na(poids)) %>% 
   mutate(
-    sexe = as_factor(sexe),   # 🔥 correction clé
-    age_group = cut(age, breaks = seq(0, 100, by = 5))
+    sexe = recode(as.character(as_factor(sexe)),
+                  "1. MALE" = "Homme",
+                  "2. FEMALE" = "Femme"),
+    age_group = cut(age, breaks = seq(0, 100, by = 5), right = FALSE)
   ) %>%
+  filter(!is.na(age_group)) %>%
   group_by(age_group, sexe) %>%
   summarise(pop = sum(poids), .groups = "drop") %>%
   mutate(pop = ifelse(sexe == "Homme", -pop, pop))
 
-data_pyramid <- data_pyramid %>%
-  mutate(pop = ifelse(sexe == 1, -pop, pop)) 
-
 ggplot(data_pyramid, aes(x = age_group, y = pop, fill = sexe)) +
-  geom_bar(stat = "identity") +
+  geom_col(position = "identity") +
   coord_flip() +
   labs(
     title = "Pyramide des âges (pondérée)",
