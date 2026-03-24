@@ -1,0 +1,4 @@
+"0","data_to_join <- read_stata(""../data/raw/secta_harvestw4"")
+"
+"2","Erreur : '../data/raw/secta_harvestw4' does not exist in current working directory ('C:/ISE1/Semestre_2/python_R/TP 3/rapport').
+"
