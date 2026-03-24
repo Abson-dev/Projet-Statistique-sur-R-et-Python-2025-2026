@@ -1,0 +1,3 @@
+"","sexe","factor(niveau_educ)Aucun","factor(niveau_educ)Primaire","factor(niveau_educ)Junior Secondary","factor(niveau_educ)Senior Secondary","factor(niveau_educ)Tertiaire","se.factor(niveau_educ)Aucun","se.factor(niveau_educ)Primaire","se.factor(niveau_educ)Junior Secondary","se.factor(niveau_educ)Senior Secondary","se.factor(niveau_educ)Tertiaire"
+"Homme","Homme",0.00340427041391463,0.220662366857843,0.0638388227281046,0.385996454459644,0.326098085540493,0.000827494578666376,0.00815605475335425,0.0046704512050406,0.0102949250513737,0.0105392128644025
+"Femme","Femme",0.00948948056054719,0.278294409132717,0.0798826643176464,0.328818690439427,0.303514755549663,0.00247335233899539,0.00910667665977408,0.00576043703557875,0.0102453558580182,0.0115419495558801

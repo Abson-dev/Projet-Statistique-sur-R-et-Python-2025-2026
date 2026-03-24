@@ -1,0 +1,202 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  word_document:
+    reference_docx: template.docx
+    toc: false
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 5,
+  fig.height = 3.5
+)
+library(knitr)
+library(dplyr)
+
+chemin <- "C:/Users/HP/Desktop/ISE1 CL/Semestre2/Projet statistique avec R ou python/Dossier R/TP/TP2"
+```
+
+\newpage
+
+# 1. Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP2, à partir des données de la Nigeria General Household Survey (GHS) Panel -- vague 4 (2018--2019). L'objectif est d'étudier les niveaux d'instruction et les taux d'alphabétisation des membres des ménages nigérians, et de comparer les profils selon le sexe, l'âge et la zone de résidence (urbain/rural).
+
+# 2. Méthodologie
+
+## 2.1 Données et Variables Clés
+
+Les fichiers suivants ont été utilisés :
+
+- **sect1_harvestw4.dta** : 30 337 individus, variables démographiques (`s1q2` sexe, `s1q4` âge, `sector` milieu, `state` état).
+
+- **sect2_harvestw4.dta** : 26 557 individus, module éducation (`s2aq5` alphabétisation, `s2aq6` a déjà été à l'école, `s2aq9` niveau d'éducation le plus élevé, `s2aq13a` scolarisation actuelle).
+
+- **secta_harvestw4.dta** : 5 025 ménages, informations de couverture et poids de sondage (`wt_wave4`).
+
+Les variables clés retenues sont :
+
+- **Sexe** : `s1q2` (1 = Homme, 2 = Femme).
+
+- **Age** : `s1q4` (en années, issu de `sect1`).
+
+- **Milieu de résidence** : `sector` (1 = Urbain, 2 = Rural).
+
+- **Etat** : `state` (codes 1--37).
+
+- **Niveau d'éducation** : `s2aq9` (codes détaillés, recodés en cinq niveaux ordonnés).
+
+- **Scolarisation actuelle** : `s2aq13a` (1 = Oui, 2 = Non, pour les 6--17 ans).
+
+- **Poids de sondage** : `wt_wave4` (poids coupe transversale, issu de `secta_harvestw4.dta`), utilisé dans les analyses descriptives et les estimations de proportions afin que les résultats obtenus soient représentatifs de la population nigériane. Le poids longitudinal `wt_longpanel` n'est pas utilisé, l'analyse ne portant pas sur des comparaisons inter-vagues.
+
+## 2.2 Traitements Effectués
+
+```{r traitements, eval=FALSE, echo=TRUE}
+# Construction de la variable niveau d'éducation (5 catégories)
+sect2_educ <- sect2_w4 %>%
+  mutate(
+    niveau_educ = case_when(
+      s2aq9 %in% c(0, 1, 2, 3)       ~ "Aucun",
+      s2aq9 %in% 11:16               ~ "Primaire",
+      s2aq9 %in% 21:23               ~ "Junior Secondary",
+      s2aq9 %in% c(24:28, 321)       ~ "Senior Secondary",
+      s2aq9 %in% c(31, 33, 34, 35,
+                   41, 43, 322, 411,
+                   412, 421:424,
+                   51, 52, 61)       ~ "Tertiaire",
+      TRUE                           ~ NA_character_
+    )
+  )
+
+# Intégration des poids : left join de wt_wave4 depuis secta_w4 sur hhid
+# Left join justifié : sect2_educ est la table principale.
+# NA sur wt_wave4 (0,09%) : mécanisme MCAR -> exclus des analyses pondérées.
+educ_demo <- sect2_educ %>%
+  left_join(sect1_w4 %>% select(hhid, indiv, sexe = s1q2,
+                                 age = s1q4, secteur = sector, etat = state),
+            by = c("hhid", "indiv")) %>%
+  left_join(secta_w4 %>% select(hhid, wt_wave4), by = "hhid")
+
+# proportions estimées : svydesign() + svymean() + svyby()
+# Chi-deux + V de Cramér : sexe x niveau (données brutes, indicatif)
+# Kruskal-Wallis + Dunn  : niveau par groupe d'âge (données brutes, indicatif)
+# Chi-deux : zone x scolarisation (données brutes, indicatif)
+# Carte : taux par Etat sur données brutes (plan de sondage non représentatif
+#         au niveau des Etats)
+```
+
+Les traitements réalisés comprennent la construction d'une variable ordonnée de niveau d'éducation en cinq catégories, la jointure avec les variables démographiques de `sect1` et l'intégration des poids `wt_wave4` depuis `secta`, l'estimation des proportions estimées via `svymean` et `svyby`, et une série de tests statistiques : chi-deux avec V de Cramér pour l'association sexe--niveau d'éducation, test de Kruskal-Wallis suivi du test post-hoc de Dunn pour la comparaison du niveau d'éducation entre groupes d'âge, et chi-deux pour l'association zone--scolarisation des enfants de 6 à 17 ans.
+
+# 3. Résultats
+
+## 3.1 Qualité des Données et Valeurs Manquantes
+
+L'examen des valeurs manquantes sur les variables clés révèle une situation contrastée. Dans `sect1_w4`, les variables démographiques (`s1q2`, `s1q4`, `sector`, `state`) sont quasi exhaustives avec moins de 0,5 % de NA. Dans `sect2_w4`, le taux de manquants pour `s2aq9` (niveau d'éducation) est de 27,4 %, ce qui est structurellement attendu : les individus non scolarisés n'ont pas de niveau d'éducation à déclarer -- il s'agit de NA structurels et non de non-réponse. Aucun doublon n'a été détecté sur la clé (`hhid`, `indiv`). Les 4 980 ménages communs entre `sect1` et `sect2` sur les 5 025 de `secta` confirment la cohérence des identifiants. Les 0,09 % de NA sur `wt_wave4` correspondent à des ménages absents de `secta` et sont exclus des analyses pondérées.
+
+## 3.2 Répartition du Niveau d'Éducation
+
+La variable `s2aq9` a été recodée en cinq niveaux ordonnés : Aucun, Primaire, Junior Secondary, Senior Secondary et Tertiaire. L'analyse porte sur les 19 254 individus ayant un niveau renseigné et un poids disponible. Le niveau Primaire est le plus fréquent (36,3 %), suivi du Senior Secondary (23,0 %) et du Tertiaire (20,3 %). Le Junior Secondary représente 10,7 % et les personnes sans aucune instruction 9,7 %. Ce profil reflète des progrès dans l'accès à l'éducation de base, mais une déperdition scolaire significative entre le primaire et les niveaux supérieurs.
+
+::: {custom-style="Figure Caption"}
+Figure 1 : Répartition du niveau d'éducation le plus élevé
+:::
+
+```{r fig_niveau_educ}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/niveau_educ_barplot.png"))
+```
+
+## 3.3 Comparaison Hommes / Femmes (Adultes 18+)
+
+L'analyse porte sur les adultes de 18 ans et plus ayant un niveau d'éducation renseigné. Les résultats montrent que chez les hommes, le Senior Secondary est le niveau dominant (38,6 %), devant le Tertiaire (32,6 %) et le Primaire (22,1 %). Chez les femmes, la même hiérarchie prévaut avec des écarts différents : Senior Secondary (32,9 %), Tertiaire (30,4 %) et Primaire (27,8 %). Les femmes sont proportionnellement plus représentées au Primaire et dans la catégorie Aucun instruction (0,9 % contre 0,3 % chez les hommes). Le test du Chi-deux confirme une association significative entre le sexe et le niveau d'éducation (Chi-deux = 87,09, ddl = 4, p < 2,2e-16). Le V de Cramér (0,092) indique néanmoins une intensité faible -- le genre n'est pas le déterminant principal du niveau d'éducation atteint. Ces inégalités reflètent des abandons scolaires plus précoces chez les filles.
+
+::: {custom-style="Figure Caption"}
+Figure 2 : Niveau d'éducation des adultes (18+) par sexe
+:::
+
+```{r fig_educ_sexe}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/education_par_sexe.png"))
+```
+
+## 3.4 Relation entre Age et Niveau d'Éducation
+
+Les adultes ont été regroupés en quatre tranches d'âge : 18--30 ans (n = 4 505), 31--45 ans (n = 3 149), 46--60 ans (n = 1 858) et 61 ans et plus (n = 833). Les proportions révèlent une tendance claire : le niveau d'éducation est plus élevé chez les plus jeunes. Chez les 18--30 ans, le Senior Secondary domine (49,2 %) ; chez les 61 ans et plus, le Primaire est le niveau le plus fréquent (55,3 %). Cette progression intergénérationnelle reflète l'expansion du système éducatif nigérian au fil des décennies. Le test de Kruskal-Wallis confirme une différence très significative entre les groupes (H = 122,54, ddl = 3, p < 2,2e-16).
+
+::: {custom-style="Figure Caption"}
+Figure 3 : Niveau d'éducation par groupe d'âge (adultes 18+)
+:::
+
+```{r fig_educ_age, fig.width=6, fig.height=4}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/education_par_age_boxplot.png"))
+```
+
+Le test post-hoc de Dunn avec correction de Bonferroni indique que tous les groupes d'âge diffèrent significativement les uns des autres, confirmant que le gradient éducatif intergénérationnel est robuste à chaque échelon.
+
+```{r tab_dunn}
+dunn <- read.csv(paste0(chemin, "/outputs/tables/dunn_age_niveau.csv"))
+kable(dunn[, c("group1", "group2", "p.adj", "p.adj.signif")],
+      caption   = "Test de Dunn -- comparaisons multiples par groupe d'âge (correction Bonferroni)",
+      col.names = c("Groupe 1", "Groupe 2", "p ajusté", "Significativité"),
+      align     = c("l", "l", "c", "c"),
+      digits    = 5)
+```
+
+## 3.5 Taux de Scolarisation des 6--17 ans par Zone
+
+L'analyse porte sur 7 824 enfants de 6 à 17 ans. Le taux de scolarisation est de 92,5 % en milieu urbain contre 88,2 % en milieu rural. Bien que les deux taux soient élevés, la différence de 4,3 points est statistiquement significative (Chi-deux = 24,63, ddl = 1, p < 2,2e-16), indiquant un désavantage persistant du milieu rural en matière d'accès à la scolarisation. Les contraintes de distance, de coûts et de travail des enfants pèsent davantage en milieu rural.
+
+```{r tab_scolarisation}
+scol <- read.csv(paste0(chemin, "/outputs/tables/taux_scolarisation_par_zone_detail.csv"))
+kable(scol[, c("zone", "prop_label", "ic_low", "ic_high", "n_brut")],
+      caption   = "Taux de scolarisation des enfants de 6 à 17 ans par zone",
+      col.names = c("Zone", "Taux", "IC bas (95%)", "IC haut (95%)", "Effectif brut"),
+      digits    = 3,
+      align     = c("l", "c", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 4 : Taux de scolarisation des enfants de 6 à 17 ans par zone
+:::
+
+```{r fig_scolarisation}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/taux_scolarisation_par_zone_detail.png"))
+```
+
+## 3.6 Carte du Taux d'Adultes sans Instruction par État
+
+Les taux présentés ci-dessous sont calculés sur données brutes. Le plan de sondage du GHS-Panel n'étant pas conçu pour produire des estimations représentatives au niveau des États (représentatif au niveau national et par zone géopolitique uniquement), ces résultats sont fournis à titre indicatif uniquement. Les États du Nord-Ouest (Sokoto, Kebbi) affichent les taux les plus élevés, proches de 60 %, suivis des États du Nord-Est entre 30 et 50 %. Les États du Sud (Lagos, Abia, Anambra, Rivers) présentent des taux inférieurs à 5 %. Cette fracture Nord-Sud reflète des inégalités historiques dans l'implantation des infrastructures scolaires.
+
+::: {custom-style="Figure Caption"}
+Figure 5 : Taux d'adultes sans instruction par État au Nigéria (indicatif, données brutes)
+:::
+
+```{r fig_carte, fig.width=6, fig.height=4.5}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/carte_taux_sans_instruction_avec_noms.png"))
+```
+
+# 4. Discussion
+
+Les analyses confirment des inégalités marquées en matière d'éducation au Nigeria selon trois axes. Sur le plan du **genre**, les femmes adultes sont moins instruites que les hommes, avec une surreprésentation dans les niveaux les plus bas. Sur le plan **générationnel**, les jeunes (18--30 ans) sont nettement plus éduqués que les générations précédentes, témoignant des progrès de l'accès à l'école au cours des dernières décennies. Sur le plan **géographique**, de fortes disparités régionales persistent, avec un retard structurel des États du Nord qui concentrent l'essentiel des adultes sans instruction.
+
+Ces trois axes d'inégalité se renforcent mutuellement : les États du Nord sont aussi ceux où les inégalités de genre sont les plus prononcées et où les taux de scolarisation des enfants sont les plus faibles. Toute politique éducative efficace devra cibler simultanément ces dimensions géographiques, de genre et de génération.
+
+**Limites :**
+
+- Les données sont déclaratives et peuvent souffrir de biais de mémoire, notamment pour la déclaration du niveau d'éducation des personnes âgées.
+
+- Le test de Kruskal-Wallis, le test de Dunn et le Chi-deux sont appliqués sur données brutes, faute de version pondérée standard disponible en R. Les proportions estimées restent l'indicateur principal.
+
+- Les taux d'adultes sans instruction par État sont calculés sur données brutes ; le plan de sondage du GHS-Panel ne permet pas d'estimations représentatives à ce niveau géographique.
+
+- La variable d'alphabétisation (`s2aq5`) n'a pas été exploitée ici ; elle pourrait faire l'objet d'analyses complémentaires pour affiner le diagnostic éducatif.
+
+# 5. Conclusion
+
+Ce travail a permis de décrire la structure éducative de la population nigériane à partir des données GHS-Panel vague 4, en tenant compte des poids de sondage pour produire des estimations représentatives de la population. Il met en évidence des progrès générationnels réels, des inégalités de genre modérées mais persistantes, un accès à la scolarisation élevé mais inégalement réparti entre milieux, et une fracture géographique Nord-Sud profonde. Ces résultats constituent une base solide pour des analyses ultérieures portant sur les déterminants du niveau d'éducation ou son lien avec les conditions de vie des ménages.
