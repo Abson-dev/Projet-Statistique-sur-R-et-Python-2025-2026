@@ -1,0 +1,316 @@
+---
+title: "TP3 – Accès aux services de santé et chocs sanitaires des ménages"
+subtitle: "Nigeria General Household Survey Panel (W1-W4, 2010-2018)"
+author:
+  - "Cheikh Ahmadou Bamba FALL"
+  - "Cheikh Omar TRAORE"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    reference_docx: NULL
+lang: fr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 9,
+  fig.height = 6
+)
+library(here)
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(forcats)
+library(gtsummary)
+library(rstatix)
+library(survey)
+library(srvyr)
+library(Hmisc)
+source(here("R", "fonctions.R"))
+```
+
+# Introduction
+
+Ce rapport présente les résultats du TP3 réalisé dans le cadre du cours de
+Statistique Descriptive à l'École Nationale de la Statistique et de l'Analyse
+Économique Pierre Ndiaye (ENSAE). L'objectif est d'analyser les épisodes de
+maladie, les types de soins consultés et les coûts de santé supportés par
+les ménages nigérians à partir des sections santé du Nigeria General Household
+Survey (GHS) Panel.
+
+Les analyses portent principalement sur la **vague 4 (2018)** et couvrent :
+
+- Les taux de morbidité par sexe et groupe d'âge
+- Les types de maladies les plus fréquentes
+- Le recours aux soins selon le type de prestataire
+- La distribution des dépenses de santé
+- Les disparités selon le niveau de richesse et la zone de résidence
+
+Toutes les statistiques sont **pondérées** par le poids de sondage `wt_wave4`
+issu de `secta_harvestw4`.
+
+---
+
+# Données et Méthodologie
+
+## Source des données
+
+Les données proviennent du programme **LSMS-ISA** de la Banque Mondiale.
+Les sections santé du GHS Panel couvrent les épisodes de maladie survenus
+dans les 4 semaines précédant l'enquête.
+
+## Fichiers utilisés
+
+- `sect3a_harvestw4.dta` : maladies/blessures déclarées, type de maladie
+- `sect3b_harvestw4.dta` : consultations, dépenses de santé
+- `sect1_harvestw4.dta` : sexe, âge (jointure individus)
+- `secta_harvestw4.dta` : zone rurale/urbaine (`sector`), poids `wt_wave4`
+- `cons_agg_wave4_visit2.dta` : consommation totale par ménage (quintile)
+
+## Nettoyage des données
+
+```{r chargement, echo=TRUE}
+df_sante_a  <- readRDS(here("data", "processed", "df_sante_a_w4.rds"))
+df_sante_b  <- readRDS(here("data", "processed", "df_sante_b_w4.rds"))
+secta_w4    <- readRDS(here("data", "processed", "secta_w4.rds"))
+cons_agg_w4 <- readRDS(here("data", "processed", "cons_agg_w4.rds"))
+
+sector_hh <- secta_w4 %>%
+  select(hhid, sector, wt_wave4) %>%
+  distinct(hhid, .keep_all = TRUE)
+```
+
+Le poids `wt_wave4` et la variable `sector` (rural/urbain) sont joints
+depuis `secta_harvestw4` via `hhid` dans tous les chunks nécessaires.
+
+---
+
+# Résultats
+
+## Taux de morbidité pondéré par sexe et groupe d'âge (Question 13)
+
+```{r morbidite-sexe, fig.cap="Taux de morbidité pondéré par sexe – W4"}
+knitr::include_graphics(here("output", "figures", "Q13_morbidite_sexe.png"))
+```
+
+```{r morbidite-age, fig.cap="Taux de morbidité pondéré par groupe d'âge – W4"}
+knitr::include_graphics(here("output", "figures", "Q13_morbidite_age.png"))
+```
+
+```{r tab-morbidite}
+freq_sexe <- read.csv(here("output", "tables", "Q13_morbidite_sexe.csv"))
+
+if ("n_pondere" %in% names(freq_sexe)) {
+  freq_sexe %>%
+    mutate(prop    = round(prop * 100, 1),
+           ic_bas  = round(ic_bas * 100, 1),
+           ic_haut = round(ic_haut * 100, 1),
+           n_pondere = round(n_pondere, 0)) %>%
+    select(sexe, n_pondere, prop, ic_bas, ic_haut) %>%
+    knitr::kable(col.names = c("Sexe", "Effectif pondéré",
+                               "Taux (%)", "IC Bas (%)", "IC Haut (%)"),
+                 caption = "Taux de morbidité pondéré par sexe avec IC à 95% – W4")
+} else {
+  freq_sexe %>%
+    mutate(prop    = round(prop * 100, 1),
+           ic_bas  = round(ic_bas * 100, 1),
+           ic_haut = round(ic_haut * 100, 1)) %>%
+    select(sexe, n, n_malade, prop, ic_bas, ic_haut) %>%
+    knitr::kable(col.names = c("Sexe", "Effectif", "Malades",
+                               "Taux (%)", "IC Bas (%)", "IC Haut (%)"),
+                 caption = "Taux de morbidité par sexe avec IC à 95% – W4")
+}
+```
+
+## Types de maladies déclarées (Question 14)
+
+```{r maladies, fig.cap="10 affections les plus fréquentes – W4 (pondéré)"}
+knitr::include_graphics(here("output", "figures", "Q14_types_maladies.png"))
+```
+
+```{r tab-maladies}
+top10 <- read.csv(here("output", "tables", "Q14_top10_maladies.csv"))
+
+if ("n_pondere" %in% names(top10)) {
+  top10 %>%
+    arrange(desc(n_pondere)) %>%
+    mutate(n_pondere = round(n_pondere, 0),
+           pct = round(n_pondere / sum(n_pondere) * 100, 1)) %>%
+    knitr::kable(col.names = c("Code maladie", "Catégorie",
+                               "Effectif pondéré", "Effectif brut", "Part (%)"),
+                 caption = "Top 10 affections pondérées – W4")
+} else {
+  top10 %>%
+    arrange(desc(n)) %>%
+    mutate(pct = round(n / sum(n) * 100, 1)) %>%
+    knitr::kable(col.names = c("Code maladie", "Catégorie", "Effectif", "Part (%)"),
+                 caption = "Top 10 des affections déclarées – W4")
+}
+```
+
+## Recours aux soins par type de prestataire (Question 15)
+
+```{r prestataires, fig.cap="Recours aux soins pondéré par prestataire – W4"}
+knitr::include_graphics(here("output", "figures", "Q15_prestataires.png"))
+```
+
+```{r tab-presta}
+freq_presta <- read.csv(here("output", "tables", "Q15_prestataires.csv"))
+
+if ("n_pondere" %in% names(freq_presta)) {
+  freq_presta %>%
+    mutate(n_pondere = round(n_pondere, 0),
+           prop = round(n_pondere / sum(n_pondere) * 100, 1)) %>%
+    arrange(desc(n_pondere)) %>%
+    knitr::kable(col.names = c("Type de prestataire", "Effectif pondéré",
+                               "Proportion (%)"),
+                 caption = "Recours aux soins pondéré par prestataire – W4")
+} else {
+  freq_presta %>%
+    mutate(prop = round(n / sum(n) * 100, 1)) %>%
+    arrange(desc(n)) %>%
+    knitr::kable(col.names = c("Type de prestataire", "Effectif", "Proportion (%)"),
+                 caption = "Fréquence du recours aux soins par prestataire – W4")
+}
+```
+
+## Distribution des dépenses de santé (Question 16)
+
+```{r hist-dep, fig.cap="Distribution pondérée des dépenses de santé (log) – W4"}
+knitr::include_graphics(here("output", "figures", "Q16_histogramme_depenses.png"))
+```
+
+```{r boxplot-dep, fig.cap="Dépenses de santé par prestataire – W4"}
+knitr::include_graphics(here("output", "figures", "Q16_boxplot_depenses_presta.png"))
+```
+
+```{r tab-decile}
+stats_decile <- read.csv(here("output", "tables", "Q16_stats_decile_depenses.csv"))
+knitr::kable(stats_decile,
+             col.names = c("Décile", "Valeur pondérée (NGN)"),
+             caption = "Déciles pondérés des dépenses de santé – W4")
+```
+
+## Recours aux soins selon le quintile de consommation (Question 17)
+
+```{r recours-quintile, fig.cap="Recours pondéré aux soins par quintile – W4"}
+knitr::include_graphics(here("output", "figures", "Q17_recours_quintile.png"))
+```
+
+```{r chi2-quintile}
+tab_q17 <- read.csv(here("output", "tables", "Q17_contingence_recours_quintile.csv"))
+knitr::kable(tab_q17,
+             caption = "Tableau de contingence recours × quintile – W4")
+```
+
+```{r test-quintile}
+df_recours <- df_sante_b %>%
+  mutate(
+    consulte = case_when(
+      as.numeric(s3q50) != 5 ~ "Consulté",
+      as.numeric(s3q50) == 5 ~ "Non consulté",
+      TRUE                   ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(consulte))
+
+df_q17 <- df_recours %>%
+  left_join(cons_agg_w4 %>% select(hhid, totcons), by = "hhid") %>%
+  filter(!is.na(totcons)) %>%
+  mutate(quintile = paste0("Q", ntile(totcons, 5)))
+
+svy_q17  <- svydesign(ids = ~1, weights = ~wt_wave4, data = df_q17)
+chi2_q17 <- svychisq(~ consulte + quintile, design = svy_q17)
+
+tab_brut <- table(df_q17$quintile, df_q17$consulte)
+v_cramer <- sqrt(chisq.test(tab_brut)$statistic /
+                   (sum(tab_brut) * (min(dim(tab_brut)) - 1)))
+
+cat("Test du chi-deux pondéré (svychisq)\n")
+cat("F =", round(chi2_q17$statistic, 3), "\n")
+cat("p-valeur =", format(chi2_q17$p.value, digits = 4), "\n")
+cat("V de Cramér (effectifs bruts) =", round(v_cramer, 3), "\n")
+cat("Conclusion :", ifelse(chi2_q17$p.value < 0.05,
+    "Association significative entre recours aux soins et quintile (p < 0.05).",
+    "Pas d'association significative (p > 0.05)."))
+```
+
+## Dépenses médianes de santé rural/urbain (Question 18)
+
+```{r violin, fig.cap="Dépenses pondérées par zone rurale/urbaine – W4"}
+knitr::include_graphics(here("output", "figures", "Q18_violin_depenses_zone.png"))
+```
+
+```{r wilcox-zone}
+df_q18 <- df_sante_b %>%
+  filter(!is.na(s3q50)) %>%
+  mutate(depense = rowSums(across(starts_with("s3q51_")), na.rm = TRUE)) %>%
+  filter(depense > 0) %>%
+  left_join(sector_hh %>% select(hhid, sector), by = "hhid") %>%
+  mutate(zone_label = case_when(
+    as.numeric(sector) == 1 ~ "Urbain",
+    as.numeric(sector) == 2 ~ "Rural"
+  )) %>%
+  filter(!is.na(zone_label))
+
+stats_zone <- df_q18 %>%
+  group_by(zone_label) %>%
+  summarise(
+    n_pondere        = round(sum(wt_wave4), 0),
+    mediane_ponderee = round(wtd.quantile(depense, weights = wt_wave4,
+                                          probs = 0.5), 1),
+    moyenne_ponderee = round(wtd.mean(depense, weights = wt_wave4), 1),
+    .groups = "drop"
+  )
+
+knitr::kable(stats_zone,
+             col.names = c("Zone", "Effectif pondéré",
+                           "Médiane pondérée", "Moyenne pondérée"),
+             caption = "Dépenses pondérées de santé par zone – W4")
+
+svy_q18    <- svydesign(ids = ~1, weights = ~wt_wave4, data = df_q18)
+wilcox_res <- svyranktest(depense ~ zone_label, design = svy_q18)
+
+cat("\nTest de Wilcoxon pondéré (svyranktest)\n")
+cat("p-valeur =", format(wilcox_res$p.value, digits = 4), "\n")
+cat("Conclusion :", ifelse(wilcox_res$p.value < 0.05,
+    "Différence significative entre rural et urbain (p < 0.05).",
+    "Pas de différence significative (p > 0.05)."))
+```
+
+---
+
+# Conclusion
+
+1. **Morbidité** : Les taux de morbidité pondérés varient selon le sexe et
+le groupe d'âge. Les personnes âgées et les enfants restent les plus vulnérables.
+
+2. **Types de maladies** : Les maladies infectieuses dominent les affections
+pondérées déclarées.
+
+3. **Recours aux soins** : Une part importante de la population ne consulte
+aucun prestataire.
+
+4. **Dépenses de santé** : Les déciles pondérés révèlent une distribution
+très asymétrique. Les ménages des quintiles supérieurs consultent davantage.
+
+5. **Disparités rural/urbain** : Le test de rang pondéré (`svyranktest`)
+confirme des différences significatives de dépenses entre zones.
+
+---
+
+# Références
+
+- World Bank LSMS-ISA. *Nigeria General Household Survey Panel 2010-2018*.
+  [https://microdata.worldbank.org](https://microdata.worldbank.org)
+- R Core Team (2025). *R: A language and environment for statistical computing*.
+- Wickham H. et al. (2019). *Welcome to the tidyverse*. Journal of Open Source Software.
+- Lumley T. (2023). *survey: analysis of complex survey samples*. R package.

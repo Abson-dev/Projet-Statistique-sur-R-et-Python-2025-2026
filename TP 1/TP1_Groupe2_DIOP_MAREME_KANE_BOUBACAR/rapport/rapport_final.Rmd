@@ -1,0 +1,295 @@
+---
+title: "Profil démographique des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel -- Wave 4 (2018-2019)"
+author: "DIOP Marème & KANE Boubacar, Elèves Ingénieurs statisticiens économistes"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+    latex_engine: pdflatex
+geometry: "margin=1in"
+fontsize: 10pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.align = "center",
+  fig.pos   = "H",
+  out.width = "88%",
+  dpi       = 150
+)
+
+proj_root <- rprojroot::find_rstudio_root_file()
+
+library(dplyr)
+library(gtsummary)
+library(rstatix)
+library(haven)
+library(knitr)
+library(kableExtra)
+
+fig_dir <- file.path(proj_root, "output", "figures")
+
+sect1_w4_clean <- readRDS(
+  file.path(proj_root, "data", "processed", "sect1_w4_clean.rds")
+)
+
+# Pré-calculs globaux
+age_data     <- sect1_w4_clean %>% filter(!is.na(s1q4), s1q4 <= 110)
+n_exclus_age <- sum(sect1_w4_clean$s1q4 > 110, na.rm = TRUE)
+
+stats_age <- age_data %>%
+  summarise(
+    N          = n(),
+    Moyenne    = round(mean(s1q4), 1),
+    Mediane    = round(median(s1q4), 1),
+    Q1         = round(quantile(s1q4, 0.25), 1),
+    Q3         = round(quantile(s1q4, 0.75), 1),
+    Ecart_type = round(sd(s1q4), 1),
+    CV         = round((sd(s1q4) / mean(s1q4)) * 100, 1),
+    Asymetrie  = round(mean(((s1q4 - mean(s1q4)) / sd(s1q4))^3), 3)
+  )
+
+set.seed(42)
+shapiro_test <- shapiro.test(sample(age_data$s1q4, 5000))
+
+lien_data <- sect1_w4_clean %>%
+  filter(!is.na(s1q3)) %>%
+  mutate(
+    lien = case_when(
+      s1q3 == 1           ~ "Chef de ménage",
+      s1q3 == 2           ~ "Conjoint(e)",
+      s1q3 %in% c(3,4,5)  ~ "Enfant du CM",
+      TRUE                ~ "Autre"
+    )
+  ) %>%
+  count(lien) %>%
+  mutate(
+    prop    = n / sum(n),
+    ic_low  = mapply(function(x, n) binom.test(x, n)$conf.int[1], n, sum(n)),
+    ic_high = mapply(function(x, n) binom.test(x, n)$conf.int[2], n, sum(n))
+  ) %>%
+  arrange(desc(prop)) %>%
+  mutate(lien = factor(lien, levels = lien))
+
+taille_menage <- sect1_w4_clean %>%
+  group_by(hhid) %>%
+  summarise(taille = n(), sector = first(sector), .groups = "drop") %>%
+  filter(!is.na(sector)) %>%
+  mutate(zone_label = ifelse(as.numeric(sector) == 1, "Urbain", "Rural"))
+
+wilcox_result <- wilcox.test(taille ~ zone_label, data = taille_menage,
+                              exact = FALSE, conf.int = TRUE)
+r_effet <- rstatix::wilcox_effsize(taille ~ zone_label, data = taille_menage)
+
+stats_taille <- taille_menage %>%
+  group_by(zone_label) %>%
+  summarise(N = n(), Mediane = round(median(taille), 1),
+            Moyenne = round(mean(taille), 1),
+            Q1 = round(quantile(taille, 0.25), 1),
+            Q3 = round(quantile(taille, 0.75), 1),
+            .groups = "drop")
+```
+
+# Introduction
+
+Ce rapport analyse le profil démographique des ménages enquêtés lors de la quatrième vague du **Nigeria General Household Survey (GHS) Panel** (2018-2019), collectée dans le cadre du programme LSMS-ISA de la Banque Mondiale. L'objectif est de décrire la structure par âge et par sexe de la population, la composition des ménages selon le lien de parenté, et les différences de taille des ménages entre milieux rural et urbain.
+
+Les analyses reposent sur deux fichiers issus de la Wave 4 Post-Harvest : **sect1\_harvestw4** (30 337 individus, 59 variables) contenant le sexe, l'âge, le lien de parenté et le statut de résidence, et **sectaa\_harvestw4** fournissant la variable de milieu de résidence. Les membres ayant quitté le ménage (`s1q4a = 2`) ont été retirés. L'échantillon analytique final comprend **`r nrow(sect1_w4_clean)` individus** répartis dans **`r n_distinct(sect1_w4_clean$hhid)` ménages**.
+
+```{r tableau-variables}
+vars <- data.frame(
+  Variable = c("hhid","indiv","s1q2","s1q3","s1q4","s1q4a","sector"),
+  Label    = c("Identifiant du ménage","Identifiant individuel","Sexe",
+               "Lien de parenté avec le chef","Age en années révolues",
+               "Statut de résidence actuel","Milieu de résidence"),
+  Mod      = c("Numérique","Numérique","1=Masculin, 2=Féminin",
+               "14 modalités (HEAD, SPOUSE...)","0 à 130 ans",
+               "1=Présent, 2=Parti","1=Urbain, 2=Rural")
+)
+kable(vars, caption = "Variables clés utilisées dans l'analyse",
+      col.names = c("Variable","Label","Modalités"),
+      booktabs = TRUE, align = "lll") %>%
+  kable_styling(latex_options = c("hold_position","scale_down"), font_size = 8) %>%
+  column_spec(1, bold = TRUE, monospace = TRUE)
+```
+
+# Qualité des données et valeurs manquantes
+
+**Doublons.** La vérification sur `hhid + indiv` n'a révélé aucun doublon. **Valeurs manquantes.** Les variables `s1q12_4` et `s1q13a_4` sont entièrement vides mais sans incidence. Les NA sur `s1q2`, `s1q3`, `s1q4` correspondent exclusivement aux membres partis (`s1q4a = 2`), confirmant la cohérence structurelle des données.
+
+```{r na-coherence}
+coherence <- data.frame(
+  Groupe     = c("Membres présents (s1q4a = 1)","Membres partis (s1q4a = 2)"),
+  N          = c(25767, 3780),
+  NA_age     = c(0, 3780), NA_sexe = c(0, 3780), NA_par = c(0, 3780)
+)
+kable(coherence, caption = "Cohérence des valeurs manquantes",
+      col.names = c("Groupe","N","NA âge","NA sexe","NA parenté"),
+      booktabs = TRUE, align = "lcccc") %>%
+  kable_styling(latex_options = c("hold_position"), font_size = 8)
+```
+
+```{r vis-miss, fig.cap="Carte des valeurs manquantes pour les variables clés (W4)", out.width="85%"}
+knitr::include_graphics(file.path(fig_dir, "valeurs_manquantes_toutes_variables.png"))
+```
+
+# Analyse univariée de l'âge
+
+## Méthodologie
+
+La variable `s1q4` est analysée après exclusion de `r n_exclus_age` observation(s) aberrante(s) (âge > 110 ans). La normalité est testée par Shapiro-Wilk sur un échantillon de 5 000 individus.
+
+## Résultats
+
+```{r stats-age-tableau}
+kable(stats_age, caption = "Statistiques descriptives de l'âge -- W4",
+      col.names = c("N","Moyenne","Médiane","Q1","Q3","Écart-type","CV (\\%)","Asymétrie"),
+      booktabs = TRUE, align = "c", escape = FALSE) %>%
+  kable_styling(latex_options = c("hold_position","scale_down"), font_size = 8)
+```
+
+```{r stats-sexe-tableau}
+age_data %>%
+  mutate(Sexe = ifelse(as.numeric(s1q2) == 1, "Masculin", "Féminin")) %>%
+  group_by(Sexe) %>%
+  summarise(N = n(), Moyenne = round(mean(s1q4),1), Mediane = round(median(s1q4),1),
+            Q1 = round(quantile(s1q4,0.25),1), Q3 = round(quantile(s1q4,0.75),1),
+            Ecart_type = round(sd(s1q4),1), .groups = "drop") %>%
+  kable(caption = "Statistiques de l'âge par sexe -- W4",
+        col.names = c("Sexe","N","Moyenne","Médiane","Q1","Q3","Écart-type"),
+        booktabs = TRUE, align = "lcccccc") %>%
+  kable_styling(latex_options = c("hold_position","scale_down"), font_size = 8)
+```
+
+```{r shapiro-tableau}
+data.frame(Taille = 5000, W = round(shapiro_test$statistic, 4),
+           Pvaleur = "< 2.2e-16",
+           Conclusion = "Rejet de la normalité (seuil 1 pct)") %>%
+  kable(caption = "Test de Shapiro-Wilk -- âge (W4)",
+        col.names = c("Taille testée","Statistique W","P-valeur","Conclusion"),
+        booktabs = TRUE, align = "cccc") %>%
+  kable_styling(latex_options = c("hold_position","scale_down"), font_size = 8)
+```
+
+```{r fig-age, fig.cap="Distribution de l'âge -- histogramme et boîte à moustaches (W4)", out.width="88%"}
+knitr::include_graphics(file.path(fig_dir, "analyse_age.png"))
+```
+
+## Interprétation
+
+L'âge moyen est de `r stats_age$Moyenne` ans et la médiane de `r stats_age$Mediane` ans : plus de la moitié de la population a moins de `r stats_age$Mediane` ans. Le CV de `r stats_age$CV` % traduit une très forte hétérogénéité. Le coefficient d'asymétrie positif (`r stats_age$Asymetrie`) confirme une distribution à droite. La normalité est rejetée (W = `r round(shapiro_test$statistic, 3)`, p < 2.2e-16), résultat attendu sur un grand échantillon.
+
+# Pyramide des âges par sexe
+
+## Méthodologie
+
+Les individus sont regroupés en classes quinquennales (0--4 ans à 85+). La pyramide représente les effectifs masculins à gauche et féminins à droite.
+
+## Résultats et interprétation
+
+```{r fig-pyramide, fig.cap="Pyramide des âges par groupe quinquennal et par sexe -- W4", out.width="78%"}
+knitr::include_graphics(file.path(fig_dir, "pyramide_ages_w4.png"))
+```
+
+La pyramide adopte une forme expansive caractéristique des populations à forte fécondité : base très large sur les groupes 0--14 ans, puis rétrécissement progressif. Les groupes 5--9 ans et 10--14 ans constituent les cohortes les plus importantes. La répartition est équilibrée dans les jeunes groupes, avec une légère dominance féminine à partir de 35 ans.
+
+# Répartition du lien de parenté avec le chef de ménage
+
+## Méthodologie
+
+La variable `s1q3` renseigne 14 modalités de lien de parenté. Les modalités 3, 4 et 5 (enfants biologiques, adoptifs et beaux-enfants) sont regroupées en "Enfant du CM". Les proportions sont estimées avec des IC à 95 % par test binomial exact.
+
+## Résultats et interprétation
+
+```{r fig-lien, fig.cap="Fréquences du lien de parenté avec le chef de ménage -- W4", out.width="88%"}
+knitr::include_graphics(file.path(fig_dir, "lien_parente.png"))
+```
+
+```{r tableau-lien}
+lien_data %>%
+  mutate(Proportion = paste0(round(prop*100,1)," pct"),
+         IC_bas = paste0(round(ic_low*100,1)," pct"),
+         IC_haut = paste0(round(ic_high*100,1)," pct")) %>%
+  select(lien, n, Proportion, IC_bas, IC_haut) %>%
+  kable(caption = "Proportions du lien de parenté avec IC à 95 pct -- W4",
+        col.names = c("Lien de parenté","Effectif","Proportion",
+                      "IC 95 pct bas","IC 95 pct haut"),
+        booktabs = TRUE, align = "lcccc") %>%
+  kable_styling(latex_options = c("hold_position"), font_size = 8)
+```
+
+\footnotesize Source : GHS Panel Wave 4, sect1\_harvestw4 \normalsize
+
+Les enfants du chef de ménage constituent la catégorie dominante avec `r round(lien_data$prop[lien_data$lien == "Enfant du CM"]*100,1)` % des membres résidents, devant les chefs de ménage (`r round(lien_data$prop[lien_data$lien == "Chef de ménage"]*100,1)` %) et les conjoints (`r round(lien_data$prop[lien_data$lien == "Conjoint(e)"]*100,1)` %).
+
+# Taille des ménages selon le milieu de résidence
+
+## Méthodologie
+
+La taille est calculée comme le nombre de membres présents par ménage. La comparaison rural/urbain est effectuée via un test de Wilcoxon-Mann-Whitney (distribution non normale). La taille d'effet est mesurée par le r de rang de Cohen.
+
+## Résultats et interprétation
+
+```{r tableau-taille}
+kable(stats_taille, caption = "Taille des ménages selon le milieu de résidence",
+      col.names = c("Milieu","N","Médiane","Moyenne","Q1","Q3"),
+      booktabs = TRUE, align = "lccccc") %>%
+  kable_styling(latex_options = c("hold_position"), font_size = 8)
+```
+
+\footnotesize Test de Wilcoxon : W = `r format(round(wilcox_result$statistic,0), big.mark=" ")`, p-value < 2.2e-16 | r de rang = `r round(r_effet$effsize,3)` (petite, Cohen) \normalsize
+
+```{r fig-taille, fig.cap="Distribution de la taille des ménages selon le milieu de résidence -- W4", out.width="70%"}
+knitr::include_graphics(file.path(fig_dir, "taille_menage.png"))
+```
+
+Les ménages ruraux présentent une taille médiane de `r stats_taille$Mediane[stats_taille$zone_label=="Rural"]` membres contre `r stats_taille$Mediane[stats_taille$zone_label=="Urbain"]` en zone urbaine. Le test est hautement significatif (p < 2.2e-16). La taille d'effet r = `r round(r_effet$effsize,3)` est petite au sens de Cohen, la significativité étant amplifiée par le grand effectif.
+
+# Tableau récapitulatif stratifié par zone
+
+```{r tableau-gt}
+data_gt <- sect1_w4_clean %>%
+  filter(!is.na(s1q2), !is.na(s1q4)) %>%
+  left_join(taille_menage %>% select(hhid, taille, zone_label), by = "hhid") %>%
+  filter(!is.na(zone_label)) %>%
+  mutate(sexe = haven::as_factor(s1q2))
+
+data_gt %>%
+  select(zone_label, s1q4, sexe, taille) %>%
+  tbl_summary(
+    by        = zone_label,
+    label     = list(s1q4 ~ "Age (années)", sexe ~ "Sexe",
+                     taille ~ "Taille du ménage"),
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} ({p}%)"),
+    digits    = all_continuous() ~ 1
+  ) %>%
+  add_p(test = list(all_continuous() ~ "wilcox.test",
+                    all_categorical() ~ "chisq.test")) %>%
+  add_overall() %>%
+  bold_labels() %>%
+  modify_caption("**Caractéristiques démographiques par zone de résidence (W4)**") %>%
+  modify_footnote(p.value ~ "Wilcoxon-Mann-Whitney (continu) ; Chi-deux (catégoriel)")
+```
+
+L'âge moyen est légèrement plus élevé en zone urbaine (25.4 vs 24.0 ans, p < 0.001). La répartition par sexe est équilibrée dans les deux zones (p = 0.4). La taille du ménage est plus élevée en zone rurale (7.5 vs 6.4, p < 0.001).
+
+
+
+
+# Conclusion générale
+
+Cette analyse met en évidence trois résultats majeurs. **Premièrement**, la population nigériane est très jeune (médiane = `r stats_age$Mediane` ans) avec une pyramide expansive dominée par les 0--14 ans, typique d'une forte fécondité. **Deuxièmement**, les enfants du chef de ménage constituent la catégorie dominante (`r round(lien_data$prop[lien_data$lien=="Enfant du CM"]*100,1)` %), témoignant de structures familiales larges. **Troisièmement**, les ménages ruraux sont significativement plus grands que les ménages urbains (p < 2.2e-16), différence d'un membre en valeur absolue aux implications socio-économiques réelles.
+
+---
+
+\footnotesize
+*Packages R :* `haven`, `dplyr`, `ggplot2`, `gtsummary`, `rstatix`, `patchwork`, `naniar`, `knitr`, `kableExtra`, `rprojroot` | *Source :* GHS Panel W4, NBS et Banque Mondiale, 2019.
+\normalsize

@@ -1,6 +1,7 @@
 # Packages
 pkgs <- c("haven","dplyr","ggplot2","forcats","scales",
-          "naniar","rstatix","ggpubr","patchwork","gtsummary","tidyr")
+          "naniar","rstatix","ggpubr","patchwork","gtsummary","tidyr",
+          "survey","officer")
 miss <- pkgs[!pkgs %in% installed.packages()[,"Package"]]
 if (length(miss) > 0) install.packages(miss, repos = "https://cloud.r-project.org")
 
@@ -31,7 +32,16 @@ for (f in fichiers_tp3) {
       download.file(url_file, destfile = dest_file, mode = "wb")
       cat("  Téléchargé :", f, "\n")
     }, error = function(e) {
-      cat("  Erreur sur :", f, "(vérifier si le fichier est sur GitHub)\n")
+      if (f == "secta_harvestw4.dta") {
+        stop(
+          "\n FICHIER MANQUANT : data/raw/secta_harvestw4.dta\n",
+          " Ce fichier contient les poids de sondage (wt_wave4).\n",
+          " Placez-le dans data/raw/ ou déposez-le sur votre GitHub.\n",
+          " Source : NGA_2018_GHSP-W4_v03_M_Stata12.zip (World Bank Microdata)\n"
+        )
+      } else {
+        cat("  Erreur sur :", f, "(vérifier si le fichier est sur GitHub)\n")
+      }
     })
   }
 }

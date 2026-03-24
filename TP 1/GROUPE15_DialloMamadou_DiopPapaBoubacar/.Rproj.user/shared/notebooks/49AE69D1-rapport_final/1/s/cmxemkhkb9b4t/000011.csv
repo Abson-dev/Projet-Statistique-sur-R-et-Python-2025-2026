@@ -1,4 +1,0 @@
-"0","data_2 <- read_stata(""data/raw/secta_harvestw4.dta"")
-"
-"2","Erreur : 'data/raw/secta_harvestw4.dta' does not exist in current working directory ('C:/ISE1/Semestre_2/python_R/TP1/rapport').
-"

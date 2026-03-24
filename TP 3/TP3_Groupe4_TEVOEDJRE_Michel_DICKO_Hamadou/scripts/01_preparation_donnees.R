@@ -1,15 +1,24 @@
 library(haven)
 library(dplyr)
+library(survey)
 
 # Chargement
 cat("Chargement des fichiers bruts ...\n")
 sect4a <- read_dta("data/raw/sect4a_harvestw4.dta")
 sect1  <- read_dta("data/raw/sect1_harvestw4.dta")
 cons   <- read_dta("data/raw/totcons_final.dta")
+secta  <- read_dta("data/raw/secta_harvestw4.dta")
 
 cat("  sect4a :", nrow(sect4a), "obs\n")
 cat("  sect1  :", nrow(sect1),  "obs\n")
 cat("  cons   :", nrow(cons),   "obs\n")
+cat("  secta  :", nrow(secta),  "obs\n")
+
+# Extraction des poids de sondage depuis secta
+# Variables : wt_wave4 (poids Wave 4), cluster (UPE), strata (strate)
+wgt_data <- secta %>%
+  select(hhid, wt_wave4, cluster, strata)
+cat("  Ménages avec poids :", nrow(wgt_data), "\n")
 
 # Démographie (sect1)
 sect1_clean <- sect1 %>%
@@ -26,7 +35,6 @@ sect1_clean <- sect1 %>%
 
 # Santé (sect4a) + fusion avec sect1
 # malade = 1 si déclaration maladie/blessure dans les 4 dernières semaines
-
 df_health <- sect4a %>%
   select(hhid, indiv, s4aq3, s4aq1, s4aq3b_1, s4aq6a,
          s4aq9, s4aq14, s4aq17) %>%
@@ -52,9 +60,35 @@ cons_clean <- cons %>%
 df_health <- df_health %>%
   left_join(cons_clean, by = "hhid")
 
+# Jointure des poids de sondage via hhid
+df_health <- df_health %>%
+  left_join(wgt_data, by = "hhid")
+
+n_miss_wgt <- sum(is.na(df_health$wt_wave4))
+cat("  Individus sans poids :", n_miss_wgt, "\n")
+
+# Plan de sondage — tous individus avec poids
+plan_health <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = df_health %>% filter(!is.na(wt_wave4)),
+  nest    = TRUE
+)
+
+# Plan de sondage — individus malades uniquement
+plan_malades <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = df_health %>% filter(!is.na(wt_wave4), malade == 1),
+  nest    = TRUE
+)
+
 # Sauvegarde
-
 dir.create("data/processed", showWarnings = FALSE, recursive = TRUE)
-saveRDS(df_health, "data/processed/df_health_base.rds")
+saveRDS(df_health,    "data/processed/df_health_base.rds")
+saveRDS(plan_health,  "data/processed/plan_health.rds")
+saveRDS(plan_malades, "data/processed/plan_malades.rds")
 
-cat("\n Données sauvegardées dans data/processed/\n")
+cat("\n Données et plans de sondage sauvegardés dans data/processed/\n")

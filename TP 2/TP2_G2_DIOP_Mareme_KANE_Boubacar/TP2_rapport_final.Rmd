@@ -1,0 +1,489 @@
+---
+title: "Éducation et alphabétisation des membres des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel — Wave 4 (2018)"
+author: "DIOP Marème, KANE Boubacar"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 4
+)
+```
+
+```{r libraries, include=FALSE}
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+library(scales)
+library(patchwork)
+library(gtsummary)
+library(naniar)
+library(gt)
+library(labelled)
+library(viridis)
+library(forcats)
+library(openxlsx)
+```
+
+```{r import, include=FALSE}
+sect2 <- read_dta("data/sect2_harvestw4.dta")
+sect1 <- read_dta("data/sect1_harvestw4.dta")
+
+# Créer le dossier outputs si inexistant
+if (!dir.exists("outputs")) dir.create("outputs")
+```
+
+```{r verif-import, include=FALSE}
+# Vérifications structurelles
+dim(sect2)   # 26557 x 60
+dim(sect1)   # 30337 x 59
+n_distinct(sect2$hhid, sect2$indiv)  # pas de doublons
+
+# Valeurs manquantes variables clés
+colSums(is.na(sect2[, c("s2aq5", "s2aq6", "s2aq9", "s2aq10", "s2aq13a", "s2aq13")]))
+
+# Distribution brute niveau éducation
+table(sect2$s2aq9, useNA = "always")
+labelled::val_labels(sect2$s2aq9)
+labelled::val_labels(sect2$s2aq6)
+```
+
+
+```{r construction-variables, include=FALSE}
+sect2 <- sect2 %>%
+  mutate(
+    # Passe 1 : jamais scolarisé
+    niveau_educ = case_when(
+      s2aq6 == 2 ~ "Aucun",
+      TRUE ~ NA_character_
+    ),
+    # Passe 2 : coalesce des 3 variables de niveau
+    niveau_raw = coalesce(
+      as.numeric(s2aq9),
+      as.numeric(s2aq13b),
+      as.numeric(s2aq15)
+    ),
+    # Passe 3 : classification
+    niveau_educ = case_when(
+      !is.na(niveau_educ)              ~ niveau_educ,
+      niveau_raw == 0                  ~ "Aucun",
+      niveau_raw %in% c(1, 2, 3)       ~ "Préscolaire",
+      niveau_raw %in% 11:16            ~ "Primaire",
+      niveau_raw %in% 21:23            ~ "Junior Secondary",
+      niveau_raw %in% c(24:28,321,322) ~ "Senior Secondary",
+      niveau_raw %in% c(31,33:35,41,43,
+                        51,52,61,
+                        411,412,
+                        421:424)       ~ "Tertiaire",
+      TRUE                             ~ NA_character_
+    ),
+    niveau_educ = factor(niveau_educ,
+                         levels = c("Aucun", "Primaire",
+                                    "Junior Secondary",
+                                    "Senior Secondary",
+                                    "Tertiaire"))
+  )
+
+table(sect2$niveau_educ, useNA = "always")
+```
+
+
+```{r fusion, include=FALSE}
+# Fusion avec sect1 pour sexe et âge
+df_educ <- sect2 %>%
+  left_join(sect1 %>% select(hhid, indiv, s1q2, s1q4),
+            by = c("hhid", "indiv")) %>%
+  mutate(sexe = factor(s1q2, levels = c(1, 2), labels = c("Homme", "Femme")))
+
+# Vérification : 0 NA sur sexe et âge
+dim(df_educ)
+colSums(is.na(df_educ[, c("s1q2", "s1q4", "sexe")]))
+```
+
+\newpage
+
+# Introduction
+
+Ce rapport analyse les niveaux d'instruction et les taux d'alphabétisation des membres des ménages nigérians à partir des données de la quatrième vague (2018) du Nigeria General Household Survey (GHS) Panel, collectée dans le cadre du programme LSMS-ISA de la Banque Mondiale.
+
+L'objectif est de comparer les profils éducatifs entre sexes, tranches d'âge et zones géographiques, afin de mettre en évidence les inégalités d'accès à l'éducation au Nigeria en 2018. Les analyses sont strictement descriptives et reposent sur des tests statistiques non paramétriques adaptés à la nature des données.
+
+## Données mobilisées
+
+Les analyses reposent sur deux fichiers issus de la Wave 4 Post-Harvest :
+
+- **`sect2_harvestw4`** : section éducation individuelle (26 557 individus, 60 variables). Contrairement aux Waves 1 et 2 où les modules éducation étaient scindés en deux fichiers (`sect2a` pour les anciens scolarisés et `sect2b` pour les scolarisés actuels), la Wave 4 fusionne toutes les informations en un seul fichier.
+- **`sect1_harvestw4`** : section démographique (30 337 individus) fournissant le sexe et l'âge des membres.
+
+La variable `niveau_educ` a été reconstruite en trois passes : (1) les individus jamais scolarisés (`s2aq6 = 2`) sont directement classés "Aucun" ; (2) le niveau est reconstitué par `coalesce(s2aq9, s2aq13b, s2aq15)`, mobilisant ainsi trois sources complémentaires pour maximiser la couverture ; (3) un filet via `s2aq10` (diplôme obtenu) complète les cas résiduels. Les NA restants correspondent aux enfants de moins de 3 ans, exclus du questionnaire éducation.
+
+**Note sur la catégorie "Aucun"** : cette catégorie regroupe deux sous-groupes distincts — les individus n'ayant jamais fréquenté l'école et ceux ayant fréquenté sans atteindre un niveau reconnu (`niveau_raw = 0`). La catégorie "Préscolaire" a été supprimée car ses effectifs très faibles ne permettent pas une analyse statistique fiable.
+
+\newpage
+
+# Distribution du niveau d'éducation
+
+## Méthodologie
+
+La variable `niveau_educ` à 5 catégories ordonnées a été construite par reconstruction en trois passes (`coalesce` de `s2aq9`, `s2aq13b`, `s2aq15`). La catégorie "Préscolaire" a été supprimée en raison d'effectifs trop faibles. L'analyse porte sur les individus ayant une information renseignée, après exclusion des enfants de moins de 3 ans.
+
+## Résultats
+
+```{r tableau-niveau-educ}
+tab_educ <- sect2 %>%
+  filter(!is.na(niveau_educ)) %>%
+  count(niveau_educ) %>%
+  mutate(pct = n / sum(n) * 100)
+
+tab_educ %>%
+  gt() %>%
+  tab_header(title = "Distribution du niveau d'éducation — Wave 4 (2018)") %>%
+  cols_label(
+    niveau_educ = "Niveau d'éducation",
+    n           = "Effectif",
+    pct         = "Proportion (%)"
+  ) %>%
+  fmt_number(columns = pct, decimals = 1) %>%
+  tab_source_note("Source : GHS Panel Wave 4, sect2_harvestw4 | N = 24 789")
+```
+
+
+
+
+
+```{r barplot-niveau-educ, fig.cap="Distribution du niveau d'éducation atteint parmi les individus de 3 ans et plus"}
+p1 <- sect2 %>%
+  filter(!is.na(niveau_educ)) %>%
+  count(niveau_educ) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ggplot(aes(x = fct_rev(niveau_educ), y = pct, fill = niveau_educ)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")), hjust = -0.2, size = 3) +
+  coord_flip() +
+  labs(x = "", y = "Proportion (%)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Sauvegarde
+ggsave("outputs/fig1_barplot_niveau_educ.png", p1, width = 7, height = 4, dpi = 300)
+p1
+```
+
+## Interprétation
+
+Le niveau "Aucun" est le plus représenté avec environ 29,8% des individus, suivi du niveau Primaire (28,5%) et du Senior Secondary (18,6%). Le niveau Tertiaire concerne 14,5% de la population enquêtée. Ces chiffres reflètent une pyramide éducative encore fortement marquée par le décrochage précoce, avec près d'un tiers des individus sans instruction formelle reconnue.
+
+\newpage
+
+# Comparaison du niveau d'éducation entre hommes et femmes
+
+## Méthodologie
+
+L'analyse porte sur les adultes de 18 ans et plus. La catégorie "Préscolaire" ayant été supprimée lors de la construction de `niveau_educ`, le tableau de contingence porte sur 5 niveaux. Un test du chi-deux de Pearson et le V de Cramér mesurent l'association entre sexe et niveau d'éducation.
+
+## Résultats
+
+```{r tache9, include=FALSE}
+df_adultes <- df_educ %>%
+  filter(s1q4 >= 18, !is.na(niveau_educ), !is.na(sexe))
+
+nrow(df_adultes)
+
+tab9 <- table(df_adultes$sexe, df_adultes$niveau_educ)
+tab9
+chisq.test(tab9)
+rstatix::cramer_v(tab9)
+```
+
+```{r tableau-contingence-sexe}
+tab9 %>%
+  as.data.frame.matrix() %>%
+  tibble::rownames_to_column("Sexe") %>%
+  gt() %>%
+  tab_header(title = "Niveau d'éducation par sexe (adultes 18+)") %>%
+  tab_source_note("Chi-deux = 584.4, ddl = 5, p < 2.2e-16 | V de Cramér = 0.21")
+```
+
+```{r barplot-sexe-educ, fig.cap="Répartition du niveau d'éducation par sexe chez les adultes de 18 ans et plus"}
+p2 <- df_adultes %>%
+  count(sexe, niveau_educ) %>%
+  group_by(sexe) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ggplot(aes(x = sexe, y = pct, fill = niveau_educ)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  labs(x = "", y = "%", fill = "Niveau") +
+  theme_minimal()
+
+ggsave("outputs/fig2_barplot_sexe_educ.png", p2, width = 7, height = 4, dpi = 300)
+p2
+```
+
+## Interprétation
+
+Les inégalités de genre sont marquées et statistiquement significatives (chi-deux p < 2,2×10⁻¹⁶, V de Cramér ≈ 0,21). Les femmes sont surreprésentées dans la catégorie "Aucun" (environ 31% contre 15% chez les hommes). À l'inverse, les hommes sont mieux représentés aux niveaux Senior Secondary et Tertiaire. Ces écarts reflètent les inégalités d'accès à l'éducation qui ont historiquement défavorisé les filles au Nigeria. Le V de Cramér de 0,21 indique un effet statistiquement significatif mais d'ampleur modérée, suggérant une convergence progressive entre les genres.
+
+\newpage
+
+# Relation entre âge et niveau d'éducation
+
+## Méthodologie
+
+Les adultes de 18 ans et plus ont été regroupés en quatre tranches d'âge. Le niveau d'éducation étant une variable ordinale, le test de Kruskal-Wallis est utilisé pour tester les différences entre groupes, suivi d'un test post-hoc de Dunn avec correction de Bonferroni pour identifier les paires significativement différentes.
+
+## Résultats
+
+```{r tache10, include=FALSE}
+df_adultes <- df_adultes %>%
+  mutate(
+    groupe_age = cut(s1q4,
+                     breaks = c(18, 30, 45, 60, Inf),
+                     labels = c("18-30", "31-45", "46-60", "60+"),
+                     right = TRUE,
+                     include.lowest = TRUE),
+    niveau_num = as.numeric(niveau_educ)
+  )
+
+table(df_adultes$groupe_age, useNA = "always")
+kruskal.test(niveau_num ~ groupe_age, data = df_adultes)
+```
+
+```{r boxplot-age-educ, fig.cap="Distribution du niveau d'éducation par groupe d'âge chez les adultes de 18 ans et plus"}
+p3 <- ggplot(df_adultes, aes(x = groupe_age,
+                              y = as.numeric(niveau_educ),
+                              fill = groupe_age)) +
+  geom_boxplot() +
+  scale_y_continuous(breaks = 1:5,
+                     labels = levels(df_adultes$niveau_educ)) +
+  labs(x = "Groupe d'âge", y = "Niveau d'éducation") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig3_boxplot_age_educ.png", p3, width = 7, height = 4, dpi = 300)
+p3
+```
+
+```{r dunn-tableau}
+dunn_res <- dunn_test(df_adultes,
+                      niveau_num ~ groupe_age,
+                      p.adjust.method = "bonferroni")
+
+dunn_res %>%
+  select(group1, group2, statistic, p, p.adj, p.adj.signif) %>%
+  gt() %>%
+  tab_header(title = "Test post-hoc de Dunn — comparaisons par paires (Bonferroni)") %>%
+  cols_label(
+    group1       = "Groupe 1",
+    group2       = "Groupe 2",
+    statistic    = "Statistique",
+    p            = "p-valeur",
+    p.adj        = "p ajustée",
+    p.adj.signif = "Signif."
+  ) %>%
+  fmt_number(columns = c(statistic, p, p.adj), decimals = 4)
+```
+
+## Interprétation
+
+Le test de Kruskal-Wallis révèle une différence hautement significative entre les groupes d'âge. Le test post-hoc de Dunn confirme que **toutes les paires sont significativement différentes** (p.adj < 0,0001). Les jeunes adultes de 18 à 30 ans présentent le niveau d'éducation le plus élevé, tandis que les personnes de 60 ans et plus ont le niveau le plus bas. Ce gradient reflète l'expansion progressive du système éducatif nigérian sur les dernières décennies.
+
+\newpage
+
+# Taux de scolarisation des 6-17 ans selon le milieu de résidence
+
+## Méthodologie
+
+Le taux de scolarisation est calculé à partir de `s2aq13a` (scolarisation en cours en 2018/2019). Les enfants n'ayant jamais été à l'école (`s2aq6 = 2`) ont été recodés comme "Non scolarisés". L'analyse porte sur 9 140 enfants âgés de 6 à 17 ans. Un test du chi-deux et le V de Cramér mesurent l'association entre milieu de résidence et scolarisation.
+
+## Résultats
+
+```{r tache11, include=FALSE}
+df_enfants <- df_educ %>%
+  filter(s1q4 >= 6, s1q4 <= 17) %>%
+  mutate(
+    milieu = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural"))
+  ) %>%
+  mutate(
+    scolarise = case_when(
+      s2aq13a == 1 ~ "Scolarisé",
+      s2aq13a == 2 ~ "Non scolarisé",
+      s2aq6 == 2   ~ "Non scolarisé",
+      TRUE         ~ NA_character_
+    ),
+    scolarise = factor(scolarise, levels = c("Scolarisé", "Non scolarisé"))
+  )
+
+# Vérifications
+table(df_enfants$scolarise, useNA = "always")
+table(df_enfants$milieu, useNA = "always")
+
+tab11 <- table(df_enfants$scolarise, df_enfants$milieu)
+tab11
+chisq.test(tab11)
+rstatix::cramer_v(tab11)
+```
+
+```{r tableau-scolarisation}
+tab11 %>%
+  as.data.frame.matrix() %>%
+  tibble::rownames_to_column("Scolarisation") %>%
+  gt() %>%
+  tab_header(title = "Scolarisation des 6-17 ans selon le milieu de résidence") %>%
+  tab_source_note("Chi-deux = 253.25, ddl = 1, p < 2.2e-16 | V de Cramér = 0.17")
+```
+
+```{r barplot-scolarisation, fig.cap="Taux de scolarisation des enfants de 6 à 17 ans selon le milieu de résidence, avec intervalles de confiance à 95%"}
+p4 <- df_enfants %>%
+  filter(!is.na(scolarise), !is.na(milieu)) %>%
+  group_by(milieu, scolarise) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(milieu) %>%
+  mutate(
+    total   = sum(n),
+    pct     = n / total * 100,
+    ic_bas  = binom.test(n, total)$conf.int[1] * 100,
+    ic_haut = binom.test(n, total)$conf.int[2] * 100
+  ) %>%
+  filter(scolarise == "Scolarisé") %>%
+  ggplot(aes(x = milieu, y = pct, fill = milieu)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = ic_bas, ymax = ic_haut), width = 0.2) +
+  geom_text(aes(label = paste0(round(pct, 1), "%")), vjust = -0.8, size = 4) +
+  labs(x = "", y = "Taux de scolarisation (%)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig4_barplot_scolarisation.png", p4, width = 7, height = 4, dpi = 300)
+p4
+```
+
+## Interprétation
+
+Le taux de scolarisation est significativement plus élevé en milieu urbain (88,5%) qu'en milieu rural (72,5%), soit un écart de 16 points. Le test du chi-deux est hautement significatif (χ² = 253,25, p < 2,2×10⁻¹⁶), bien que le V de Cramér de 0,17 indique une association d'intensité modérée. Cet écart entre ville et campagne illustre les inégalités d'accès à l'éducation liées à la distance aux établissements scolaires et aux contraintes économiques plus prononcées en milieu rural.
+
+\newpage
+
+# Analphabétisme par État nigérian
+
+## Méthodologie
+
+Le taux d'analphabétisme est calculé comme la proportion d'adultes de 18 ans et plus ne sachant ni lire ni écrire dans aucune langue (`s2aq5 = 2`). Les 37 États nigérians (36 États + FCT Abuja) sont classés par taux croissant et colorés selon leur quintile d'analphabétisme.
+
+## Résultats
+
+```{r tache12, include=FALSE}
+df_alpha <- df_educ %>%
+  filter(s1q4 >= 18, !is.na(s2aq5)) %>%
+  mutate(analphabete = ifelse(s2aq5 == 2, 1, 0)) %>%
+  group_by(state) %>%
+  summarise(
+    n_total     = n(),
+    n_analph    = sum(analphabete),
+    taux_analph = n_analph / n_total * 100
+  ) %>%
+  mutate(
+    state    = as_factor(state),
+    quintile = ntile(taux_analph, 5)
+  )
+
+head(df_alpha)
+```
+
+```{r heatmap, fig.height=7}
+p5 <- ggplot(df_alpha, aes(x = 1,
+                     y = fct_reorder(state, taux_analph),
+                     fill = taux_analph)) +
+  geom_tile(color = "white", linewidth = 0.3) +
+  geom_text(aes(label = paste0(round(taux_analph, 1), "%")), 
+            size = 2.5, color = "white", fontface = "bold") +
+  scale_fill_gradientn(
+    colours = c("#2ecc71", "#f1c40f", "#e67e22", "#e74c3c", "#8e44ad"),
+    name = "Taux (%)"
+  ) +
+  labs(title = "Taux d'analphabétisme par État (adultes 18+)",
+       y = "", x = "") +
+  theme_minimal() +
+  theme(axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank())
+ggsave("outputs/fig5_heatmap_analphabetisme.png", p5,
+       width = 7, height = 9, dpi = 300)
+p5
+```
+## Interprétation
+
+Les disparités géographiques sont très marquées. Les États du Nord-Ouest et du Nord-Est affichent les taux d'analphabétisme les plus élevés, dépassant souvent 50 à 60%, tandis que les États du Sud présentent des taux nettement plus faibles, généralement inférieurs à 20%. Ces écarts reflètent les différences historiques d'investissement dans l'éducation entre les régions géopolitiques du Nigeria.
+
+\newpage
+
+# Conclusion générale
+
+Cette analyse des données d'éducation du GHS Panel Wave 4 met en évidence des inégalités éducatives profondes et multidimensionnelles au Nigeria en 2018.
+
+Premièrement, près de 30% des individus enquêtés n'ont aucun niveau d'instruction reconnu, ce qui illustre les défis persistants du système éducatif nigérian malgré les progrès réalisés au cours des dernières décennies.
+
+Deuxièmement, les inégalités de genre restent significatives : les femmes adultes sont surreprésentées sans instruction et moins représentées aux niveaux secondaire et tertiaire. Ces écarts résultent d'inégalités d'accès historiques qui se réduisent progressivement pour les générations récentes, comme en témoigne le niveau d'éducation plus élevé des jeunes adultes.
+
+Troisièmement, un effet de cohorte générationnel prononcé est documenté : les 18-30 ans sont significativement mieux éduqués que toutes les cohortes plus âgées, bénéficiant des politiques d'universalisation de l'éducation post-1990.
+
+Quatrièmement, le fossé rural-urbain en matière de scolarisation des enfants est statistiquement significatif, soulignant la nécessité de politiques ciblées pour améliorer l'accès à l'éducation en milieu rural.
+
+Enfin, les disparités géographiques entre États sont considérables, avec des taux d'analphabétisme allant de moins de 5% dans certains États du Sud à plus de 60% dans certains États du Nord, constituant la fracture éducative la plus profonde au Nigeria.
+
+```{r export-xlsx, include=FALSE}
+# Export des tableaux en Excel
+wb <- createWorkbook()
+
+# Feuille 1 : Distribution niveau éducation
+addWorksheet(wb, "Niveau_education")
+writeData(wb, "Niveau_education",
+          sect2 %>%
+            filter(!is.na(niveau_educ)) %>%
+            count(niveau_educ) %>%
+            mutate(pct = round(n / sum(n) * 100, 1)))
+
+# Feuille 2 : Niveau éducation par sexe
+addWorksheet(wb, "Education_par_sexe")
+writeData(wb, "Education_par_sexe",
+          df_adultes %>%
+            count(sexe, niveau_educ) %>%
+            group_by(sexe) %>%
+            mutate(pct = round(n / sum(n) * 100, 1)))
+
+# Feuille 3 : Scolarisation rural/urbain
+addWorksheet(wb, "Scolarisation_milieu")
+writeData(wb, "Scolarisation_milieu",
+          df_enfants %>%
+            filter(!is.na(scolarise), !is.na(milieu)) %>%
+            count(milieu, scolarise) %>%
+            group_by(milieu) %>%
+            mutate(pct = round(n / sum(n) * 100, 1)))
+
+# Feuille 4 : Analphabétisme par État
+addWorksheet(wb, "Analphabetisme_etat")
+writeData(wb, "Analphabetisme_etat",
+          df_alpha %>%
+            select(state, n_total, n_analph, taux_analph, quintile) %>%
+            arrange(desc(taux_analph)))
+
+saveWorkbook(wb, "outputs/tableaux_TP2.xlsx", overwrite = TRUE)
+```

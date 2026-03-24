@@ -3,39 +3,11 @@ title: ""
 author: ""
 date: ""
 output:
-  pdf_document:
-    latex_engine: pdflatex
+  word_document:
+    reference_docx: style_reference.docx
     number_sections: true
     toc: false
     fig_caption: true
-fontsize: 11pt
-geometry: "left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm"
-header-includes:
-  - \usepackage[utf8]{inputenc}
-  - \usepackage[T1]{fontenc}
-  - \usepackage[french]{babel}
-  - \usepackage{booktabs}
-  - \usepackage{float}
-  - \usepackage{fancyhdr}
-  - \usepackage{xcolor}
-  - \usepackage{titlesec}
-  - \usepackage{caption}
-  - \usepackage{graphicx}
-  - \usepackage{array}
-  - \floatplacement{figure}{H}
-  - \definecolor{myblue}{RGB}{0,62,116}
-  - \definecolor{mygray}{RGB}{110,110,110}
-  - \titleformat{\section}{\large\bfseries\color{myblue}}{\thesection.}{0.5em}{}
-  - \titleformat{\subsection}{\normalsize\bfseries\color{myblue}}{\thesubsection.}{0.5em}{}
-  - \captionsetup{font=small,labelfont=bf,justification=centering}
-  - \setlength{\parskip}{5pt}
-  - \setlength{\parindent}{0pt}
-  - \pagestyle{fancy}
-  - \fancyhf{}
-  - \fancyhead[L]{\small\textcolor{mygray}{TP1 --- Projet Statistique sous R et Python}}
-  - \fancyhead[R]{\small\textcolor{mygray}{Groupe 4 --- ISE1}}
-  - \fancyfoot[C]{\small\thepage}
-  - \renewcommand{\headrulewidth}{0.4pt}
 ---
 
 ```{r setup, include=FALSE}
@@ -44,26 +16,37 @@ knitr::opts_chunk$set(
   warning   = FALSE,
   message   = FALSE,
   fig.align = "center",
-  fig.pos   = "H",
-  out.extra = ""
+  dpi       = 150
 )
 
 library(dplyr)
 library(knitr)
+library(survey)
+
+# installation automatique si absent
+if (!requireNamespace("officer", quietly = TRUE)) install.packages("officer")
+library(officer)
 
 data_brute   <- readRDS("../data/processed/data_brute.rds")
 base_menage  <- readRDS("../data/processed/base_menage.rds")
 prop_ic      <- readRDS("../data/processed/proportions_IC.rds")
 wilcox_res_l <- readRDS("../data/processed/resultats_wilcoxon.rds")
+age_stats_p  <- readRDS("../data/processed/age_stats_pond.rds")
+plan_indiv   <- readRDS("../data/processed/plan_indiv.rds")
 
 n_ind  <- nrow(data_brute)
 n_men  <- n_distinct(data_brute$hhid)
 n_var  <- ncol(data_brute)
 n_doub <- nrow(data_brute[duplicated(paste(data_brute$hhid,
                                            data_brute$indiv, sep = "_")), ])
-age_moy <- round(mean(data_brute$age, na.rm = TRUE), 2)
-age_med <- median(data_brute$age, na.rm = TRUE)
-age_sd  <- round(sd(data_brute$age, na.rm = TRUE), 2)
+
+# Statistiques pondérées de l'âge
+age_moy <- age_stats_p$Moyenne
+age_med <- age_stats_p$Mediane
+age_sd  <- age_stats_p$Ecart_type
+
+# Population totale estimée par les poids
+pop_estimee <- round(sum(data_brute$wt_wave4, na.rm = TRUE))
 
 wr <- wilcox_res_l$wilcox
 rr <- round(wilcox_res_l$r_rang, 4)
@@ -75,84 +58,44 @@ fmt <- function(x) format(x, big.mark = " ", scientific = FALSE)
 <!-- ============================================================ -->
 <!--                      PAGE DE GARDE                          -->
 <!-- ============================================================ -->
-\thispagestyle{empty}
 
-\begin{center}
+---
 
-\vspace*{0.8cm}
+**Agence Nationale de la Statistique et de la Démographie** | **République du Sénégal** | **École Nationale de la Statistique et de l'Analyse Économique Pierre Ndiaye**
 
-% Trois blocs logos empilés verticalement (institution + logo),
-% placés côte à côte avec trois minipage indépendantes
-% --- BLOC 1 : ANSD ---
-\begin{minipage}[t]{0.3\textwidth}
-\centering
-{\small \textbf{Agence Nationale de la Statistique} \\
-\textbf{et de la Démographie}} \\[0.35cm]
-\includegraphics[height=2.2cm]{logos/ANSD.png}
-\end{minipage}
-\hfill
-% --- BLOC 2 : RÉPUBLIQUE DU SÉNÉGAL ---
-\begin{minipage}[t]{0.3\textwidth}
-\centering
-{\small \textbf{République du Sénégal} \\
-\textit{Un Peuple -- Un But -- Une Foi}} \\[0.35cm]
-\includegraphics[height=2.2cm]{logos/SN.PNG}
-\end{minipage}
-\hfill
-% --- BLOC 3 : ENSAE ---
-\begin{minipage}[t]{0.3\textwidth}
-\centering
-{\small \textbf{École Nationale de la Statistique} \\
-\textbf{et de l'Analyse Économique} \\
-\textbf{Pierre Ndiaye}} \\[0.35cm]
-\includegraphics[height=2.2cm]{logos/ENSAE.PNG}
-\end{minipage}
+---
 
-\vspace{0.9cm}
-\noindent\rule{\linewidth}{0.6pt}
-\vspace{0.2cm}
+Année académique **2025--2026**
 
-{\normalsize Année académique \textbf{2025--2026}}\\[0.2cm]
-{\small Cours : \textbf{Projet Statistique sous R et Python} \quad|\quad Enseignant : \textbf{Aboubacar HEMA}}
+Cours : **Projet Statistique sous R et Python** | Enseignant : **Aboubacar HEMA**
 
-\vspace{0.3cm}
-\noindent\rule{\linewidth}{1.4pt}
-\vspace{0.5cm}
+---
 
-{\LARGE \textbf{Travaux Pratiques --- Séance 1}}\\[0.45cm]
-{\large \textit{Analyse sociodémographique des ménages nigérians}}\\[0.2cm]
-{\normalsize \textit{Nigeria General Household Survey-Panel Wave 4 (NBS, 2018/19)}}
+### Travaux Pratiques --- Séance 1 {-}
 
-\vspace{0.5cm}
-\noindent\rule{\linewidth}{1.4pt}
+*Analyse sociodémographique des ménages nigérians*
 
-\vspace{1.2cm}
+*Nigeria General Household Survey-Panel Wave 4 (NBS, 2018/19)*
 
-\begin{tabular}{ll}
-\multicolumn{2}{l}{\textbf{Groupe 4}} \\[0.4cm]
-TEVOEDJRE Michel & ISE1-CL \\[0.2cm]
-DICKO Hamadou & ISE-MATHS \\
-\end{tabular}
+---
 
-\end{center}
+**Groupe 4**
 
-<!-- ============================================================ -->
-<!--           TABLE DES MATIÈRES sur page séparée               -->
-<!-- ============================================================ -->
+TEVOEDJRE Michel --- ISE1-CL
+
+DICKO Hamadou --- ISE-MATHS
+
 \newpage
-\thispagestyle{empty}
-\tableofcontents
 
 <!-- ============================================================ -->
 <!--                    CORPS DU RAPPORT                         -->
 <!-- ============================================================ -->
-\newpage
 
 # Introduction
 
 Ce rapport présente les résultats du premier travail pratique du cours de **Projet Statistique sous R et Python**. L'objectif est de mettre en œuvre une démarche complète d'analyse statistique à partir d'une enquête ménage de grande envergure : le **Nigeria General Household Survey-Panel Wave 4 (GHSP-W4)**, collecté par le National Bureau of Statistics (NBS) du Nigeria sur la période 2018/2019.
 
-La section exploitée (`sect1_harvestw4.dta`) renseigne sur les caractéristiques individuelles des membres des ménages : âge, sexe, lien de parenté avec le chef de ménage, secteur de résidence (urbain/rural) et zone géographique.
+La section exploitée (`sect1_harvestw4.dta`) renseigne sur les caractéristiques individuelles des membres des ménages : âge, sexe, lien de parenté avec le chef de ménage, secteur de résidence (urbain/rural) et zone géographique. Les poids de sondage (`wt_wave4`) issus de `secta_harvestw4.dta` ont été intégrés à toutes les analyses afin que les résultats soient représentatifs de la **population nigériane** couverte par la vague 4. La population totale estimée par les poids est de **`r fmt(pop_estimee)` individus**.
 
 Le travail est structuré en quatre parties : **(i)** préparation et contrôle qualité des données, **(ii)** analyse univariée de l'âge, **(iii)** étude du lien de parenté avec intervalles de confiance, et **(iv)** comparaison de la taille des ménages urbains et ruraux par un test non paramétrique.
 
@@ -162,7 +105,7 @@ Le travail est structuré en quatre parties : **(i)** préparation et contrôle 
 
 ## Structure de la base
 
-La base contient **`r fmt(n_ind)` individus** répartis en **`r fmt(n_men)` ménages**, décrits par **`r n_var` variables**. Les variables clés retenues sont : l'âge (`s1q4`), le sexe (`s1q2`), le lien de parenté (`s1q3`), le secteur de résidence (`sector`) et la zone géographique (`zone`).
+La base contient **`r fmt(n_ind)` individus** répartis en **`r fmt(n_men)` ménages**, décrits par **`r n_var` variables**. Les variables clés retenues sont : l'âge (`s1q4`), le sexe (`s1q2`), le lien de parenté (`s1q3`), le secteur de résidence (`sector`) et la zone géographique (`zone`). Le poids de sondage `wt_wave4` (base `secta_harvestw4.dta`) a été joint à chaque individu via l'identifiant ménage `hhid`.
 
 Un identifiant unique ménage x individu a été construit afin de détecter les doublons. L'inspection révèle **`r n_doub` doublon(s)**, ce qui confirme l'intégrité de la structure individuelle de la base.
 
@@ -184,7 +127,7 @@ vm_df <- data.frame(
 )
 vm_df[["Part (%)"]] <- round(vm_df$Manquants / n_ind * 100, 3)
 
-kable(vm_df, booktabs = TRUE,
+kable(vm_df,
       caption = "Valeurs manquantes par variable clé",
       align   = c("l", "r", "r"))
 ```
@@ -195,39 +138,38 @@ Les valeurs manquantes sont négligeables sur les variables essentielles, ce qui
 
 # Analyse univariée de l'âge
 
-## Statistiques descriptives
+## Statistiques descriptives pondérées
 
 ```{r tab-age}
-age_stats <- data_brute |>
-  filter(!is.na(age)) |>
-  summarise(
-    Moyenne  = round(mean(age), 2),
-    Médiane  = median(age),
-    Ec.type  = round(sd(age), 2),
-    Min      = min(age),
-    Q1       = quantile(age, .25),
-    Q3       = quantile(age, .75),
-    Max      = max(age)
-  )
+age_affich <- data.frame(
+  Moyenne    = age_stats_p$Moyenne,
+  Médiane    = age_stats_p$Mediane,
+  `Ec.type`  = age_stats_p$Ecart_type,
+  Min        = age_stats_p$Min,
+  Q1         = age_stats_p$Q1,
+  Q3         = age_stats_p$Q3,
+  Max        = age_stats_p$Max,
+  check.names = FALSE
+)
 
-kable(age_stats, booktabs = TRUE,
-      caption = "Statistiques descriptives de l'âge (en années)",
+kable(age_affich,
+      caption = "Statistiques descriptives pondérées de l'âge (en années) — estimations population",
       align   = rep("r", 7))
 ```
 
-La distribution présente une **moyenne de `r age_moy` ans** et une **médiane de `r age_med` ans**, révélant une légère asymétrie à droite typique des populations à structure jeune. L'écart-type de `r age_sd` ans traduit une forte dispersion.
+La distribution présente une **moyenne pondérée de `r age_moy` ans** et une **médiane pondérée de `r age_med` ans**, révélant une légère asymétrie à droite typique des populations à structure jeune. L'écart-type pondéré de `r age_sd` ans traduit une forte dispersion. Ces chiffres reflètent la population nigériane estimée à **`r fmt(pop_estimee)` personnes**.
 
 ## Histogramme
 
-```{r fig-hist, fig.cap="Distribution de l'âge -- histogramme avec moyenne (ligne pointillée)", out.width="84%"}
+```{r fig-hist, fig.cap="Distribution pondérée de l'âge -- histogramme avec moyenne pondérée (ligne pointillée)", out.width="84%"}
 include_graphics("../outputs/fig01_histogramme_age.png")
 ```
 
-Les effectifs sont fortement concentrés entre 0 et 20 ans, confirmant la jeunesse de la population enquêtée. La moyenne est indiquée par la ligne pointillée.
+Les effectifs pondérés sont fortement concentrés entre 0 et 20 ans, confirmant la jeunesse de la population nigériane. La ligne pointillée indique la moyenne pondérée.
 
 ## Boîte à moustaches
 
-```{r fig-box, fig.cap="Boîte à moustaches de l'âge -- médiane et valeurs extrêmes", out.width="50%"}
+```{r fig-box, fig.cap="Boîte à moustaches de l'âge -- médiane pondérée et valeurs extrêmes", out.width="50%"}
 include_graphics("../outputs/fig02_boxplot_age.png")
 ```
 
@@ -237,75 +179,75 @@ La boîte à moustaches met en évidence la présence de valeurs extrêmes au-de
 
 Un test de Shapiro-Wilk appliqué sur un échantillon de 5 000 individus (graine fixée à 123) confirme que la distribution est **significativement non normale** (W = 0,937 ; p < 2,2e-16). Ce résultat justifie le recours aux méthodes non paramétriques pour les comparaisons ultérieures.
 
-```{r fig-pyramide, fig.cap="Pyramide des âges par sexe -- groupes d'âge quinquennaux", out.width="84%"}
+```{r fig-pyramide, fig.cap="Pyramide des âges pondérée par sexe -- groupes d'âge quinquennaux", out.width="84%"}
 include_graphics("../outputs/fig03_pyramide_ages.png")
 ```
 
-La pyramide affiche une **base large et un sommet étroit**, structure classique des pays en développement à forte natalité. Les effectifs masculins et féminins sont globalement équilibrés sur l'ensemble des groupes d'âge.
+La pyramide pondérée affiche une **base large et un sommet étroit**, structure classique des pays en développement à forte natalité. Les effectifs masculins et féminins sont globalement équilibrés sur l'ensemble des groupes d'âge.
 
 ---
 
 # Lien de parenté et intervalles de confiance
 
-## Fréquences observées
+## Fréquences pondérées observées
 
-```{r fig-parente, fig.cap="Fréquence du lien de parenté avec le chef de ménage", out.width="84%"}
+```{r fig-parente, fig.cap="Fréquence pondérée du lien de parenté avec le chef de ménage", out.width="84%"}
 include_graphics("../outputs/fig04_lien_parente.png")
 ```
 
-Quatre catégories ont été distinguées : chef de ménage, conjoint(e), enfant et autre. Les **enfants** constituent la catégorie la plus représentée, cohérent avec la pyramide des âges à base large observée précédemment.
+Quatre catégories ont été distinguées : chef de ménage, conjoint(e), enfant et autre. Les **enfants** constituent la catégorie la plus représentée dans la population estimée, cohérent avec la pyramide des âges à base large observée précédemment.
 
-## Proportions avec intervalles de confiance (Clopper-Pearson)
+## Proportions pondérées avec intervalles de confiance (plan de sondage)
 
 ```{r tab-ic}
-prop_affich <- prop_ic |>
+prop_affich <- prop_ic %>%
   transmute(
     Catégorie         = Categorie,
-    Effectif          = fmt(Effectif),
+    `Effectif estimé` = fmt(Effectif_pond),
     `Proportion (%)`  = Proportion,
     `IC inf. 95% (%)` = IC_lower,
     `IC sup. 95% (%)` = IC_upper
   )
 
-kable(prop_affich, booktabs = TRUE,
-      caption = "Proportions par catégorie de parenté avec IC 95\\% exact (Clopper-Pearson)",
+kable(prop_affich,
+      caption = "Proportions pondérées par catégorie de parenté avec IC 95% (plan de sondage)",
       align   = c("l", "r", "r", "r", "r"))
 ```
 
-Les intervalles de confiance exacts sont très étroits grâce à la grande taille de l'échantillon. Les **enfants** arrivent en tête, suivis des chefs de ménage, puis des conjoints.
+Les intervalles de confiance sont calculés en tenant compte du plan de sondage (strates et grappes). Les **enfants** arrivent en tête dans la population estimée, suivis des chefs de ménage, puis des conjoints.
 
 ---
 
 # Taille des ménages : comparaison Urbain/Rural
 
-## Statistiques descriptives par secteur
+## Statistiques descriptives pondérées par secteur
 
 ```{r tab-menage}
-stats_men <- wilcox_res_l$stats |>
+stats_men <- wilcox_res_l$stats %>%
   transmute(
-    Secteur  = secteur,
-    N        = fmt(N),
-    Moyenne  = Moyenne,
-    Médiane  = Mediane,
-    Q1       = Q1,
-    Q3       = Q3,
-    Ec.type  = Ecart_type,
-    Min      = Min,
-    Max      = Max
+    Secteur   = secteur,
+    N         = fmt(N),
+    Moyenne   = Moyenne,
+    Médiane   = Mediane,
+    Q1        = Q1,
+    Q3        = Q3,
+    `Ec.type` = Ecart_type,
+    Min       = Min,
+    Max       = Max
   )
 
-kable(stats_men, booktabs = TRUE,
-      caption = "Taille des ménages par secteur de résidence",
+kable(stats_men,
+      caption = "Taille des ménages par secteur de résidence (statistiques pondérées)",
       align   = c("l", rep("r", 8)))
 ```
 
-Les ménages ruraux présentent une taille médiane supérieure à celle des ménages urbains, reflétant des différences structurelles dans les modes d'organisation familiale au Nigeria.
+Les ménages ruraux présentent une taille médiane pondérée supérieure à celle des ménages urbains, reflétant des différences structurelles dans les modes d'organisation familiale au Nigeria.
 
-## Test de Wilcoxon-Mann-Whitney
+## Test de Wilcoxon-Mann-Whitney pondéré
 
-La non-normalité des distributions justifie l'emploi du test non paramétrique de Wilcoxon-Mann-Whitney pour comparer les deux secteurs.
+La non-normalité des distributions justifie l'emploi du test non paramétrique de Wilcoxon-Mann-Whitney. Les observations ont été répliquées proportionnellement aux poids de sondage pour intégrer la pondération dans le test.
 
-```{r fig-menage, fig.cap="Taille des ménages par secteur -- test de Wilcoxon-Mann-Whitney annoté", out.width="86%"}
+```{r fig-menage, fig.cap="Taille des ménages par secteur -- test de Wilcoxon pondéré annoté", out.width="86%"}
 include_graphics("../outputs/fig05_boxplot_menages.png")
 ```
 
@@ -327,8 +269,8 @@ res_df <- data.frame(
   )
 )
 
-kable(res_df, booktabs = TRUE,
-      caption = "Résultats du test de Wilcoxon-Mann-Whitney",
+kable(res_df,
+      caption = "Résultats du test de Wilcoxon-Mann-Whitney pondéré",
       col.names = c("Statistique", "Valeur"),
       align     = c("l", "r"))
 ```
@@ -339,15 +281,15 @@ La p-valeur est très inférieure à 0,05, conduisant au **rejet de l'hypothèse
 
 # Conclusion
 
-Ce travail pratique a permis de déployer une chaîne d'analyse statistique complète sur les données du GHSP-Panel Wave 4 du Nigeria. Les principaux enseignements sont les suivants :
+Ce travail pratique a permis de déployer une chaîne d'analyse statistique complète et **pondérée** sur les données du GHSP-Panel Wave 4 du Nigeria. Les poids de sondage `wt_wave4` (base `secta_harvestw4.dta`) ont été systématiquement appliqués, permettant d'extrapoler les résultats à une population estimée de **`r fmt(pop_estimee)` individus**. Les principaux enseignements sont les suivants :
 
 - La base présente une **qualité satisfaisante** : aucun doublon et valeurs manquantes négligeables sur les variables clés.
-- La **structure démographique** est jeune, avec une pyramide à base large et une distribution d'âge significativement non normale.
-- Les **enfants** forment la catégorie de parenté dominante, cohérent avec la forte natalité du contexte nigérian.
-- Les ménages **ruraux** sont significativement plus grands que les ménages urbains (Wilcoxon-Mann-Whitney, p < 2,2e-16), avec un effet de taille jugé `r tolower(ii)`.
+- La **structure démographique pondérée** est jeune, avec une pyramide à base large et une distribution d'âge significativement non normale (Shapiro-Wilk, p < 2,2e-16).
+- Les **enfants** forment la catégorie de parenté dominante dans la population estimée, cohérent avec la forte natalité du contexte nigérian.
+- Les ménages **ruraux** sont significativement plus grands que les ménages urbains (Wilcoxon pondéré, p < 2,2e-16), avec un effet de taille jugé `r tolower(ii)`.
 
 Ces résultats constituent une base solide pour des études complémentaires portant sur les conditions de vie, les inégalités spatiales ou les revenus agricoles au Nigeria.
 
 ---
 
-\small \textit{Source des données : National Bureau of Statistics (NBS) Nigeria --- General Household Survey-Panel Wave 4, 2018/2019.}
+*Source des données : National Bureau of Statistics (NBS) Nigeria --- General Household Survey-Panel Wave 4, 2018/2019. Pondérations : variable `wt_wave4`, base `secta_harvestw4.dta`.*

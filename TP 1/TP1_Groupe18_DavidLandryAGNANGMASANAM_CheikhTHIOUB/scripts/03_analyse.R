@@ -1,61 +1,65 @@
 ###############################################################################
-# 03_analyse.R — Analyses statistiques et génération des livrables
-# Projet : TP1 — Profil démographique des ménages nigérians
+# 03_analyse.R -- Analyses statistiques ponderees et generation des livrables
+# Projet : TP1 -- Profil demographique des menages nigerians
 ###############################################################################
 
-cat("\n========== 03_analyse : Analyses et livrables ==========\n")
+cat("\n========== 03_analyse : Analyses ponderees et livrables ==========\n")
 
 # ===================================================================
-# TÂCHE 2 : Analyse univariée de l'âge
+# TACHE 2 : Analyse univariee de l'age (ponderee)
 # ===================================================================
 
-stats_age <- sect1_hw4 %>%
-  filter(!is.na(age)) %>%
+# Statistiques ponderees de l'age
+sect1_w <- sect1_hw4 %>% filter(!is.na(age), !is.na(wt_wave4))
+stats_age <- sect1_w %>%
   summarise(
-    N = n(), Moyenne = round(mean(age), 2), Médiane = median(age),
-    Q1 = quantile(age, 0.25), Q3 = quantile(age, 0.75),
-    Écart_type = round(sd(age), 2),
-    CV = round(sd(age) / mean(age) * 100, 2),
-    Asymétrie = round(skewness(age), 3),
-    Min = min(age), Max = max(age)
+    N           = n(),
+    Moyenne_p   = round(weighted.mean(age, wt_wave4), 2),
+    Mediane     = median(age),
+    Q1          = quantile(age, 0.25),
+    Q3          = quantile(age, 0.75),
+    Ecart_type  = round(sqrt(sum(wt_wave4 * (age - weighted.mean(age, wt_wave4))^2) / sum(wt_wave4)), 2),
+    Asymetrie   = round(skewness(age), 3),
+    Min         = min(age),
+    Max         = max(age)
   )
-cat("\n--- Statistiques descriptives de l'âge ---\n")
+cat("\n--- Statistiques ponderees de l'age ---\n")
 print(stats_age)
 
-# Histogramme
-p_hist_age <- ggplot(sect1_hw4 %>% filter(!is.na(age)), aes(x = age)) +
+# Histogramme pondere
+p_hist_age <- ggplot(sect1_w, aes(x = age, weight = wt_wave4)) +
   geom_histogram(binwidth = 5, fill = "#3C78B4", color = "white", alpha = 0.85) +
-  geom_vline(aes(xintercept = median(age, na.rm = TRUE)),
+  geom_vline(xintercept = median(sect1_w$age),
              linetype = "dashed", color = "#B2182B", linewidth = 0.7) +
-  annotate("text", x = median(sect1_hw4$age, na.rm = TRUE) + 5,
-           y = Inf, vjust = 2, label = "Médiane = 18",
-           color = "#B2182B", size = 3, fontface = "italic") +
-  labs(title = "Distribution de l'âge des membres des ménages",
-       subtitle = "GHS Panel — Vague 4 (Post-Harvest 2018)",
-       x = "Âge (années)", y = "Effectif")
+  annotate("text", x = median(sect1_w$age) + 5, y = Inf, vjust = 2,
+           label = "Mediane = 18", color = "#B2182B", size = 3, fontface = "italic") +
+  labs(title = "Distribution ponderee de l'age des membres des menages",
+       subtitle = "GHS Panel -- Vague 4 (2018)",
+       x = "Age (annees)", y = "Effectif pondere")
+print(p_hist_age)
 
-# Boîte à moustaches
-p_box_age <- ggplot(sect1_hw4 %>% filter(!is.na(age)), aes(y = age)) +
-  geom_boxplot(fill = "#3C78B4", alpha = 0.6, width = 0.4) +
+# Boite a moustaches
+p_box_age <- ggplot(sect1_w, aes(y = age)) +
+  geom_boxplot(fill = "#3C78B4", alpha = 0.6, width = 0.4,
+               outlier.size = 0.6, outlier.alpha = 0.3) +
   coord_flip() +
-  labs(title = "Boîte à moustaches de l'âge",
-       subtitle = "GHS Panel — Vague 4", y = "Âge (années)")
+  labs(title = "Boite a moustaches de l'age", y = "Age (annees)")
+print(p_box_age)
 
 # Test de Shapiro-Wilk
 set.seed(2025)
 test_shapiro <- shapiro.test(
-  sect1_hw4 %>% filter(!is.na(age)) %>% slice_sample(n = 5000) %>% pull(age)
+  sect1_w %>% slice_sample(n = 5000) %>% pull(age)
 )
-cat("\n--- Test de Shapiro-Wilk ---\n")
-cat("W =", round(test_shapiro$statistic, 5),
-    "| p-value =", format(test_shapiro$p.value, scientific = TRUE), "\n")
+cat("\nShapiro-Wilk : W =", round(test_shapiro$statistic, 5),
+    "| p =", format(test_shapiro$p.value, scientific = TRUE), "\n")
 
 # ===================================================================
-# TÂCHE 3 : Pyramide des âges
+# TACHE 3 : Pyramide des ages ponderee
 # ===================================================================
 
-pyramide_data <- sect1_hw4 %>%
-  filter(!is.na(age), !is.na(s1q2)) %>%
+pyramide_data <- sect1_w %>%
+  filter(!is.na(s1q2)) %>%
   mutate(
     sexe = factor(s1q2, levels = c(1, 2), labels = c("Homme", "Femme")),
     groupe_age = cut(age, breaks = seq(0, 100, 5), right = FALSE,
@@ -63,7 +67,8 @@ pyramide_data <- sect1_hw4 %>%
                      include.lowest = TRUE)
   ) %>%
   filter(!is.na(groupe_age)) %>%
-  count(sexe, groupe_age) %>%
+  group_by(sexe, groupe_age) %>%
+  summarise(n = sum(wt_wave4), .groups = "drop") %>%
   mutate(n = ifelse(sexe == "Homme", -n, n))
 
 p_pyramide <- ggplot(pyramide_data, aes(x = groupe_age, y = n, fill = sexe)) +
@@ -71,40 +76,46 @@ p_pyramide <- ggplot(pyramide_data, aes(x = groupe_age, y = n, fill = sexe)) +
   scale_y_continuous(labels = function(x) format(abs(x), big.mark = " ")) +
   scale_fill_manual(values = c("Homme" = "#2166AC", "Femme" = "#B2182B"),
                     name = "Sexe") +
-  labs(title = "Pyramide des âges des membres des ménages",
-       subtitle = "GHS Panel Nigeria — Vague 4 (2018)",
-       x = "Groupe d'âge", y = "Effectif") +
+  labs(title = "Pyramide des ages ponderee",
+       subtitle = "GHS Panel Nigeria -- Vague 4 (2018)",
+       x = "Groupe d'age", y = "Effectif pondere") +
   theme(axis.text.y = element_text(size = 8))
+print(p_pyramide)
 
 # ===================================================================
-# TÂCHE 4 : Lien de parenté
+# TACHE 4 : Lien de parente (proportions ponderees)
 # ===================================================================
 
-freq_parente <- sect1_hw4 %>%
+freq_parente <- sect1_w %>%
   filter(!is.na(lien_parente)) %>%
-  count(lien_parente, sort = TRUE) %>%
+  group_by(lien_parente) %>%
+  summarise(n_pond = sum(wt_wave4), .groups = "drop") %>%
   mutate(
-    proportion = round(n / sum(n) * 100, 2),
-    lien_parente = fct_reorder(lien_parente, n)
-  )
+    proportion = round(n_pond / sum(n_pond) * 100, 2),
+    lien_parente = fct_reorder(lien_parente, n_pond)
+  ) %>%
+  arrange(desc(n_pond))
 
-p_parente <- ggplot(freq_parente, aes(x = lien_parente, y = n)) +
+p_parente <- ggplot(freq_parente, aes(x = lien_parente, y = n_pond)) +
   geom_col(fill = "#3C78B4", alpha = 0.85) +
   geom_text(aes(label = paste0(proportion, "%")), hjust = -0.1, size = 3) +
   coord_flip() +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.18))) +
-  labs(title = "Répartition selon le lien de parenté",
-       subtitle = "GHS Panel Nigeria — Vague 4 (2018)", x = NULL, y = "Effectif")
+  scale_y_continuous(expand = expansion(mult = c(0, 0.18)),
+                     labels = label_comma()) +
+  labs(title = "Repartition ponderee selon le lien de parente",
+       subtitle = "GHS Panel Nigeria -- Vague 4 (2018)",
+       x = NULL, y = "Effectif pondere")
+print(p_parente)
 
-# IC à 95 %
-cat("\n--- Proportions avec IC à 95 % ---\n")
-sect1_clean <- sect1_hw4 %>%
+# IC a 95 % (non pondere, test binomial exact)
+cat("\n--- Proportions avec IC a 95 % ---\n")
+sect1_clean <- sect1_w %>%
   filter(!is.na(lien_parente)) %>%
   mutate(lien_4cat = ifelse(lien_parente %in%
-    c("Chef de ménage", "Conjoint(e)", "Enfant biologique"),
+    c("Chef de menage", "Conjoint(e)", "Enfant biologique"),
     lien_parente, "Autre"))
 n_total <- nrow(sect1_clean)
-for (cat_l in c("Enfant biologique","Chef de ménage","Conjoint(e)","Autre")) {
+for (cat_l in c("Enfant biologique", "Chef de menage", "Conjoint(e)", "Autre")) {
   n_cat <- sum(sect1_clean$lien_4cat == cat_l)
   tb <- binom.test(n_cat, n_total)
   cat(sprintf("  %s : %.2f%% [%.2f%% - %.2f%%]\n",
@@ -112,87 +123,149 @@ for (cat_l in c("Enfant biologique","Chef de ménage","Conjoint(e)","Autre")) {
 }
 
 # ===================================================================
-# TÂCHE 5 : Comparaison rural / urbain
+# TACHE 5 : Comparaison taille menage rural/urbain (ponderee)
 # ===================================================================
 
-cat("\n--- Taille des ménages par zone ---\n")
-taille_zone %>%
+cat("\n--- Taille des menages par zone (ponderee) ---\n")
+taille_zone_w <- taille_zone %>% filter(!is.na(wt_wave4))
+taille_zone_w %>%
   group_by(zone) %>%
-  summarise(N = n(), Moyenne = round(mean(taille), 2),
-            Médiane = median(taille), Écart_type = round(sd(taille), 2),
-            .groups = "drop") %>%
+  summarise(
+    N = n(),
+    Moyenne_p = round(weighted.mean(taille, wt_wave4), 2),
+    Mediane = median(taille),
+    .groups = "drop"
+  ) %>%
   print()
 
-p_box_zone <- ggplot(taille_zone, aes(x = zone, y = taille, fill = zone)) +
+p_box_zone <- ggplot(taille_zone_w, aes(x = zone, y = taille, fill = zone)) +
   geom_boxplot(alpha = 0.7, outlier.alpha = 0.3) +
   scale_fill_manual(values = c("Urbain" = "#E66101", "Rural" = "#5E3C99")) +
-  labs(title = "Taille des ménages selon la zone de résidence",
-       subtitle = "GHS Panel Nigeria — Vague 4 (2018)",
+  labs(title = "Taille des menages selon la zone de residence",
+       subtitle = "GHS Panel Nigeria -- Vague 4 (2018)",
        x = "Zone", y = "Nombre de membres") +
   theme(legend.position = "none")
+print(p_box_zone)
 
 # Test de Wilcoxon
-test_wilcox <- wilcox.test(taille ~ zone, data = taille_zone, conf.int = TRUE)
-n1 <- sum(taille_zone$zone == "Urbain")
-n2 <- sum(taille_zone$zone == "Rural")
+test_wilcox <- wilcox.test(taille ~ zone, data = taille_zone_w, conf.int = TRUE)
+n1 <- sum(taille_zone_w$zone == "Urbain")
+n2 <- sum(taille_zone_w$zone == "Rural")
 r_rang <- abs(qnorm(test_wilcox$p.value / 2)) / sqrt(n1 + n2)
-cat("\n--- Test de Wilcoxon ---\n")
-cat("W =", format(test_wilcox$statistic, big.mark = " "),
+cat("Wilcoxon : W =", format(test_wilcox$statistic, big.mark = " "),
     "| p =", format(test_wilcox$p.value, scientific = TRUE),
-    "| r =", round(r_rang, 4),
-    "(", ifelse(r_rang < 0.3, "faible", "moyenne"), ")\n")
+    "| r =", round(r_rang, 4), "\n")
 
 # ===================================================================
-# TÂCHE 6 : Tableau gtsummary exportable
+# TACHE 6 : Tableau gtsummary pondere
 # ===================================================================
 
+# Tableau recapitulatif pondere construit manuellement (compatible dplyr 1.1.4)
 donnees_gts <- sect1_hw4 %>%
+  filter(!is.na(wt_wave4), !is.na(age)) %>%
   mutate(
-    sexe = factor(s1q2, levels = c(1,2), labels = c("Homme","Femme")),
-    zone = factor(sector, levels = c(1,2), labels = c("Urbain","Rural"))
+    sexe = factor(s1q2, levels = c(1, 2), labels = c("Homme", "Femme")),
+    zone = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural"))
   ) %>%
   left_join(taille_menage, by = "hhid")
 
-tab_gts <- donnees_gts %>%
-  select(zone, age, sexe, taille) %>%
-  tbl_summary(
-    by = zone,
-    statistic = list(
-      all_continuous()  ~ "{mean} ({sd}) | Méd: {median} [{p25}-{p75}]",
-      all_categorical() ~ "{n} ({p}%)"
-    ),
-    label = list(age ~ "Âge (années)", sexe ~ "Sexe",
-                 taille ~ "Taille du ménage"),
-    missing = "ifany", missing_text = "Manquantes"
-  ) %>%
-  add_p(test = list(all_continuous() ~ "wilcox.test",
-                    all_categorical() ~ "chisq.test")) %>%
-  add_overall() %>%
-  modify_header(label ~ "**Variable**") %>%
-  bold_labels()
+# Fonction utilitaire : statistiques ponderees par zone
+stats_zone <- function(df, var, w, zone_var) {
+  df %>% group_by(!!sym(zone_var)) %>%
+    summarise(
+      moy  = round(weighted.mean(!!sym(var), !!sym(w), na.rm=TRUE), 1),
+      et   = round(sqrt(sum(!!sym(w) * (!!sym(var) - weighted.mean(!!sym(var), !!sym(w), na.rm=TRUE))^2, na.rm=TRUE) / sum(!!sym(w), na.rm=TRUE)), 1),
+      med  = median(!!sym(var), na.rm=TRUE),
+      q25  = quantile(!!sym(var), .25, na.rm=TRUE),
+      q75  = quantile(!!sym(var), .75, na.rm=TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(stat = paste0(moy, " (", et, ") | Med: ", med, " [", q25, "-", q75, "]"))
+}
 
-# Export du tableau gtsummary en .docx (livrable demandé)
-tab_gts_flex <- as_flex_table(tab_gts)
-flextable::save_as_docx(tab_gts_flex,
+# Age par zone
+age_z <- stats_zone(donnees_gts, "age", "wt_wave4", "zone")
+age_all <- donnees_gts %>%
+  summarise(stat = paste0(
+    round(weighted.mean(age, wt_wave4, na.rm=TRUE),1), " (",
+    round(sqrt(sum(wt_wave4*(age-weighted.mean(age,wt_wave4,na.rm=TRUE))^2,na.rm=TRUE)/sum(wt_wave4,na.rm=TRUE)),1), ") | Med: ",
+    median(age,na.rm=TRUE), " [", quantile(age,.25,na.rm=TRUE), "-", quantile(age,.75,na.rm=TRUE), "]"))
+
+# Taille par zone
+t_z <- stats_zone(donnees_gts %>% filter(!is.na(taille)), "taille", "wt_wave4", "zone")
+t_all <- donnees_gts %>% filter(!is.na(taille)) %>%
+  summarise(stat = paste0(
+    round(weighted.mean(taille,wt_wave4,na.rm=TRUE),1), " (",
+    round(sqrt(sum(wt_wave4*(taille-weighted.mean(taille,wt_wave4,na.rm=TRUE))^2,na.rm=TRUE)/sum(wt_wave4,na.rm=TRUE)),1), ") | Med: ",
+    median(taille,na.rm=TRUE), " [", quantile(taille,.25,na.rm=TRUE), "-", quantile(taille,.75,na.rm=TRUE), "]"))
+
+# Sexe par zone (proportions ponderees)
+sexe_z <- donnees_gts %>% filter(!is.na(sexe)) %>%
+  group_by(zone, sexe) %>%
+  summarise(n_p = sum(wt_wave4), .groups="drop") %>%
+  group_by(zone) %>%
+  mutate(pct = round(n_p / sum(n_p) * 100, 1)) %>%
+  filter(sexe == "Femme") %>%
+  mutate(stat = paste0(round(n_p), " (", pct, "%)"))
+sexe_all <- donnees_gts %>% filter(!is.na(sexe)) %>%
+  group_by(sexe) %>%
+  summarise(n_p = sum(wt_wave4), .groups="drop") %>%
+  mutate(pct = round(n_p / sum(n_p) * 100, 1)) %>%
+  filter(sexe == "Femme") %>%
+  mutate(stat = paste0(round(n_p), " (", pct, "%)"))
+
+# Tests
+p_age <- format(wilcox.test(age ~ zone, data = donnees_gts)$p.value, digits=3)
+p_taille <- format(wilcox.test(taille ~ zone, data = donnees_gts %>% filter(!is.na(taille)))$p.value, digits=3)
+p_sexe <- format(chisq.test(table(donnees_gts$sexe, donnees_gts$zone))$p.value, digits=3)
+
+# Assemblage du tableau final
+tab_recap <- data.frame(
+  Variable = c("Age (annees)", "Sexe = Femme", "Taille du menage"),
+  Ensemble = c(age_all$stat, sexe_all$stat, t_all$stat),
+  Urbain = c(
+    age_z$stat[age_z$zone=="Urbain"],
+    sexe_z$stat[sexe_z$zone=="Urbain"],
+    t_z$stat[t_z$zone=="Urbain"]
+  ),
+  Rural = c(
+    age_z$stat[age_z$zone=="Rural"],
+    sexe_z$stat[sexe_z$zone=="Rural"],
+    t_z$stat[t_z$zone=="Rural"]
+  ),
+  p_value = c(p_age, p_sexe, p_taille),
+  stringsAsFactors = FALSE
+)
+
+cat("\n--- Tableau recapitulatif pondere ---\n")
+print(tab_recap)
+
+# Export en flextable Word
+library(flextable)
+ft_recap <- flextable(tab_recap) %>%
+  set_header_labels(Variable="Variable", Ensemble="Ensemble",
+                    Urbain="Urbain", Rural="Rural", p_value="p-value") %>%
+  bold(j=1) %>% autofit() %>%
+  set_caption("Tableau recapitulatif pondere par zone (W4, 2018).")
+flextable::save_as_docx(ft_recap,
   path = file.path(chemin_outputs, "tableau_gtsummary_zone.docx"))
-cat("\nTableau gtsummary exporté :", file.path(chemin_outputs,
-    "tableau_gtsummary_zone.docx"), "\n")
+cat("Tableau exporte : outputs/tableau_gtsummary_zone.docx\n")
 
 # ===================================================================
-# ANALYSES COMPLÉMENTAIRES : évolution inter-vagues
+# ANALYSES COMPLEMENTAIRES : evolution inter-vagues
 # ===================================================================
 
 stats_par_vague <- donnees_4vagues %>%
   filter(!is.na(age)) %>%
   group_by(vague) %>%
   summarise(
-    N = n(), Âge_moyen = round(mean(age), 2), Âge_médian = median(age),
+    N = n(), Age_moyen = round(mean(age), 2), Age_median = median(age),
     Pct_moins_15 = round(mean(age < 15) * 100, 1),
     Pct_15_64 = round(mean(age >= 15 & age < 65) * 100, 1),
     Pct_65_plus = round(mean(age >= 65) * 100, 1),
     .groups = "drop"
   )
-cat("\n--- Indicateurs démographiques par vague ---\n")
+cat("\n--- Indicateurs demographiques par vague ---\n")
 print(stats_par_vague)
 
 pct_femmes_chef <- donnees_4vagues %>%
@@ -200,30 +273,25 @@ pct_femmes_chef <- donnees_4vagues %>%
   group_by(vague) %>%
   summarise(N = n(), Pct_femmes = round(mean(s1q2 == 2) * 100, 1),
             .groups = "drop")
-cat("\n--- Chefs de ménage féminins ---\n")
+cat("\n--- Chefs de menage feminins ---\n")
 print(pct_femmes_chef)
 
 # ===================================================================
-# FIGURE DE SYNTHÈSE
+# FIGURE DE SYNTHESE
 # ===================================================================
 
 figure_synthese <- (p_hist_age | p_box_age) /
   (p_pyramide) /
   (p_parente | p_box_zone) +
   plot_annotation(
-    title = "TP1 — Profil démographique des ménages nigérians",
-    subtitle = "GHS Panel — Vague 4 (2018)",
-    caption = paste0("Source : GHS Panel (LSMS-ISA, Banque Mondiale)\n",
-                     "Auteurs : D.L. AGNANGMA SANAM & C. THIOUB | ENSAE 2025-2026"),
-    theme = theme(
-      plot.title = element_text(face = "bold", size = 15, hjust = 0.5),
-      plot.subtitle = element_text(size = 11, hjust = 0.5),
-      plot.caption = element_text(size = 8, hjust = 1, color = "grey50")
-    )
+    title = "TP1 -- Profil demographique des menages nigerians (pondere)",
+    subtitle = "GHS Panel -- Vague 4 (2018)",
+    caption = paste0("Source : GHS Panel W4 (LSMS-ISA)\n",
+                     "Auteurs : D.L. AGNANGMA SANAM & C. THIOUB | ENSAE 2025-2026")
   )
 
 # ===================================================================
-# SAUVEGARDE DES LIVRABLES DANS outputs/
+# SAUVEGARDE DES LIVRABLES
 # ===================================================================
 
 ggsave(file.path(chemin_outputs, "pyramide_ages_w4.png"),
@@ -237,5 +305,5 @@ ggsave(file.path(chemin_outputs, "barplot_parente.png"),
 ggsave(file.path(chemin_outputs, "figure_synthese_tp1.png"),
        figure_synthese, width = 14, height = 16, dpi = 300)
 
-cat("\n--- Graphiques sauvegardés dans", chemin_outputs, "---\n")
-cat("[03_analyse] Analyses et livrables terminés.\n")
+cat("\n--- Graphiques sauvegardes dans", chemin_outputs, "---\n")
+cat("[03_analyse] Analyses ponderees et livrables termines.\n")
