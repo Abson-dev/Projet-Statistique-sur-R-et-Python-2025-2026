@@ -1,7 +1,0 @@
-
-	Wilcoxon rank sum test with continuity correction
-
-data:  taille by sector
-W = 2307181, p-value < 2.2e-16
-alternative hypothesis: true location shift is not equal to 0
-
