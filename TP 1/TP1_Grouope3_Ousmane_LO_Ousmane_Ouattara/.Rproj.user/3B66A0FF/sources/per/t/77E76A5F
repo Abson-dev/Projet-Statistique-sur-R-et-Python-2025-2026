@@ -1,9 +1,9 @@
 {
     "id": "77E76A5F",
-    "path": "~/Semestre 2/Cours et Projet R/Projet de R/TP1/R/03_analyse.R",
+    "path": "~/Semestre 2/Cours et Projet R/TP1_Grouope3_Ousmane_LO_Ousmane_Ouattara/TP1_Grouope3_Ousmane_LO_Ousmane_Ouattara/R/03_analyse.R",
     "project_path": "R/03_analyse.R",
     "type": "r_source",
-    "hash": "1780246427",
+    "hash": "2113731046",
     "contents": "",
     "dirty": false,
     "created": 1773432752849.0,
@@ -12,16 +12,16 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "200,7",
-        "scrollLine": "190",
+        "cursorPosition": "239,13",
+        "scrollLine": "229",
         "ignored_words": "univariées\n"
     },
     "folds": "",
-    "lastKnownWriteTime": 1773705022,
+    "lastKnownWriteTime": 1774347038,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1773705022293,
+    "last_content_update": 1774347038051,
     "read_only": false,
     "read_only_alternatives": []
 }

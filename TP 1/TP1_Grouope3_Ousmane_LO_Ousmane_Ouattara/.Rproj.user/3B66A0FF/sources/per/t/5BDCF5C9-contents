@@ -1,54 +1,17 @@
 ---
-title: ""
-
+title: "Analyse Socio-Démographique du Nigeria"
+subtitle: "Étude des structures familiales et des disparités Urbain/Rural"
+author: 
+  - "LO Ousmane"
+  - "OUATTARA Ousmane"
+date: "2026-03-24"
 format:
-  pdf:
-    toc: false
+  docx:
+    toc: true
+    toc-title: "Table des Matières"
     number-sections: true
-    latex-auto-install: false
-    geometry:
-      - top=30mm
-      - left=25mm
-      - right=25mm
-      - bottom=30mm
-    header-includes: |
-      \usepackage{fancyhdr}
-      \usepackage{graphicx}
-      \pagestyle{fancy}
-      \fancyhead[L]{Rapport d'Analyse GHS-LSMS}
-      \fancyhead[R]{Nigeria Wave 4}
+    highlight-style: github
 ---
-
-\begin{titlepage}
-    \begin{flushleft}
-        \includegraphics[width=4cm]{images/R.png} 
-    \end{flushleft}
-    
-    \centering
-    \vspace*{2cm}
-    
-    {\huge \textbf{Analyse Socio-Démographique du Nigeria}} \\
-    \vspace{0.5cm}
-    {\Large Étude des structures familiales et des disparités Urbain/Rural} \\
-    
-    \vfill
-    
-    {\Large \textbf{Membres du groupe :}} \\
-    \vspace{0.8cm}
-    {\large LO Ousmane} \\
-    \vspace{0.4cm}
-    {\large OUATTARA Ousmane} \\
-    
-    \vfill
-    
-    {\large Travail réalisé dans le cadre du Projet Statistique sous R et Python} \\
-    {\large \textbf{ENSAE Pierre NDIAYE} --- Année 2025-2026}
-    \vspace{1cm}
-\end{titlepage}
-\newpage
-\renewcommand{\contentsname}{Table des Matières}
-\tableofcontents
-\newpage
 
 # Introduction
 

@@ -9,6 +9,8 @@ library(gtsummary)
 # chargement des données relatiifs aux quatre premières questions
 sect1_w4 = read_dta("data/raw/sect1_harvestw4.dta")
 secta_w4 = read_dta("data/raw/secta_harvestw4.dta")
+secta_w4$wt_wave4
+
 #Exploration rapide avec glimpse 
 glimpse(sect1_w4)
 

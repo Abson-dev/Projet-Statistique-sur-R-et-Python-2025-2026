@@ -206,52 +206,37 @@ save(resultat_wilcox , file = "output/tables/resultat_wilcox.RDATA")
 
 ## ################################ QUESTION 6 ##################
 
+## ################################ QUESTION 6 ##################
 
-
-# On prépare la base complète (une ligne par individu)
-base_bilan <- sect1_w4 |>
-  # 1. On lie la zone et la taille calculée précédemment
-  inner_join(menage_secteur, by = "hhid") |>
-  # 2. On sélectionne uniquement les variables du tableau
-  select(age = s1q4, sexe = s1q2, taille, secteur) |>
-  # 3. On s'assure que les labels sont propres
-  mutate(
-    sexe = as_factor(sexe),
-    secteur = as_factor(secteur)
-  )
-head(base_bilan)
-
-
-##############
-
-tableau_recap <- base_bilan |>
-  select(age, sexe, taille, secteur) |> # On ne garde que ce qui va dans le tableau
+# 1. Tableau pour les caractéristiques INDIVIDUELLES (Âge, Sexe)
+tab_indiv <- donnees_propres |>
+  select(s1q4, sexe, secteur) |>
   tbl_summary(
     by = secteur,
-    statistic = list(
-      age ~ "{mean} ({sd})",
-      taille ~ "{mean} ({sd})",
-      sexe ~ "{n} ({p}%)"
-    ),
-    label = list(
-      age ~ "Âge (années)",
-      sexe ~ "Sexe",
-      taille ~ "Taille du ménage"
-    ),
+    statistic = list(s1q4 ~ "{mean} ({sd})", sexe ~ "{n} ({p}%)"),
+    label = list(s1q4 ~ "Âge (années)", sexe ~ "Sexe"),
     missing = "no"
-  ) |>
-  add_p() |>       # Tests statistiques (p-values)
-  add_overall() |> # Colonne total
+  ) |> add_p()
+
+# 2. Tableau pour la caractéristique du MÉNAGE (Taille)
+# On utilise menage_secteur pour ne compter chaque ménage qu'UNE seule fois
+tab_menage <- menage_secteur |>
+  select(taille, secteur) |>
+  tbl_summary(
+    by = secteur,
+    statistic = list(taille ~ "{mean} ({sd})"),
+    label = list(taille ~ "Taille du ménage"),
+    missing = "no"
+  ) |>add_p()
+
+# 3. Fusion (empilement) des deux tableaux
+tableau_recap <- tbl_stack(
+  list(tab_indiv, tab_menage),
+  group_header = c("Individus", "Ménages")
+) |>
   bold_labels()
 
+# Affichage et enregistrement
 tableau_recap
 save(tableau_recap, file = "output/tables/tableau_racapitulatif.RDATA")
-
-
-
-
-
-
-
-
 
