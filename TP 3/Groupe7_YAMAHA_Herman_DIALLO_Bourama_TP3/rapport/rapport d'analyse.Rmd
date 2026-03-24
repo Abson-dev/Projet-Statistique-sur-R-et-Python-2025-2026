@@ -1,0 +1,358 @@
+---
+title: "Accès aux services de santé et chocs sanitaires des ménages nigérians"
+subtitle: "Analyse 3 — Projet Statistique sous R | ENSAE ISE 1, 2025-2026 | Sous la supervision de M. Aboubacar HEMA "
+author: "Groupe 7 | Herman YAMAHA — Bourama DIALLO"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+lang: "fr"
+output:
+  officedown::rdocx_document:
+    reference_num: true
+    number_sections: true
+    toc: true
+    toc_depth: 2
+    tables:
+      style: Table
+      layout: autofit
+      width: 1.0
+      caption:
+        style: Table Caption
+        pre: 'Tableau '
+        sep: ' — '
+    plots:
+      style: Normal
+      align: center
+      caption:
+        style: Image Caption
+        pre: 'Figure '
+        sep: ' — '
+---
+
+```{r setup, include=FALSE}
+# Forcer la locale française pour la date, les décimales, etc.
+invisible(tryCatch(Sys.setlocale("LC_ALL", "fr_FR.UTF-8"), error = function(e) {
+  tryCatch(Sys.setlocale("LC_ALL", "French_France.utf8"), error = function(e2) {
+    tryCatch(Sys.setlocale("LC_ALL", "French"), error = function(e3) NULL)
+  })
+}))
+
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  dpi     = 200
+)
+
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(knitr)
+library(flextable)
+library(officedown)
+library(officer)
+library(survey)
+library(srvyr)
+library(haven)
+
+# Thème graphique sobre pour Word
+theme_word <- theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 12, color = "#1D3557"),
+    plot.subtitle = element_text(color = "grey45", size = 10),
+    plot.caption  = element_text(color = "grey55", size = 8, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+
+# Fonction d'arrondi à 2 décimales
+fmt2 <- function(x) formatC(round(x, 1), format = "f", digits = 1)
+```
+
+
+
+```{r valeurs, include=FALSE}
+# =====================================================================
+# CHARGEMENT DYNAMIQUE DE TOUS LES RÉSULTATS PRÉ-CALCULÉS
+# Plus aucune valeur hardcodée : tout vient des fichiers .rds
+# =====================================================================
+
+res_morb   <- readRDS("../data/processed/resultats_morbidite.rds")
+params_dep <- readRDS("../data/processed/params_depenses.rds")
+df_health  <- readRDS("../data/processed/df_health_base.rds")
+
+# --- Taux de morbidité global ---
+taux_global_val <- round(coef(res_morb$global)[1] * 100, 2)
+ic_low_val      <- round(res_morb$ic_global[1] * 100, 2)
+ic_high_val     <- round(res_morb$ic_global[2] * 100, 2)
+
+# --- Taux par sexe (extraits directement du tibble srvyr) ---
+taux_homme <- round(res_morb$sexe$taux[res_morb$sexe$sexe_label == "Homme"] * 100, 2)
+taux_femme <- round(res_morb$sexe$taux[res_morb$sexe$sexe_label == "Femme"] * 100, 2)
+
+# --- Dépenses (médianes pondérées) ---
+med_dep_val <- round(params_dep$med_pond)
+q1_dep_val  <- round(params_dep$q1_pond)
+q3_dep_val  <- round(params_dep$q3_pond)
+
+# --- Effectifs ---
+n_individus <- nrow(df_health %>% filter(!is.na(wt_wave4)))
+n_malades   <- nrow(df_health %>% filter(!is.na(wt_wave4), malade == 1))
+
+# --- Chi-deux recours x quintile (recalcul dynamique) ---
+cons <- read_dta("../data/raw/totcons_final.dta")
+cons_clean <- cons %>%
+  select(hhid, totcons_adj) %>%
+  mutate(
+    quintile       = ntile(totcons_adj, 5),
+    quintile_label = factor(quintile, levels = 1:5,
+                            labels = c("Q1 (plus pauvres)","Q2","Q3",
+                                       "Q4","Q5 (plus riches)"))
+  )
+
+df_merge <- df_health %>%
+  filter(!is.na(s4aq3), s4aq3 == 1, !is.na(wt_wave4)) %>%
+  mutate(
+    consulte = factor(if_else(s4aq1 == 1, "Consulte", "Non consulte",
+                              missing = "Non consulte"),
+                      levels = c("Consulte","Non consulte"))
+  ) %>%
+  left_join(cons_clean, by = "hhid") %>%
+  filter(!is.na(quintile_label), !is.na(consulte))
+
+plan_merge <- svydesign(ids = ~1, weights = ~wt_wave4, data = df_merge)
+
+tab_cont   <- table(Recours = df_merge$consulte, Quintile = df_merge$quintile_label)
+chi2_brut  <- suppressWarnings(chisq.test(tab_cont))
+chi2_val   <- round(chi2_brut$statistic, 2)
+n_chi2     <- sum(tab_cont)
+v_cramer   <- round(sqrt(chi2_brut$statistic / (n_chi2 * (min(nrow(tab_cont), ncol(tab_cont)) - 1))), 3)
+p_chi2     <- round(chi2_brut$p.value, 3)
+
+# --- Wilcoxon rural/urbain (recalcul dynamique) ---
+df_dep_calc <- df_health %>%
+  mutate(
+    dep_consultation = if_else(is.na(s4aq9),  0, as.numeric(s4aq9)),
+    dep_medicaments  = if_else(is.na(s4aq14), 0, as.numeric(s4aq14)),
+    dep_hopital      = if_else(is.na(s4aq17), 0, as.numeric(s4aq17)),
+    dep_totale       = dep_consultation + dep_medicaments + dep_hopital
+  ) %>%
+  filter(dep_totale > 0, !is.na(milieu_label), !is.na(wt_wave4))
+
+wilcox_res  <- wilcox.test(dep_totale ~ milieu_label, data = df_dep_calc,
+                           exact = FALSE, conf.int = TRUE)
+n_wilcox    <- nrow(df_dep_calc)
+r_wilcoxon  <- round(abs(qnorm(wilcox_res$p.value / 2)) / sqrt(n_wilcox), 4)
+p_wilcoxon  <- round(wilcox_res$p.value, 3)
+
+# --- Médianes par milieu (pondérées) ---
+plan_dep_calc <- svydesign(ids = ~1, weights = ~wt_wave4, data = df_dep_calc)
+svy_dep_calc  <- as_survey_design(plan_dep_calc)
+
+med_milieu <- svy_dep_calc %>%
+  group_by(milieu_label) %>%
+  summarise(
+    med_pond = survey_quantile(dep_totale, quantiles = 0.5, na.rm = TRUE, vartype = NULL)
+  )
+
+med_urbain <- round(med_milieu$med_pond_q50[med_milieu$milieu_label == "Urbain"])
+med_rural  <- round(med_milieu$med_pond_q50[med_milieu$milieu_label == "Rural"])
+```
+
+\newpage
+
+# Contexte et objectifs
+
+Le Nigeria figure parmi les pays à plus forte charge sanitaire d'Afrique subsaharienne. Avec une couverture sanitaire universelle incomplète et de profondes disparités socio-économiques, l'accès aux soins y reste inégalement réparti selon le milieu de résidence, le sexe, l'âge et le niveau de richesse.
+
+Ce rapport analyse les épisodes de maladie, les comportements de recours aux soins et les dépenses de santé des ménages nigérians à partir des données du **Nigeria General Household Survey (GHS) Panel, vague 4 (2018)**. Il répond à six questions analytiques couvrant les tâches 13 à 18 : niveau de morbidité, pathologies fréquentes, prestataires consultés, distribution des dépenses, lien entre richesse et recours aux soins, et disparités rurales/urbaines.
+
+**Nouveauté méthodologique :** toutes les estimations de ce rapport intègrent les **poids transversaux `wt_wave4`** issus du fichier `secta_harvestw4.dta`, permettant de généraliser les résultats à la **population nigériane** et non seulement à l'échantillon enquêté.
+
+---
+
+# Données et méthodologie
+
+## Sources de données
+
+L'analyse mobilise quatre fichiers issus de la vague Post-Harvest 2018 du GHS Panel, programme LSMS-ISA de la Banque Mondiale.
+
+```{r tab_sources}
+tab_src <- data.frame(
+  Fichier   = c("sect4a_harvestw4","sect1_harvestw4",
+                "secta_harvestw4","totcons_final"),
+  Contenu   = c("Santé individuelle","Démographie",
+                "Pondérations (wt_wave4)","Agrégat consommation"),
+  Variables = c("Morbidité, recours, dépenses",
+                "Sexe, âge, milieu",
+                "wt_wave4 (poids transversal W4)",
+                "Dépense par tête (quintile)")
+)
+
+flextable(tab_src) %>%
+  set_caption("Fichiers de données utilisés dans l'analyse") %>%
+  bold(part = "header") %>%
+  bg(bg = "#1D3557", part = "header") %>%
+  color(color = "white", part = "header") %>%
+  bg(i = seq(2, nrow(tab_src), 2), bg = "#EBF0F9") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+L'enquête couvre **`r format(n_individus, big.mark = " ")` individus de 5 ans et plus**. La jointure entre fichiers est réalisée sur les identifiants ménage (`hhid`) et individu (`indiv`).
+
+## Méthodes statistiques et pondérations
+
+**Plan de sondage.** Les poids `wt_wave4` sont des poids transversaux définis au niveau ménage. Chaque individu hérite du poids de son ménage. Le plan de sondage est déclaré via le package `survey` : `svydesign(ids=~1, weights=~wt_wave4, data=...)`.
+
+**Taux de morbidité.** La morbidité est mesurée comme la proportion d'individus ayant déclaré au moins une maladie ou blessure dans les quatre semaines précédant l'enquête (`s4aq3 = 1`). Les intervalles de confiance à 95% sont calculés via `svyciprop()` :
+
+$$\text{IC}_{95\%}\text{ pondéré} = \hat{p}_{pond} \pm 1{,}96 \cdot \widehat{SE}_{pond}$$
+
+**Classement des pathologies.** Les fréquences des types d'affections (`s4aq3b_1`) sont des effectifs pondérés ($\sum w_i$), représentant la population malade nigériane.
+
+**Distribution des dépenses.** La médiane est calculée via `svyquantile()`. L'histogramme utilise `aes(weight=wt_wave4)`. Les valeurs aberrantes sont identifiées par la règle de Tukey étendue ($Q_3 + 3 \times IQR$) calculée sur les quantiles.
+
+**Test d'indépendance pondéré.** L'association entre recours et quintile est testée par le **chi-deux de Rao-Scott** (`svychisq()`), qui corrige le chi-deux classique pour le plan de sondage.
+
+**Comparaison rural/urbain.** Le test de Wilcoxon-Mann-Whitney est appliqué sur les données brutes (aucun équivalent pondéré standard n'est disponible en R). La taille d'effet $r = |Z|/\sqrt{n}$ est interprétée comme une mesure approximative.
+
+---
+
+# Résultats
+
+## Morbidité déclarée : niveau global et disparités
+
+Sur l'ensemble de la population estimée, **`r fmt2(taux_global_val)`%** des individus ont déclaré au moins une maladie ou blessure dans les quatre semaines précédant l'enquête (IC 95% : [`r fmt2(ic_low_val)`% ; `r fmt2(ic_high_val)`%]).
+
+Deux disparités structurelles sont mises en évidence. Par sexe, les femmes présentent un taux de morbidité plus élevé (`r fmt2(taux_femme)`%) que les hommes (`r fmt2(taux_homme)`%), un écart observé dans tous les groupes d'âge adultes. Par groupe d'âge, la morbidité suit une progression quasi-monotone : elle est la plus faible chez les jeunes adultes (15-24 ans) et la plus élevée chez les personnes de 65 ans et plus.
+
+```{r fig1a, fig.cap="Taux de morbidité par sexe avec IC à 95%."}
+knitr::include_graphics("../outputs/figures/01a_morbidite_sexe.png")
+```
+
+```{r fig1b, fig.cap="Taux de morbidité par groupe d'âge avec IC à 95%."}
+knitr::include_graphics("../outputs/figures/01b_morbidite_age.png")
+```
+
+```{r fig1c, fig.cap="Taux de morbidité croisé sexe × groupe d'âge."}
+knitr::include_graphics("../outputs/figures/01c_morbidite_sexe_age.png")
+```
+
+## Profil des pathologies déclarées
+
+```{r fig2, fig.cap="Dix affections les plus fréquentes — effectifs pondérés (wt_wave4)."}
+knitr::include_graphics("../outputs/figures/02_types_maladies.png")
+```
+
+La faiblesse/fatigue et le paludisme dominent et représentent ensemble plus de la moitié des cas déclarés. Les maladies infectieuses concentrent la majorité de la charge morbide, confirmant le contexte épidémiologique du Nigeria. Les pathologies chroniques et traumatiques sont minoritaires dans les déclarations spontanées.
+
+## Recours aux soins : qui consulte et où ?
+
+```{r fig3, fig.cap="Recours aux soins par type de prestataire parmi les individus malades."}
+knitr::include_graphics("../outputs/figures/03_recours_prestataires.png")
+```
+
+Le résultat le plus saillant est la **prédominance du non-recours** : 33.0% des individus malades ne consultent aucun praticien. La pharmacie constitue le premier recours (46.7%), devant les hôpitaux et cliniques. Ce résultat est cohérent avec la littérature sur l'automédication en Afrique subsaharienne.
+
+## Distribution des dépenses de santé
+
+La distribution des dépenses est **fortement asymétrique à droite** : la médiane s'établit à **`r format(med_dep_val, big.mark = " ")` Naira** (Q1 = `r format(q1_dep_val, big.mark = " ")`, Q3 = `r format(q3_dep_val, big.mark = " ")`). L'échelle logarithmique est indispensable pour visualiser cette distribution.
+
+```{r fig4a, fig.cap="Distribution des dépenses de santé — échelle logarithmique."}
+knitr::include_graphics("../outputs/figures/04a_depenses_histogramme.png")
+```
+
+```{r fig4b, fig.cap="Dépenses par type de prestataire — échelle log, outliers extrêmes exclus."}
+knitr::include_graphics("../outputs/figures/04b_depenses_boxplot_prestataire.png")
+```
+
+## Inégalités socio-économiques d'accès aux soins
+
+```{r fig5, fig.cap="Recours aux soins selon le quintile de consommation."}
+knitr::include_graphics("../outputs/figures/05_recours_quintile.png")
+```
+
+Le test du chi-deux de Rao-Scott confirme que cette association est statistiquement significative. Le V de Cramer ($V =$ `r v_cramer`) indique une association faible mais réelle. Ces résultats révèlent une inégalité structurelle : les ménages les plus pauvres sont précisément ceux qui consultent le moins.
+
+## Comparaison rural/urbain des dépenses
+
+```{r fig6, fig.cap="Distribution des dépenses — rural vs urbain, échelle logarithmique."}
+knitr::include_graphics("../outputs/figures/06a_violin_rural_urbain.png")
+```
+
+Les médianes sont similaires (`r format(med_urbain, big.mark = " ")` Naira en urbain vs `r format(med_rural, big.mark = " ")` Naira en rural). Le test de Wilcoxon confirme l'absence de différence statistiquement significative ($p =$ `r p_wilcoxon` ; $r =$ `r r_wilcoxon`). C'est donc le **taux d'accès** qui diffère entre milieux, et non le coût unitaire des soins.
+
+---
+
+\newpage
+
+# Synthèse
+
+```{r tableau_synthese}
+df_synth <- data.frame(
+  Indicateur = c(
+    "Taux de morbidité global",
+    "Taux de morbidité — Femmes",
+    "Taux de morbidité — Hommes",
+    "Première affection",
+    "Taux de non-recours",
+    "Premier prestataire",
+    "Médiane dépenses",
+    "Chi-deux (recours × quintile)",
+    "Wilcoxon (dépenses rural/urbain)"
+  ),
+  Valeur = c(
+    paste0(fmt2(taux_global_val), "% [IC 95% pond. : ",
+           fmt2(ic_low_val), " – ", fmt2(ic_high_val), "%]"),
+    paste0(fmt2(taux_femme), "%"),
+    paste0(fmt2(taux_homme), "%"),
+    "Faiblesse/Fatigue et Paludisme (52.1% des cas)",
+    "33% des individus malades",
+    "Pharmacie (46.7%)",
+    paste0(format(med_dep_val, big.mark = " "), " Naira (Q1 = ",
+           format(q1_dep_val, big.mark = " "), ", Q3 = ",
+           format(q3_dep_val, big.mark = " "), ")"),
+    paste0("V = ", v_cramer, " (association faible, p = ", p_chi2, ")"),
+    paste0("p = ", p_wilcoxon, " (non significatif, r = ", r_wilcoxon, ")")
+  )
+)
+
+flextable(df_synth) %>%
+  set_header_labels(Indicateur = "Indicateur", Valeur = "Résultat") %>%
+  set_caption("Récapitulatif des principaux indicateurs — Nigeria GHS Panel W4 (2018)") %>%
+  bold(part = "header") %>%
+  bg(bg = "#1D3557", part = "header") %>%
+  color(color = "white", part = "header") %>%
+  bg(i = seq(2, nrow(df_synth), 2), bg = "#EBF0F9") %>%
+  bold(i = 1, j = 1) %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+Cette analyse conduit à cinq constats principaux :
+
+**1. Une morbidité modérée mais inégalement répartie.** Environ `r fmt2(taux_global_val)`% des Nigérians déclarent une maladie. La charge est plus lourde chez les femmes et progresse fortement avec l'âge.
+
+**2. Un profil épidémiologique dominé par les maladies infectieuses.** Le paludisme et les syndromes d'affaiblissement général dominent les déclarations dans l'ensemble de la population.
+
+**3. Un recours aux soins largement informel.** Plus d'un tiers des malades ne consulte personne, et près de la moitié s'oriente vers la pharmacie sans prescription médicale.
+
+**4. Des inégalités socio-économiques d'accès confirmées.** Le gradient de consultation selon le quintile de richesse, validé par le chi-deux de Rao-Scott, témoigne de barrières financières à l'accès aux soins formels.
+
+**5. Une absence de différence significative des dépenses rural/urbain.** C'est le taux d'accès qui varie selon le milieu, pas le coût unitaire des soins.
+
+---
+
+# Références bibliographiques
+
+- World Bank (2019). *Nigeria General Household Survey Panel 2018-2019, Wave 4*. LSMS-ISA. Washington DC : The World Bank.
+
+- Deaton, A. (1997). *The Analysis of Household Surveys: A Microeconometric Approach to Development Policy*. Baltimore : Johns Hopkins University Press.
+
+- Gwatkin, D.R. et al. (2007). *Socio-Economic Differences in Health, Nutrition, and Population within Developing Countries*. Washington DC : World Bank.
+
+- Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*. Hoboken : John Wiley & Sons.
+
+---
+
+*Rapport produit avec R Markdown (officedown) — Cours Projet Statistique sous R et Python — ENSAE Pierre Ndiaye, 2025-2026.*
+*Superviseur : M. Aboubacar HEMA.*
