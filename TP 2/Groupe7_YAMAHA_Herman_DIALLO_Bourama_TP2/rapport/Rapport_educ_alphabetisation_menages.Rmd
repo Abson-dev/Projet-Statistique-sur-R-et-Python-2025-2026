@@ -1,0 +1,521 @@
+---
+title: "Analyse de l'Éducation et de l'Alphabétisation au sein des Ménages Nigérians"
+author: |
+  **YAMAHA Herman & DIALLO Bourama**  
+  *Encadrant : Aboubacar HEMA*  
+  *Cours : Projet statistique sous R et Python*  
+  *ENSAE — Dakar, Sénégal*
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+subtitle: "Exploitation des données GHS-W4 2018 — Rapport d'analyse  | Groupe 7 | Herman YAMAHA — Bourama DIALLO | Sous la supervision de M. Aboubacar HEMA."
+output:
+  word_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+    reference_docx: null
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width  = 8,
+  fig.height = 5.8,
+  dpi = 150
+)
+
+library(knitr)
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(rstatix)
+library(scales)
+library(haven)
+library(viridis)
+library(survey)
+library(srvyr)
+library(flextable)
+library(officer)
+
+couleurs_niveaux <- c(
+  "Aucun"            = "#B2182B",
+  "Primaire"         = "#E66101",
+  "Junior Secondary" = "#FDB863",
+  "Senior Secondary" = "#5E3C99",
+  "Tertiaire"        = "#1B7837"
+)
+niveaux_ord <- c("Aucun", "Primaire", "Junior Secondary",
+                 "Senior Secondary", "Tertiaire")
+
+theme_projet <- theme_light(base_size = 10) +
+  theme(
+    plot.title    = element_text(face = "bold", color = "#243447", size = 12),
+    plot.subtitle = element_text(color = "#4F6272", size = 10),
+    plot.caption  = element_text(color = "grey40", size = 8, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position  = "bottom"
+  )
+```
+
+```{r chargement_donnees, include=FALSE}
+# Chargement des données brutes (le rapport relit les .dta pour être autonome)
+sect1 <- read_dta("../data/raw/sect1_harvestw4.dta")
+sect2 <- read_dta("../data/raw/sect2_harvestw4.dta")
+secta <- read_dta("../data/raw/secta_harvestw4.dta")
+
+# Pondérations
+df_poids <- secta %>% select(hhid, wt_wave4) %>% filter(!is.na(wt_wave4))
+
+# Fusion
+sect1_reduit <- sect1 %>% select(hhid, indiv, sexe = s1q2, age = s1q4)
+
+attribuer_niveau_educ <- function(s2aq13, s2aq15, s2aq9, s2aq10) {
+  code_brut <- ifelse(!is.na(s2aq15), s2aq15,
+               ifelse(!is.na(s2aq9), s2aq9, NA_real_))
+  dplyr::case_when(
+    s2aq13 == 2 | (is.na(code_brut) & is.na(s2aq10)) ~ "Aucun",
+    code_brut %in% c(34,35,41,43,61,322,411,412,421,422,423,424) |
+      s2aq10 %in% c(8,9,11,12) ~ "Tertiaire",
+    code_brut %in% c(24,25,26,27,28,31,33,321) |
+      s2aq10 %in% c(6,7,41,42) ~ "Senior Secondary",
+    code_brut %in% c(21,22,23) | s2aq10 == 5 ~ "Junior Secondary",
+    code_brut %in% c(11,12,13,14,15,16) |
+      s2aq10 %in% c(2,3) ~ "Primaire",
+    code_brut %in% c(1,2,3,51,52) ~ "Aucun",
+    TRUE ~ "Aucun"
+  )
+}
+
+etiquettes_etats <- c(
+  "1"="Abia","2"="Adamawa","3"="Akwa Ibom","4"="Anambra","5"="Bauchi",
+  "6"="Bayelsa","7"="Benue","8"="Borno","9"="Cross River","10"="Delta",
+  "11"="Ebonyi","12"="Edo","13"="Ekiti","14"="Enugu","15"="Gombe",
+  "16"="Imo","17"="Jigawa","18"="Kaduna","19"="Kano","20"="Katsina",
+  "21"="Kebbi","22"="Kogi","23"="Kwara","24"="Lagos","25"="Nasarawa",
+  "26"="Niger","27"="Ogun","28"="Ondo","29"="Osun","30"="Oyo",
+  "31"="Plateau","32"="Rivers","33"="Sokoto","34"="Taraba","35"="Yobe",
+  "36"="Zamfara","37"="FCT"
+)
+
+df_educ <- sect2 %>%
+  left_join(sect1_reduit, by = c("hhid", "indiv")) %>%
+  left_join(df_poids,     by = "hhid") %>%
+  mutate(
+    niveau_educ = attribuer_niveau_educ(
+      as.numeric(s2aq13), as.numeric(s2aq15),
+      as.numeric(s2aq9),  as.numeric(s2aq10)),
+    niveau_educ = factor(niveau_educ, levels = niveaux_ord, ordered = TRUE),
+    sexe_label  = factor(ifelse(as.numeric(sexe) == 1, "Homme", "Femme")),
+    zone_label  = factor(ifelse(as.numeric(sector) == 1, "Urbain", "Rural")),
+    groupe_age  = cut(age, breaks = c(18, 30, 45, 60, Inf),
+                      labels = c("18-30","31-45","46-60","60+"),
+                      right = TRUE, include.lowest = FALSE),
+    state_name  = etiquettes_etats[as.character(as.numeric(state))]
+  )
+
+df_adultes <- df_educ %>%
+  filter(!is.na(age), age >= 18, !is.na(sexe_label), !is.na(niveau_educ))
+
+df_scol <- df_educ %>%
+  filter(!is.na(age), age >= 6, age <= 17) %>%
+  mutate(scolarise = as.numeric(s2aq13) == 1,
+         zone_scol = as.character(zone_label)) %>%
+  filter(!is.na(zone_scol), !is.na(scolarise))
+
+# Plans de sondage
+design_adultes <- df_adultes %>%
+  filter(!is.na(wt_wave4)) %>%
+  as_survey_design(ids = hhid, weights = wt_wave4, nest = TRUE)
+
+design_scol <- df_scol %>%
+  filter(!is.na(wt_wave4)) %>%
+  as_survey_design(ids = hhid, weights = wt_wave4, nest = TRUE)
+
+# Calculs pour les inline R
+tab_freq_pond <- design_adultes %>%
+  group_by(niveau_educ) %>%
+  summarise(prop = survey_mean(vartype = "ci")) %>%
+  mutate(pct = round(prop * 100, 1))
+
+pct_aucun <- tab_freq_pond$pct[tab_freq_pond$niveau_educ == "Aucun"]
+pct_tertiaire <- tab_freq_pond$pct[tab_freq_pond$niveau_educ == "Tertiaire"]
+
+# Chi-deux genre
+table_croisee <- table(df_adultes$sexe_label, df_adultes$niveau_educ)
+res_chi2_brut <- chisq.test(table_croisee)
+v_cramer <- sqrt(res_chi2_brut$statistic /
+                   (sum(table_croisee) * (min(dim(table_croisee)) - 1)))
+
+# Kruskal-Wallis âge
+df_age <- df_adultes %>% filter(!is.na(groupe_age)) %>%
+  mutate(niveau_num = as.numeric(niveau_educ))
+test_kw <- kruskal.test(niveau_num ~ groupe_age, data = df_age)
+
+# Scolarisation
+taux_scol_pond <- design_scol %>%
+  group_by(zone_scol) %>%
+  summarise(prop = survey_mean(scolarise, na.rm = TRUE, vartype = "ci")) %>%
+  mutate(pct = round(prop * 100, 1), borne_inf = prop_low * 100,
+         borne_sup = prop_upp * 100)
+taux_urb <- taux_scol_pond$pct[taux_scol_pond$zone_scol == "Urbain"]
+taux_rur <- taux_scol_pond$pct[taux_scol_pond$zone_scol == "Rural"]
+
+svy_chi2_scol <- svychisq(
+  ~ zone_scol + scolarise,
+  design = svydesign(ids = ~hhid, weights = ~wt_wave4,
+                     data = df_scol %>% filter(!is.na(wt_wave4)))
+)
+
+# Heatmap données
+design_hm <- df_adultes %>%
+  filter(!is.na(wt_wave4), !is.na(state_name)) %>%
+  as_survey_design(ids = hhid, weights = wt_wave4, nest = TRUE)
+
+df_heatmap <- design_hm %>%
+  group_by(state_name) %>%
+  summarise(
+    n_pond    = survey_total(vartype = NULL),
+    pct_aucun = survey_mean(niveau_educ == "Aucun", na.rm = TRUE,
+                             vartype = NULL) * 100
+  ) %>%
+  as.data.frame() %>%
+  arrange(desc(pct_aucun))
+```
+
+---
+
+# Introduction
+
+Ce rapport présente une analyse synthétique du **niveau d'instruction** et de la **scolarisation** au sein des ménages nigérians à partir des données de la **General Household Survey, vague 4 (2018)**. L'objectif est de décrire la situation éducative des individus et de mettre en évidence les principales disparités selon le **genre**, la **classe d'âge**, le **milieu de résidence** et l'**État fédéré**.
+
+Toutes les estimations sont calculées avec les **pondérations transversales `wt_wave4`** issues du fichier `secta_harvestw4.dta`, ce qui permet de généraliser les résultats à la population nigériane et non simplement de décrire l'échantillon.
+
+# Données et démarche d'analyse
+
+Les traitements mobilisent trois fichiers issus de la GHS-W4 : un fichier décrivant les caractéristiques individuelles (`sect1`), un fichier éducatif (`sect2`) et un fichier de pondération (`secta`). Après appariement des données individuelles, une variable synthétique de **niveau d'instruction** a été construite en cinq modalités ordonnées : **Aucun**, **Primaire**, **Junior Secondary**, **Senior Secondary**, **Tertiaire**.
+
+L'analyse est conduite sur deux sous-populations : les **adultes de 18 ans et plus** pour le niveau d'instruction, et les **enfants et adolescents de 6 à 17 ans** pour la scolarisation.
+
+
+
+```{r tab_sources}
+df_sources <- data.frame(
+  Fichier = c("sect2_harvestw4.dta", "sect1_harvestw4.dta", "secta_harvestw4.dta"),
+  Variables = c(
+    "s2aq13 (scolarisé), s2aq9 (classe), s2aq15 (niveau), s2aq10 (diplôme)",
+    "s1q2 (sexe), s1q4 (âge), sector (milieu)",
+    "hhid, wt_wave4 (pondérations)"
+  ),
+  Role = c("Données éducatives", "Démographie individuelle", "Pondérations")
+)
+
+flextable(df_sources) %>%
+  set_header_labels(Fichier = "Fichier .dta", Variables = "Variables clés",
+                    Role = "Rôle") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  set_caption("Sources mobilisées pour l'analyse — GHS Panel W4.") %>%
+  width(j = 1, width = 2.5) %>%   # largeur fixe pour la colonne Fichier
+  width(j = 2, width = 5) %>%     # largeur fixe pour la colonne Variables
+  width(j = 3, width = 3) %>%     # largeur fixe pour la colonne Rôle
+  autofit() %>%
+  theme_vanilla() %>%
+  set_table_properties(layout = "autofit")   # permet au texte de revenir à la ligne
+```
+
+
+# Portrait global du niveau d'instruction
+
+La structure éducative des adultes nigérians est fortement déséquilibrée. Avec **`r pct_aucun`%** des adultes sans aucun niveau d'instruction, le capital humain reste très limité dans une grande partie de la population. L'enseignement supérieur ne concerne que **`r pct_tertiaire`%** des adultes.
+
+```{r tab_freq}
+tab_affich <- tab_freq_pond %>%
+  transmute(`Niveau d'instruction` = as.character(niveau_educ),
+            `Part (%)` = pct,
+            `IC inf. 95%` = round(prop_low * 100, 1),
+            `IC sup. 95%` = round(prop_upp * 100, 1))
+
+flextable(tab_affich) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = 1, bg = "#FADBD8") %>%
+  set_caption("Répartition du niveau d'instruction chez les adultes de 18 ans et plus — GHS-W4.") %>%
+  autofit() %>% theme_vanilla()
+```
+
+```{r fig_barplot, fig.cap="Répartition du niveau d'instruction des adultes (18 ans et +). Barres d'erreur : IC 95%. Source : GHS-W4, Nigeria 2018."}
+ggplot(tab_freq_pond,
+       aes(x = pct, y = fct_rev(niveau_educ), fill = niveau_educ)) +
+  geom_col(width = 0.55, color = "grey20", linewidth = 0.3) +
+  geom_errorbarh(aes(xmin = prop_low * 100, xmax = prop_upp * 100),
+                 height = 0.25, color = "grey30", linewidth = 0.6) +
+  geom_text(aes(x = prop_upp * 100, label = paste0(pct, "%")),
+            hjust = -0.25, size = 3.6, fontface = "bold") +
+  scale_fill_manual(values = couleurs_niveaux, guide = "none") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.22)),
+                     labels = function(x) paste0(x, "%")) +
+  labs(title    = "Répartition du niveau d'instruction des adultes",
+       subtitle = "Nigeria, GHS Wave 4 (2018) | Barres d'erreur : IC 95%",
+       x = "Pourcentage", y = NULL,
+       caption = "Source : GHS-W4 2018 | Pondération : wt_wave4 | Traitement : Groupe 7") +
+  theme_projet + theme(panel.grid.major.y = element_blank())
+```
+
+L'histogramme met en évidence une hiérarchie éducative marquée, avec la catégorie **Aucun** largement dominante. Ce résultat traduit un accès historiquement inégal à l'éducation et confirme que l'amélioration de la scolarisation récente n'a pas encore transformé la structure éducative des générations adultes.
+
+# Inégalités éducatives selon le genre
+
+```{r calcul_genre, include=FALSE}
+tab_genre_pond <- design_adultes %>%
+  filter(!is.na(sexe_label)) %>%
+  group_by(sexe_label, niveau_educ) %>%
+  summarise(n_pond = survey_total(vartype = NULL), .groups = "drop") %>%
+  group_by(sexe_label) %>%
+  mutate(pct = n_pond / sum(n_pond) * 100) %>% ungroup()
+```
+
+```{r fig_genre, fig.cap="Structure du niveau d'instruction selon le genre — adultes 18+. Source : GHS-W4, Nigeria 2018."}
+# Calcul de la note avec les valeurs < 4%
+note_petites <- tab_genre_pond %>%
+  filter(pct < 4) %>%
+  mutate(ligne = paste0(sexe_label, " – ", niveau_educ,
+                        " : ", round(pct, 1), "%")) %>%
+  pull(ligne) %>%
+  paste(collapse = " | ")
+
+ggplot(tab_genre_pond,
+       aes(x = sexe_label, y = pct / 100, fill = niveau_educ)) +
+  geom_col(color = "grey30", width = 0.45) +
+  geom_text(aes(label = ifelse(pct >= 4, paste0(round(pct, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            size = 3.0, color = "white", fontface = "bold") +
+  scale_fill_manual(values = couleurs_niveaux, name = "Niveau d'instruction") +
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  labs(title    = "Structure du niveau d'instruction selon le genre",
+       subtitle = "Représentation en barres empilées à 100% — GHS-W4, 2018",
+       x = NULL, y = "Part relative",
+       caption = paste0(
+         "Source : GHS-W4 2018 | Pondération : wt_wave4 | Traitement : Groupe 7\n",
+         "Note — Valeurs < 4% non affichées dans les barres : \n", 
+         note_petites
+       )) +
+  theme_projet +
+  theme(plot.caption = element_text(size = 6, color = "grey40",
+                                    hjust = 0, lineheight = 1.3))
+```
+
+Le test du **Chi-deux** confirme que la relation entre genre et niveau d'instruction est statistiquement significative. Le **V de Cramer** indique une intensité modérée de l'association.
+
+```{r tab_genre_stats}
+df_genre_res <- data.frame(
+  Indicateur = c("Statistique du Chi-deux", "p-valeur", "V de Cramer"),
+  Valeur = c(round(as.numeric(res_chi2_brut$statistic), 2),
+             "< 0,001",
+             round(as.numeric(v_cramer), 3))
+)
+flextable(df_genre_res) %>%
+  set_header_labels(Indicateur = "Indicateur", Valeur = "Valeur") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = 2, bg = "#FADBD8") %>%
+  set_caption("Association entre genre et niveau d'instruction — GHS-W4.") %>%
+  autofit() %>% theme_vanilla()
+```
+
+Les femmes sont relativement plus nombreuses dans les faibles niveaux d'instruction, tandis que les hommes sont davantage représentés dans les catégories supérieures. Ce résultat suggère que les femmes ont été historiquement plus exposées aux contraintes d'accès à l'école.
+
+# Effet de l'âge et dynamique générationnelle
+
+```{r calcul_age, include=FALSE}
+test_dunn <- df_age %>%
+  dunn_test(niveau_num ~ groupe_age, p.adjust.method = "bonferroni")
+```
+
+```{r fig_age, fig.cap="Niveau d'instruction par tranche d'âge — adultes 18+. Source : GHS-W4, Nigeria 2018."}
+ggplot(df_age, aes(x = groupe_age, y = niveau_num, fill = groupe_age)) +
+  geom_boxplot(aes(weight = wt_wave4), alpha = 0.80,
+               outlier.alpha = 0.08, width = 0.52, outlier.size = 0.7) +
+  scale_y_continuous(breaks = 1:5, labels = niveaux_ord) +
+  scale_fill_brewer(palette = "Set2", guide = "none") +
+  labs(title    = "Niveau d'instruction selon la tranche d'âge",
+       subtitle = paste0("Kruskal-Wallis : H = ",
+                         round(as.numeric(test_kw$statistic), 1), ", p < 0,001"),
+       x = "Tranche d'âge", y = "Niveau d'instruction",
+       caption = "Source : GHS-W4 2018 | Pondération : wt_wave4 | Traitement : Groupe 7") +
+  theme_projet + theme(panel.grid.major.x = element_blank())
+```
+
+Le test de **Kruskal-Wallis** montre des différences significatives entre les groupes d'âge (H = `r round(as.numeric(test_kw$statistic), 1)`, p < 0,001). Les comparaisons post-hoc de Dunn confirment que les jeunes adultes se distinguent de leurs aînés par un niveau d'instruction plus élevé, signe d'une expansion progressive de la scolarisation.
+
+```{r tab_dunn}
+tab_dunn_affich <- test_dunn %>%
+  select(`Groupe 1` = group1, `Groupe 2` = group2,
+         `p ajusté` = p.adj, Signification = p.adj.signif)
+
+flextable(tab_dunn_affich) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = ~ Signification != "ns", bg = "#EAF2F8") %>%
+  set_caption("Comparaisons multiples entre groupes d'âge (test de Dunn, correction Bonferroni).") %>%
+  colformat_double(j = "p ajusté", digits = 4) %>%
+  autofit() %>% theme_vanilla()
+```
+
+# Scolarisation des 6-17 ans selon le milieu de résidence
+
+```{r fig_scol, fig.cap="Taux de scolarisation des 6-17 ans selon le milieu de résidence. IC 95%. Source : GHS-W4, Nigeria 2018.", fig.width=6, fig.height=4.5}
+ggplot(taux_scol_pond,
+       aes(x = zone_scol, y = pct, fill = zone_scol,
+           ymin = borne_inf, ymax = borne_sup)) +
+  geom_col(width = 0.45, alpha = 0.92, color = "white") +
+  geom_errorbar(width = 0.12, color = "grey25", linewidth = 0.8) +
+  geom_text(aes(label = paste0(pct, "%")),
+            vjust = -0.9, fontface = "bold", size = 4.8, color = "#243447") +
+  scale_fill_manual(values = c("Urbain" = "#2166AC", "Rural" = "#B2182B"),
+                    guide = "none") +
+  scale_y_continuous(limits = c(0, 105),
+                     labels = function(x) paste0(x, "%")) +
+  labs(title    = "Taux de scolarisation des 6-17 ans selon le milieu",
+       subtitle = paste0("Chi-deux = ",
+                         round(as.numeric(svy_chi2_scol$statistic), 1),
+                         " | Barres d'erreur : IC 95%"),
+       x = NULL, y = "Taux de scolarisation (%)",
+       caption = "Source : GHS-W4 2018 | Pondération : wt_wave4 | Traitement : Groupe 7") +
+  theme_projet + theme(panel.grid.major.x = element_blank())
+```
+
+```{r tab_scol}
+tab_scol_affich <- taux_scol_pond %>%
+  transmute(
+    Milieu       = zone_scol,
+    `Taux (%)` = pct,
+    `IC inf. 95%` = round(borne_inf, 1),
+    `IC sup. 95%` = round(borne_sup, 1)
+  )
+
+flextable(tab_scol_affich) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  set_caption("Taux de scolarisation des 6-17 ans par milieu de résidence — GHS-W4.") %>%
+  autofit() %>% theme_vanilla()
+```
+
+Le taux de scolarisation urbain (**`r taux_urb`%**) dépasse nettement celui des zones rurales (**`r taux_rur`%**). L'écart est statistiquement significatif (p < 0,001) et reflète une densité plus forte de l'offre scolaire en milieu urbain, des coûts d'accès moindres et une moindre concurrence entre temps scolaire et activités économiques familiales. Ces inégalités se forment dès l'enfance et alimentent la reproduction des disparités entre générations.
+
+# Disparités territoriales entre États fédérés
+
+```{r heatmap_data_rmd, include=FALSE}
+design_hm_rmd <- df_adultes %>%
+  filter(!is.na(wt_wave4), !is.na(state_name)) %>%
+  as_survey_design(ids = hhid, weights = wt_wave4, nest = TRUE)
+
+df_heatmap_rmd <- design_hm_rmd %>%
+  group_by(state_name) %>%
+  summarise(
+    n_pond    = survey_total(vartype = NULL),
+    pct_aucun = survey_mean(niveau_educ == "Aucun", na.rm = TRUE,
+                             vartype = NULL) * 100,
+    .groups = "drop"
+  ) %>%
+  as.data.frame() %>%
+  arrange(desc(pct_aucun))
+```
+
+```{r fig_heatmap1, fig.cap="Proportion d'adultes sans instruction par État — GHS Wave 4, 2018.", fig.width=5.5, fig.height=9, out.width="80%"}
+ggplot(df_heatmap_rmd,
+       aes(x = 1, y = fct_reorder(state_name, pct_aucun), fill = pct_aucun)) +
+  geom_tile(color = "white", linewidth = 0.35) +
+  geom_text(aes(label = paste0(round(pct_aucun, 1), "%")),
+            size = 2.7, color = "white", fontface = "bold") +
+  scale_fill_viridis_c(option = "magma", direction = -1,
+                       name = "% sans\ninstruction",
+                       labels = function(x) paste0(x, "%")) +
+  scale_x_continuous(expand = c(0, 0)) +
+  labs(title    = "Proportion d'adultes sans instruction par État",
+       subtitle = "Lecture comparative des disparités territoriales",
+       x = NULL, y = NULL,
+       caption = "Source : GHS-W4 2018 | Pondération : wt_wave4 | Traitement : Groupe 7") +
+  theme_light(base_size = 9.5) +
+  theme(plot.title   = element_text(face = "bold", size = 11, colour = "#243447"),
+        axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid   = element_blank(),
+        legend.position = "right")
+```
+
+```{r tab_top10_etats}
+tab_etats <- df_heatmap_rmd %>%
+  slice_head(n = 10) %>%
+  transmute(
+    `État` = state_name,
+    `% sans instruction` = round(pct_aucun, 1)
+  )
+
+flextable(tab_etats) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = 1:5, bg = "#FADBD8") %>%
+  set_caption("Dix États les plus touchés par la non-instruction des adultes.") %>%
+  autofit() %>% theme_vanilla()
+```
+
+Un clivage territorial marqué oppose les États du Nord, globalement les plus touchés par la non-instruction, aux États du Sud et du centre-sud qui présentent des profils plus favorables. Ce contraste met en évidence que la question éducative est aussi une question de développement régional.
+
+La ventilation complète du niveau d'instruction pour chacun des 37 États nigérians (5 niveaux, proportions pondérées) est disponible dans la feuille **Niveaux\_par\_Etat** du fichier `outputs/tableau_gtsummary.xlsx`.
+
+# Conclusion générale
+
+L'analyse met en évidence quatre enseignements majeurs. Premièrement, le **niveau d'instruction des adultes reste globalement faible**, avec `r pct_aucun`% sans aucune instruction. Deuxièmement, des **inégalités de genre** persistent, au détriment des femmes. Troisièmement, les **jeunes générations apparaissent mieux instruites**, signe d'une expansion progressive de la scolarisation. Quatrièmement, les écarts les plus nets se lisent dans l'espace : le **milieu rural** et plusieurs **États du Nord** cumulent les situations les plus défavorables.
+
+```{r tab_synthese}
+recapitulatif <- data.frame(
+  Dimension = c(
+    "Portrait national",
+    "Genre",
+    "Âge",
+    "Milieu de résidence",
+    "Disparités territoriales"
+  ),
+  Résultat = c(
+    paste0(pct_aucun, "% des adultes sans instruction"),
+    paste0("Association significative (V de Cramer = ", round(as.numeric(v_cramer), 3), ")"),
+    paste0("H = ", round(as.numeric(test_kw$statistic), 1),
+           " — les 18-30 ans sont mieux instruits"),
+    paste0("Scolarisation : ", taux_urb, "% en urbain vs ",
+           taux_rur, "% en rural"),
+    "Écarts très marqués (Nord vs Sud)"
+  )
+)
+
+flextable(recapitulatif) %>%
+  set_header_labels(Dimension = "Dimension", Résultat = "Résultat") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = seq(2, nrow(recapitulatif), by = 2), bg = "#EAF2F8") %>%
+  set_caption("Résumé des principaux résultats — GHS-W4, Nigeria 2018.") %>%
+  width(j = 1, width = 2.5) %>%
+  width(j = 2, width = 4) %>%
+  autofit() %>% theme_vanilla()
+```
+
+# Références {-}
+
+- World Bank (2019). *Nigeria General Household Survey Panel 2018-2019, Wave 4*. LSMS-ISA. Washington DC : The World Bank.
+- Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*. Hoboken : Wiley.
+- Dunn, O. J. (1964). Multiple comparisons using rank sums. *Technometrics*, 6(3), 241-252.
+- Cramér, H. (1946). *Mathematical Methods of Statistics*. Princeton University Press.
+
+---
+
+*Rapport produit avec R Markdown dans le cadre du cours de Projet Statistique sous R et Python — ENSAE Pierre Ndiaye, 2025-2026.*
