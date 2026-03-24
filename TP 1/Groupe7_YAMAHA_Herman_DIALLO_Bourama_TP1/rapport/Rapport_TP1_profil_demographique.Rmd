@@ -1,0 +1,636 @@
+---
+title: "Profil démographique des ménages enquêtés dans le GHS Panel"
+subtitle: |
+  Analyse 1 — Projet Statistique sous R et Python | ENSAE ISE 1, 2025-2026
+  Nigeria General Household Survey (GHS) Panel — Wave 4 (2018/2019) | Groupe 7 | Herman YAMAHA — Bourama DIALLO | Sous la supervision de M. Aboubakar HEMA.
+author: |
+  **Groupe 7** | Herman YAMAHA — Bourama DIALLO
+  
+  École Nationale de la Statistique et de l'Analyse Économique Pierre NDIAYE
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+
+output:
+  word_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+    reference_docx: null
+    md_extensions: +raw_html
+
+
+---
+
+<style>
+body { text-align: justify; }
+p { text-align: justify; }
+</style>
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo     = FALSE,
+  warning  = FALSE,
+  message  = FALSE,
+  fig.align = "center",
+  fig.width = 8,
+  fig.height = 5,
+  dpi      = 150
+)
+
+# Définir un miroir CRAN
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Liste des packages requis
+packages_requis <- c(
+  "haven", "dplyr", "ggplot2", "scales", "knitr",
+  "survey", "srvyr", "gtsummary", "flextable",
+  "officer", "openxlsx", "naniar"
+)
+
+# Vérification et installation des packages manquants
+for (pkg in packages_requis) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg, dependencies = TRUE)
+    library(pkg, character.only = TRUE)
+  }
+}
+
+```
+
+```{r chargement_donnees, include=FALSE}
+# Chargement des objets produits par les scripts
+df_brut      <- readRDS("../data/processed/df_brut.rds")
+df_individus <- readRDS("../data/processed/df_individus.rds")
+df_menages   <- readRDS("../data/processed/df_menages.rds")
+res_wilcox_obj <- readRDS("../data/processed/resultats_wilcoxon.rds")
+tab_lien_pond  <- readRDS("../data/processed/proportions_ic_ponderes.rds")
+
+# Plan de sondage
+design_individus <- df_individus %>%
+  filter(!is.na(wt_wave4)) %>%
+  as_survey_design(ids = hhid, weights = wt_wave4, nest = TRUE)
+
+design_menages <- df_menages %>%
+  filter(!is.na(wt_wave4)) %>%
+  as_survey_design(ids = hhid, weights = wt_wave4, nest = TRUE)
+
+# Palette
+COULEUR_URBAIN  <- "#C0392B"
+COULEUR_RURAL   <- "#1A5276"
+COULEUR_HOMME   <- "#1A5276"
+COULEUR_FEMME   <- "#C0392B"
+COULEUR_ACCENT  <- "#E67E22"
+FOND_GRAPHIQUE  <- "#FDFEFE"
+palette_milieu  <- c("Urbain" = COULEUR_URBAIN, "Rural" = COULEUR_RURAL)
+palette_genre   <- c("Homme"  = COULEUR_HOMME,  "Femme" = COULEUR_FEMME)
+palette_lien    <- c(
+  "Chef de ménage" = "#1A5276", "Conjoint(e)" = "#117A65",
+  "Enfant" = "#E67E22", "Autre membre" = "#7F8C8D"
+)
+theme_tp1 <- theme_minimal(base_size = 11) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 12, color = "#1A1A2E"),
+    plot.subtitle    = element_text(color = "grey45", size = 9),
+    plot.caption     = element_text(color = "grey55", size = 8, hjust = 1),
+    plot.background  = element_rect(fill = FOND_GRAPHIQUE, color = NA),
+    panel.grid.minor = element_blank()
+  )
+
+# Statistiques clés
+stats_age_pond <- design_individus %>%
+  filter(!is.na(age)) %>%
+  summarise(
+    Moyenne  = survey_mean(age, vartype = NULL),
+    Q1       = survey_quantile(age, quantiles = 0.25, vartype = NULL),
+    Médiane  = survey_quantile(age, quantiles = 0.50, vartype = NULL),
+    Q3       = survey_quantile(age, quantiles = 0.75, vartype = NULL),
+    Variance = survey_var(age, vartype = NULL)
+  )
+stats_age_pond$`Éc. type` <- sqrt(stats_age_pond$Variance)
+
+moy_age_pond <- round(stats_age_pond$Moyenne, 1)
+med_age_pond <- round(stats_age_pond$Médiane_q50, 1)
+et_age_pond  <- round(stats_age_pond$`Éc. type`, 2)
+q1_age_pond  <- round(stats_age_pond$Q1_q25, 1)
+q3_age_pond  <- round(stats_age_pond$Q3_q75, 1)
+
+# Test Shapiro-Wilk
+set.seed(2025)
+sw_test <- shapiro.test(sample(na.omit(df_individus$age), 5000))
+sw_W    <- round(sw_test$statistic, 3)
+
+# Résultats Wilcoxon
+res_wilcox <- res_wilcox_obj$test
+r_effet     <- round(res_wilcox_obj$r_effet, 3)
+categ_effet <- res_wilcox_obj$categorie
+
+# Statistiques par milieu (ménages)
+stats_m <- design_menages %>%
+  filter(!is.na(milieu)) %>%
+  group_by(milieu) %>%
+  summarise(
+    N_pond  = survey_total(vartype = NULL),
+    Moyenne = survey_mean(taille, vartype = NULL),
+    Médiane = survey_quantile(taille, quantiles = 0.50, vartype = NULL),
+    Q1      = survey_quantile(taille, quantiles = 0.25, vartype = NULL),
+    Q3      = survey_quantile(taille, quantiles = 0.75, vartype = NULL)
+  ) %>% as.data.frame()
+
+n_urb   <- nrow(df_menages %>% filter(milieu == "Urbain", !is.na(wt_wave4)))
+n_rur   <- nrow(df_menages %>% filter(milieu == "Rural",  !is.na(wt_wave4)))
+moy_urb <- round(stats_m$Moyenne[stats_m$milieu == "Urbain"], 2)
+moy_rur <- round(stats_m$Moyenne[stats_m$milieu == "Rural"], 2)
+med_urb <- round(stats_m$Médiane[stats_m$milieu == "Urbain"], 0)
+med_rur <- round(stats_m$Médiane[stats_m$milieu == "Rural"], 0)
+
+# Prop genre et milieu
+pct_hommes  <- design_individus %>%
+  summarise(p = survey_mean(genre == "Homme", na.rm = TRUE, vartype = NULL)) %>%
+  pull(p) %>% round(3) * 100
+pct_urbain  <- design_individus %>%
+  summarise(p = survey_mean(milieu == "Urbain", na.rm = TRUE, vartype = NULL)) %>%
+  pull(p) %>% round(3) * 100
+
+n_individus <- nrow(df_individus)
+n_menages   <- nrow(df_menages)
+n_doublons  <- 0
+n_manq_age  <- sum(is.na(df_individus$age))
+pct_manq    <- round(n_manq_age / nrow(df_individus) * 100, 2)
+```
+
+---
+
+# Contexte et objectifs {-}
+
+Le Nigeria est le pays le plus peuplé d'Afrique subsaharienne, avec une démographie caractérisée par une croissance rapide, une structure par âge très jeune et des contrastes marqués entre espaces ruraux et urbains. Comprendre la composition des ménages constitue un préalable indispensable à toute analyse des conditions de vie et des inégalités socio-économiques.
+
+Ce rapport présente une analyse du **profil démographique des ménages** enquêtés dans la vague 4 du Nigeria General Household Survey-Panel (GHSP-W4, 2018/2019), collecté par le National Bureau of Statistics (NBS). **Toutes les statistiques sont calculées avec les pondérations transversales `wt_wave4`** issues du fichier `secta_harvestw4.dta`, afin de produire des estimations représentatives de la population nigériane et non simplement descriptives de l'échantillon.
+
+Le rapport est structuré en quatre parties : (i) préparation et contrôle qualité des données, (ii) analyse univariée de l'âge, (iii) étude du lien de parenté avec intervalles de confiance, et (iv) comparaison de la taille des ménages entre milieux urbain et rural.
+
+---
+
+# Données et méthodologie
+
+## Sources mobilisées
+
+L'analyse repose sur deux fichiers principaux :
+
+- **`sect1_harvestw4.dta`** : section démographie individuelle (âge, sexe, lien de parenté)
+- **`secta_harvestw4.dta`** : caractéristiques du ménage et **pondérations transversales `wt_wave4`**
+
+```{r tab_sources}
+df_sources <- data.frame(
+  Fichier = c("sect1_harvestw4.dta", "secta_harvestw4.dta"),
+  Variables = c(
+    "indiv, s1q2 (sexe), s1q4 (âge), s1q3 (lien parenté)",
+    "hhid, wt_wave4 (poids sondage), sector, zone, state"
+  ),
+  Role = c("Données démographiques individuelles", "Pondérations et milieu de résidence")
+)
+
+flextable(df_sources) %>%
+  set_header_labels(Fichier = "Fichier .dta", Variables = "Variables clés", Role = "Rôle") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  set_caption("Sources mobilisées pour l'analyse.") %>%
+  autofit() %>%
+  width(j = 1, width = 2) %>%
+  width(j = 2, width = 3) %>%
+  width(j = 3, width = 2.5) %>%
+  theme_vanilla()
+```
+
+## Note méthodologique sur les pondérations
+
+Le GHS-Panel repose sur un **plan de sondage stratifié à plusieurs degrés**. Sans correction, les estimations obtenues sur l'échantillon brut ne sont pas représentatives de la population nigériane : certains groupes (zones rurales reculées, certains États) sont sur- ou sous-représentés relativement à leur poids réel dans la population.
+
+La pondération transversale `wt_wave4` redresse cet écart. En pratique :
+
+- Les **moyennes et proportions** sont calculées avec `survey_mean()` du package `srvyr`
+- Les **quantiles** sont calculés avec `survey_quantile()`
+- Les **tests statistiques** utilisent le plan de sondage via le package `survey`
+- Les **graphiques** intègrent `aes(weight = wt_wave4)` pour refléter les distributions pondérées
+- Le **tableau de synthèse** utilise `tbl_svysummary()` de `gtsummary`
+
+## Méthodes statistiques
+
+**Exploration et qualité.** Structure examinée par `str()`, `glimpse()` et `summary()`. Doublons contrôlés sur la clé `hhid × indiv`. Valeurs manquantes visualisées par `naniar::vis_miss()`.
+
+**Analyse univariée de l'âge.** Distribution décrite par la moyenne, la médiane, les quartiles $Q_1$ et $Q_3$, l'écart-type et l'asymétrie. Normalité testée par le **test de Shapiro-Wilk** sur un sous-échantillon aléatoire de 5 000 individus. Pyramide des âges par sexe.
+
+**Liens de parenté.** Proportions avec intervalles de confiance à 95% calculés par le plan de sondage.
+
+**Comparaison rural/urbain.** Test non paramétrique de **Wilcoxon-Mann-Whitney**. Taille d'effet $r$ de Rosenthal :
+
+$$r = \frac{|Z|}{\sqrt{n}}$$
+
+**Tableau de synthèse.** Tableau `tbl_svysummary()` stratifié par zone, exporté en **Excel** (package `openxlsx`).
+
+---
+
+# Qualité des données
+
+## Exploration de la structure
+
+```{r tab_qualite}
+df_qual <- data.frame(
+  Indicateur = c(
+    "Nombre d'individus (échantillon brut)",
+    "Nombre de ménages",
+    "Variables dans sect1_harvestw4",
+    "Doublons sur hhid × indiv",
+    "Individus avec pondération wt_wave4",
+    "Valeurs manquantes — Âge",
+    "Valeurs manquantes — Sexe",
+    "Valeurs manquantes — Milieu",
+    "Valeurs manquantes — Lien de parenté"
+  ),
+  Valeur = c(
+    format(n_individus, big.mark = " "),
+    format(n_menages, big.mark = " "),
+    ncol(df_brut),
+    n_doublons,
+    format(sum(!is.na(df_individus$wt_wave4)), big.mark = " "),
+    paste0(format(n_manq_age, big.mark = " "), " (", pct_manq, "%)"),
+    sum(is.na(df_individus$genre)),
+    sum(is.na(df_individus$milieu)),
+    sum(is.na(df_individus$lien_parente))
+  )
+)
+
+flextable(df_qual) %>%
+  set_header_labels(Indicateur = "Indicateur de qualité", Valeur = "Résultat") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = ~ as.numeric(gsub("[^0-9]", "", Valeur)) > 0 |
+       grepl("%", Valeur), bg = "#FEF9E7") %>%
+  set_caption("Indicateurs de qualité des données — Nigeria GHS Panel W4.") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+La base de données présente une **qualité satisfaisante** : aucun doublon n'a été détecté sur la clé composite `hhid × indiv`. Les valeurs manquantes sur l'âge (`r pct_manq`%) sont les plus importantes mais n'affectent pas les analyses portant sur d'autres variables. Les pondérations `wt_wave4` sont disponibles pour `r format(sum(!is.na(df_individus$wt_wave4)), big.mark = " ")` des `r format(n_individus, big.mark = " ")` individus.
+
+---
+
+# Analyse univariée de l'âge
+
+## Statistiques descriptives
+
+```{r tab_age_pond}
+df_age_stat <- data.frame(
+  Statistique = c("Moyenne", "Médiane", "Écart-type",
+                  "Q1", "Q3",
+                  "Min", "Max", "Test de normalité (Shapiro-Wilk, n=5000)"),
+  Valeur = c(
+    paste0(moy_age_pond, " ans"),
+    paste0(med_age_pond, " ans"),
+    paste0(et_age_pond, " ans"),
+    paste0(q1_age_pond, " ans"),
+    paste0(q3_age_pond, " ans"),
+    paste0(min(df_individus$age, na.rm = TRUE), " an"),
+    paste0(max(df_individus$age, na.rm = TRUE), " ans"),
+    paste0("W = ", sw_W, " ; p < 2,2e-16 → Non normale")
+  )
+)
+
+flextable(df_age_stat) %>%
+  set_header_labels(Statistique = "Statistique", Valeur = "Valeur") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = 8, bg = "#FADBD8") %>%
+  set_caption("Statistiques descriptives de l'âge — GHS Panel W4.") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+La distribution de l'âge, **pondérée par `wt_wave4`**, présente une moyenne de `r moy_age_pond` ans et une médiane de `r med_age_pond` ans. L'asymétrie positive (moyenne > médiane) reflète une concentration des effectifs dans les jeunes âges. Le test de Shapiro-Wilk (W = `r sw_W` ; p < 2,2e-16) rejette fermement l'hypothèse de normalité, ce qui **justifie le recours aux tests non paramétriques** pour toute comparaison de groupes.
+
+## Histogramme de l'âge
+
+```{r fig1, fig.cap="Histogramme de l'âge des membres des ménages. Source : Nigeria GHS Panel W4. Pondération : wt_wave4.", fig.width=9, fig.height=5}
+df_age_plot <- df_individus %>% filter(!is.na(age), !is.na(wt_wave4))
+
+ggplot(df_age_plot, aes(x = age, weight = wt_wave4)) +
+  geom_histogram(binwidth = 5, fill = COULEUR_RURAL, color = "white", alpha = 0.82) +
+  geom_vline(xintercept = moy_age_pond, color = COULEUR_ACCENT,
+             linetype = "dashed", linewidth = 0.9) +
+  annotate("label", x = moy_age_pond + 5, y = Inf, vjust = 1.5,
+           label = paste0("Moy. pond. = ", moy_age_pond, " ans"),
+           color = COULEUR_ACCENT, fill = "white", label.size = 0.3,
+           size = 3.5, fontface = "bold") +
+  scale_x_continuous(breaks = seq(0, 100, 10)) +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Distribution de l'âge des membres des ménages",
+       subtitle = "Effectifs pondérés wt_wave4 | Ligne orange = moyenne",
+       x = "Âge (années)", y = "Effectifs pondérés",
+       caption = "Source : NBS Nigeria, GHS-Panel Wave 4 (2018/19) | Pondération : wt_wave4") +
+  theme_tp1
+```
+
+L'histogramme fait apparaître une **distribution fortement asymétrique à droite**, avec une concentration dans les classes 0-4 et 5-9 ans. Cette structure pyramidale traduit la forte natalité du Nigeria et la jeunesse de sa population.
+
+## Boîte à moustaches de l'âge
+
+```{r fig2, fig.cap="Boîte à moustaches de l'âge. Losange orange = moyenne. Source : Nigeria GHS Panel W4.", fig.width=5, fig.height=6}
+ggplot(df_age_plot, aes(x = "", y = age)) +
+  geom_boxplot(fill = COULEUR_RURAL, color = "#17202A", alpha = 0.72,
+               width = 0.35, outlier.color = "grey65",
+               outlier.alpha = 0.45, outlier.size = 0.7) +
+  geom_jitter(width = 0.1, alpha = 0.012, color = COULEUR_RURAL, size = 0.4) +
+  annotate("point", x = 1, y = moy_age_pond,
+           shape = 18, size = 5, color = COULEUR_ACCENT) +
+  scale_y_continuous(breaks = seq(0, 120, 10)) +
+  labs(title = "Boîte à moustaches de l'âge",
+       subtitle = paste0("Médiane pond. = ", med_age_pond, " ans | Losange = moyenne pond."),
+       y = "Âge (années)", x = NULL,
+       caption = "Source : NBS Nigeria, GHS-Panel W4 | Pondération : wt_wave4") +
+  theme_tp1 + theme(axis.text.x = element_blank(), panel.grid.major.x = element_blank())
+```
+
+## Pyramide des âges
+
+```{r fig3, fig.cap="Pyramide des âges par groupes quinquennaux et par sexe. Source : Nigeria GHS Panel W4. Pondération : wt_wave4.", fig.width=9, fig.height=8}
+df_pyramide <- df_individus %>%
+  filter(!is.na(age), !is.na(genre), !is.na(tranche_age), !is.na(wt_wave4)) %>%
+  group_by(tranche_age, genre) %>%
+  summarise(effectif_pond = sum(wt_wave4), .groups = "drop") %>%
+  mutate(eff_affich = ifelse(genre == "Homme", -effectif_pond, effectif_pond))
+
+max_val <- max(df_pyramide$effectif_pond)
+
+ggplot(df_pyramide, aes(x = tranche_age, y = eff_affich, fill = genre)) +
+  geom_bar(stat = "identity", alpha = 0.85) +
+  coord_flip() +
+  scale_y_continuous(breaks = pretty(c(-max_val, max_val), n = 8),
+                     labels = function(x) comma(abs(x))) +
+  scale_fill_manual(values = palette_genre, name = "Sexe") +
+  labs(title = "Pyramide des âges des membres des ménages",
+       subtitle = "Effectifs pondérés wt_wave4 | Représentatifs de la population nigériane",
+       x = "Tranche d'âge", y = "Effectifs pondérés",
+       caption = "Source : NBS Nigeria, GHS-Panel Wave 4 (2018/19) | Pondération : wt_wave4") +
+  theme_tp1 + theme(legend.position = "bottom")
+```
+
+La pyramide des âges présente une **base large et un sommet étroit**, structure classique des pays à forte natalité et mortalité infantile significative. Les groupes 0-4 ans et 5-9 ans constituent les cohortes les plus importantes en termes d'effectifs pondérés, représentatifs de la population nigériane. Les effectifs masculins et féminins sont globalement équilibrés, avec une légère surreprésentation féminine aux grands âges, phénomène habituel lié à la surmortalité masculine.
+
+---
+
+# Lien de parenté et intervalles de confiance
+
+## Fréquences observées
+
+```{r fig4, fig.cap="Proportions du lien de parenté avec IC 95%. Source : Nigeria GHS Panel W4. Pondération : wt_wave4.", fig.width=9, fig.height=5}
+prop_lien_pond <- design_individus %>%
+  group_by(lien_parente) %>%
+  summarise(
+    prop_pond = survey_mean(vartype = "ci", level = 0.95),
+    n_pond    = survey_total(vartype = NULL)
+  ) %>%
+  mutate(lien_parente = reorder(lien_parente, prop_pond))
+
+ggplot(prop_lien_pond, aes(x = lien_parente, y = prop_pond, fill = lien_parente)) +
+  geom_bar(stat = "identity", alpha = 0.85, color = "white") +
+  geom_errorbar(aes(ymin = prop_pond_low, ymax = prop_pond_upp),
+                width = 0.25, linewidth = 0.7, color = "grey30") +
+  geom_text(aes(label = paste0(round(prop_pond * 100, 1), "%")),
+            hjust = -0.3, size = 3.5, fontface = "bold", color = "#17202A") +
+  scale_fill_manual(values = palette_lien, guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.20)),
+                     labels = percent_format(accuracy = 1)) +
+  coord_flip() +
+  labs(title = "Répartition selon le lien de parenté au chef de ménage",
+       subtitle = "Proportions représentatives de la population nigériane | IC 95%",
+       x = NULL, y = "Proportion (%)",
+       caption = "Source : NBS Nigeria, GHS-Panel Wave 4 (2018/19) | Pondération : wt_wave4") +
+  theme_tp1 + theme(panel.grid.major.y = element_blank())
+```
+
+## Proportions avec intervalles de confiance
+
+```{r tab_parente_ic}
+# Affichage simplifié du tableau sans mise en forme conditionnelle
+flextable(tab_lien_pond) %>%
+  set_header_labels(
+    Catégorie = "Catégorie",
+    `Proportion (%)` = "Prop. pondérée (%)",
+    `IC 95% inf (%)` = "IC inf. 95% (%)",
+    `IC 95% sup (%)` = "IC sup. 95% (%)",
+    `Effectif (représentatif)` = "Effectif pondéré"
+  ) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  set_caption("Proportions par catégorie de parenté avec IC 95% — GHS Panel W4.") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+Les intervalles de confiance sont très étroits, conférant une **haute précision aux estimations représentatives**. Les enfants constituent la catégorie largement dominante. La proportion de conjoints, inférieure à celle des chefs de ménage, reflète la présence de ménages monoparentaux dans la population.
+
+---
+
+# Taille des ménages : comparaison urbain/rural
+
+## Statistiques descriptives par milieu
+
+```{r tab_taille_pond}
+df_taille_affich <- data.frame(
+  Secteur  = c("Urbain", "Rural"),
+  N_menages = c(n_urb, n_rur),
+  `Moy. pond.` = c(moy_urb, moy_rur),
+  `Méd. pond.` = c(med_urb, med_rur),
+  Q1 = c(
+    round(stats_m$Q1[stats_m$milieu == "Urbain"], 1),
+    round(stats_m$Q1[stats_m$milieu == "Rural"], 1)
+  ),
+  Q3 = c(
+    round(stats_m$Q3[stats_m$milieu == "Urbain"], 1),
+    round(stats_m$Q3[stats_m$milieu == "Rural"], 1)
+  ),
+  check.names = FALSE
+)
+
+flextable(df_taille_affich) %>%
+  set_header_labels(
+    Secteur = "Secteur", N_menages = "N ménages",
+    `Moy. pond.` = "Moy. pond.", `Méd. pond.` = "Méd. pond.",
+    Q1 = "Q1", Q3 = "Q3"
+  ) %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = 1, bg = "#FADBD8") %>%
+  bg(i = 2, bg = "#D6EAF8") %>%
+  set_caption("Statistiques de la taille des ménages par secteur de résidence.") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+Les ménages ruraux présentent une taille médiane de **`r med_rur` membres** contre **`r med_urb` membres** en milieu urbain. La différence de moyennes est également notable (`r moy_rur` vs `r moy_urb`), reflétant des stratégies familiales distinctes liées aux besoins agricoles et aux solidarités communautaires rurales.
+
+## Test de Wilcoxon-Mann-Whitney et visualisation
+
+```{r fig5, fig.cap="Taille des ménages par secteur de résidence. Losange = Moyenne. Source : Nigeria GHS Panel W4.", fig.width=9, fig.height=6}
+label_test <- paste0(
+  "Wilcoxon W = ", round(res_wilcox$statistic, 0),
+  "\np = ", format(res_wilcox$p.value, scientific = TRUE, digits = 3),
+  "\nr = ", r_effet, " (", categ_effet, ")"
+)
+
+moy_pond_milieu <- design_menages %>%
+  filter(!is.na(milieu)) %>%
+  group_by(milieu) %>%
+  summarise(moy_pond = survey_mean(taille, vartype = NULL)) %>%
+  as.data.frame()
+
+ggplot(df_menages %>% filter(!is.na(milieu), !is.na(wt_wave4)),
+       aes(x = milieu, y = taille, fill = milieu)) +
+  geom_boxplot(aes(weight = wt_wave4), alpha = 0.72, width = 0.48,
+               outlier.color = "grey55", outlier.size = 0.75, outlier.alpha = 0.45) +
+  geom_jitter(width = 0.14, alpha = 0.07, size = 0.55, color = "grey35") +
+  geom_point(data = moy_pond_milieu, aes(x = milieu, y = moy_pond),
+             shape = 18, size = 4.5, color = COULEUR_ACCENT, inherit.aes = FALSE) +
+  geom_text(data = moy_pond_milieu,
+            aes(x = milieu, y = moy_pond,
+                label = paste0("Moy. pond. = ", round(moy_pond, 1))),
+            vjust = -0.9, color = COULEUR_ACCENT, size = 3.5,
+            fontface = "bold", inherit.aes = FALSE) +
+  annotate("text", x = 1.5, y = max(df_menages$taille, na.rm = TRUE) * 0.94,
+           label = label_test, size = 3.4, color = "grey25",
+           hjust = 0.5, vjust = 1, fontface = "italic") +
+  scale_fill_manual(values = palette_milieu) +
+  scale_y_continuous(breaks = seq(0, 35, by = 5)) +
+  labs(title = "Taille des ménages selon le milieu de résidence",
+       subtitle = "Pondération wt_wave4 | Losange = Moyenne | Test Wilcoxon",
+       x = NULL, y = "Nombre de membres par ménage",
+       caption = "Source : NBS Nigeria, GHS-Panel Wave 4 (2018/19) | Pondération : wt_wave4") +
+  theme_tp1 + theme(legend.position = "none",
+                    panel.grid.major.x = element_blank(),
+                    axis.text.x = element_text(size = 12, face = "bold"))
+```
+
+```{r tab_wilcox}
+df_wil <- data.frame(
+  Statistique = c("Statistique W", "p-valeur",
+                  "IC 95% (différence de localisation)",
+                  "Taille d'effet r de Rosenthal",
+                  "Interprétation de l'effet"),
+  Valeur = c(
+    format(round(res_wilcox$statistic, 0), big.mark = " "),
+    format(res_wilcox$p.value, scientific = TRUE, digits = 3),
+    paste0("[", round(res_wilcox$conf.int[1], 2),
+           " ; ", round(res_wilcox$conf.int[2], 2), "]"),
+    r_effet,
+    categ_effet
+  )
+)
+
+flextable(df_wil) %>%
+  set_header_labels(Statistique = "Statistique", Valeur = "Valeur") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = 2, bg = "#FADBD8") %>%
+  set_caption("Résultats du test de Wilcoxon-Mann-Whitney — taille des ménages urbain vs rural.") %>%
+  autofit() %>%
+  theme_vanilla()
+```
+
+La p-valeur est très inférieure au seuil de 5%, conduisant au **rejet de l'hypothèse nulle** d'égalité des distributions. La différence entre milieux est donc **hautement significative**. Toutefois, la taille d'effet $r = `r r_effet`$ est qualifiée de **`r tolower(categ_effet)`** : si la différence est réelle et détectable, son amplitude reste modeste, les deux milieux présentant une grande hétérogénéité interne.
+
+---
+
+# Synthèse
+
+```{r tab_synthese}
+# Synthèse
+
+if("Proportion (%)" %in% names(tab_lien_pond)) {
+  pct_enfant <- round(tab_lien_pond$`Proportion (%)`[tab_lien_pond$Catégorie == "Enfant"], 1)
+} else if("Prop. pond. (%)" %in% names(tab_lien_pond)) {
+  pct_enfant <- round(tab_lien_pond$`Prop. pond. (%)`[tab_lien_pond$Catégorie == "Enfant"], 1)
+} else {
+  pct_enfant <- "N/A"
+}
+
+df_synth <- data.frame(
+  Indicateur = c(
+    "Individus dans l'échantillon",
+    "Nombre de ménages",
+    "Doublons détectés",
+    "Valeurs manquantes — Âge",
+    "Âge moyen (écart-type)",
+    "Âge médian [Q1 ; Q3]",
+    "Test de normalité Shapiro-Wilk",
+    "Part des hommes",
+    "Part milieu urbain",
+    "Catégorie de parenté dominante",
+    "Taille médiane pond. — Urbain / Rural",
+    "Test Wilcoxon (taille ménage)",
+    "Taille d'effet r de Rosenthal"
+  ),
+  Résultat = c(
+    format(n_individus, big.mark = " "),
+    format(n_menages, big.mark = " "),
+    "0",
+    paste0(format(n_manq_age, big.mark = " "), " (", pct_manq, "%)"),
+    paste0(moy_age_pond, " ans (", et_age_pond, ")"),
+    paste0(med_age_pond, " ans [", q1_age_pond, " ; ", q3_age_pond, "]"),
+    paste0("W = ", sw_W, " ; p < 2,2e-16 → Non normale"),
+    paste0(pct_hommes, "%"),
+    paste0(pct_urbain, "%"),
+    paste0("Enfant (", pct_enfant, "%)"),
+    paste0(med_urb, " / ", med_rur, " membres"),
+    paste0("W = ", format(round(res_wilcox$statistic, 0), big.mark=" "),
+           " ; p = ", format(res_wilcox$p.value, scientific=TRUE, digits=3)),
+    paste0(r_effet, " (", categ_effet, ")")
+  )
+)
+
+flextable(df_synth) %>%
+  set_header_labels(Indicateur = "Indicateur", Résultat = "Résultat") %>%
+  bold(part = "header") %>%
+  bg(part = "header", bg = "#1A5276") %>%
+  color(part = "header", color = "white") %>%
+  bg(i = seq(2, nrow(df_synth), by = 2), bg = "#EAF2F8") %>%
+  set_caption("Récapitulatif des principaux résultats — Nigeria GHS Panel W4 (2018/2019).") %>%
+  autofit() %>%
+  width(j = 1, width = 3.5) %>%
+  width(j = 2, width = 4) %>%
+  theme_vanilla()
+```
+
+Cette analyse conduit à quatre constats principaux :
+
+**1. Une base de données de qualité satisfaisante.** L'absence totale de doublons et l'intégrité des variables structurantes garantissent la fiabilité des estimations. La disponibilité des pondérations `wt_wave4` pour la quasi-totalité des individus permet des inférences représentatives à la population nationale.
+
+**2. Une structure démographique jeune à l'échelle de la population.** Avec une médiane de `r med_age_pond` ans et une pyramide à large base, la population enquêtée reflète le profil démographique typique du Nigeria. La distribution d'âge est significativement non normale, ce qui impose le recours aux méthodes non paramétriques pour toute comparaison.
+
+**3. Une composition familiale dominée par les enfants et la famille élargie.** Les enfants représentent la catégorie la plus importante. La catégorie « autre membre » témoigne de la prégnance des ménages élargis, cohérente avec les normes sociales et les conditions économiques du contexte nigérian.
+
+**4. Des ménages ruraux significativement plus grands.** La différence de taille médiane (`r med_rur` vs `r med_urb` membres) est hautement significative (p < 0,001), mais d'amplitude modeste ($r = `r r_effet`$). Elle reflète des logiques d'organisation familiale contrastées, davantage liées aux besoins agricoles et aux solidarités communautaires rurales.
+
+---
+
+# Références {-}
+
+- National Bureau of Statistics (NBS) Nigeria (2019). *General Household Survey-Panel Wave 4, 2018/2019*. Programme LSMS-ISA. Washington DC : Banque Mondiale.
+
+- Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*. Hoboken : Wiley.
+
+- Clopper, C.J. & Pearson, E.S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial. *Biometrika*, 26(4), 404--413.
+
+- Wilcoxon, F. (1945). Individual comparisons by ranking methods. *Biometrics Bulletin*, 1(6), 80--83.
+
+- Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences* (2e éd.). Hillsdale : Lawrence Erlbaum Associates.
+
+---
+
+*Rapport produit avec R Markdown dans le cadre du cours de Projet Statistique sous R et Python — ENSAE Pierre Ndiaye, 2025-2026.*
