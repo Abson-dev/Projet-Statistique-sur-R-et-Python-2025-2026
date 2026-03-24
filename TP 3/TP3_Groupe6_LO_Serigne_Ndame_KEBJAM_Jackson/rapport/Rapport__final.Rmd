@@ -1,0 +1,656 @@
+---
+title: "TP3 — Accès aux services de santé et chocs sanitaires des ménages nigérians"
+author: "Groupe 6 : LO Serigne Ndame & KEBJAM Jackson — ISE 1, 2025-2026"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+  officedown::rdocx_document:
+    reference_docx: rapport.docx
+    toc: true
+    toc_depth: 3
+    page_size:
+      width: 21
+      height: 29.7
+    page_margins:
+      bottom: 2
+      top: 2
+      left: 2.5
+      right: 2.5
+subtitle: "Nigeria General Household Survey (GHS) Panel | Wave 4 (2018)"
+always_allow_html: true
+---
+
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "100%"
+)
+
+suppressPackageStartupMessages({
+  library(haven)
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(ggplot2)
+  library(scales)
+  library(patchwork)
+  library(gtsummary)
+  library(moments)
+  library(knitr)
+  library(flextable)
+  library(forcats)
+})
+
+setwd("C:/Users/kebja/Documents/KEBJAM/ISE1_2/10_R_ET_PYTHON(2)/Groupe6_LO_Serigne_Ndame_KEBJAM_Jackson_TP3")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FONCTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+stats_descriptives <- function(x, var_name = "variable") {
+  x <- x[!is.na(x) & is.finite(x)]
+  data.frame(
+    Variable = var_name, N = length(x),
+    Moyenne = round(mean(x),0), Mediane = round(median(x),0),
+    Q1 = round(quantile(x,0.25),0), Q3 = round(quantile(x,0.75),0),
+    Ec_type = round(sd(x),0), CV_pct = round(sd(x)/mean(x)*100,1),
+    Asymetrie = round(skewness(x),3),
+    Min = round(min(x),0), Max = round(max(x),0),
+    check.names = FALSE
+  )
+}
+
+stats_par_decile <- function(x) {
+  x <- x[!is.na(x) & is.finite(x) & x > 0]
+  if (!length(x)) return(data.frame(Decile=character(),
+                                    `Seuil (Naira)`=character(),
+                                    check.names=FALSE))
+  data.frame(
+    Decile = paste0("D", 1:10),
+    `Seuil (Naira)` = format(round(as.numeric(
+      quantile(x, probs=seq(0.1,1,0.1), na.rm=TRUE)), 0), big.mark=" "),
+    check.names = FALSE
+  )
+}
+
+calc_ic_pondere <- function(data, group_var, success_var, weight_var="poids") {
+  data |>
+    filter(!is.na(.data[[group_var]]),
+           !is.na(.data[[success_var]]),
+           !is.na(.data[[weight_var]]),
+           .data[[weight_var]] > 0) |>
+    group_by(across(all_of(group_var))) |>
+    summarise(
+      n_total  = n(),
+      n_succes = sum(.data[[success_var]], na.rm=TRUE),
+      w_total  = sum(.data[[weight_var]],  na.rm=TRUE),
+      w_succes = sum(.data[[weight_var]] * .data[[success_var]], na.rm=TRUE),
+      taux     = w_succes / w_total * 100,
+      ic_lo    = binom.test(round(n_succes), n_total)$conf.int[1] * 100,
+      ic_hi    = binom.test(round(n_succes), n_total)$conf.int[2] * 100,
+      .groups  = "drop"
+    )
+}
+
+v_cramer_val <- function(res, n, nr, nc) {
+  as.numeric(sqrt(res$statistic / (n * (min(nr, nc) - 1))))
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CHARGEMENT
+# ══════════════════════════════════════════════════════════════════════════════
+data_morbid   <- readRDS("data/processed/data_morbid.rds")
+data_depenses <- readRDS("data/processed/data_depenses.rds")
+data_recours  <- readRDS("data/processed/data_recours.rds")
+sect3a_clean  <- readRDS("data/processed/sect3a_clean.rds")
+sect3b_clean  <- readRDS("data/processed/sect3b_clean.rds")
+
+# Palettes
+pal_sexe   <- c("Homme"="#2166ac", "Femme"="#d6604d")
+pal_milieu <- c("Urbain"="#2ca25f", "Rural"="#e6550d")
+pal_statut <- c("Non consulté"="#c0392b", "Consulté"="#27ae60")
+
+# Calculs globaux
+taux_global <- round(
+  weighted.mean(data_morbid$malade,
+                w = replace_na(data_morbid$poids, 1), na.rm=TRUE)*100, 1)
+n_individus <- format(nrow(data_morbid), big.mark=" ")
+n_menages   <- format(n_distinct(data_morbid$hhid), big.mark=" ")
+
+depenses_pos <- data_depenses |>
+  filter(!is.na(depense) & depense > 0 & is.finite(depense))
+```
+
+# Introduction
+
+Ce rapport analyse l'accès aux services de santé des ménages nigérians à partir du **General Household Survey (GHS) Panel, vague 4** (2018). L'échantillon comprend **`r n_individus` individus** issus de **`r n_menages` ménages**. Les estimations de taux et proportions sont **pondérées** par `wt_wave4`. Quatre sources sont mobilisées : `sect3a_harvestw4.dta`, `sect3b_harvestw4.dta`, `sect1_harvestw4.dta` et `totcons_final.dta`.
+
+\newpage
+
+# Tâche 13 — Taux de morbidité par sexe, groupe d'âge et milieu de résidence
+
+```{r t13-calculs}
+ic_sexe   <- calc_ic_pondere(data_morbid, "sexe",       "malade", "poids")
+ic_age    <- calc_ic_pondere(data_morbid, "groupe_age", "malade", "poids")
+ic_milieu <- calc_ic_pondere(data_morbid, "milieu",     "malade", "poids")
+
+taux_femme  <- round(ic_sexe$taux[ic_sexe$sexe == "Femme"], 1)
+taux_homme  <- round(ic_sexe$taux[ic_sexe$sexe == "Homme"], 1)
+taux_urbain <- round(ic_milieu$taux[ic_milieu$milieu == "Urbain"], 1)
+taux_rural  <- round(ic_milieu$taux[ic_milieu$milieu == "Rural"], 1)
+```
+
+Le taux de morbidité global pondéré s'établit à **`r taux_global`%**. Les femmes (`r taux_femme`%) présentent un taux légèrement supérieur aux hommes (`r taux_homme`%). Le milieu rural (`r taux_rural`%) se distingue du milieu urbain (`r taux_urbain`%). La charge morbide est maximale aux âges extrêmes de la vie.
+
+```{r fig13, fig.cap="Figure 1 — Taux de morbidite ponderes avec IC 95% par sexe (A), groupe d'age (B) et milieu de residence (C) — W4, 2018", fig.height=9, fig.width=13}
+
+pA <- ggplot(ic_sexe, aes(x = sexe, y = taux, fill = sexe)) +
+  geom_col(alpha = 0.88, width = 0.5) +
+  geom_errorbar(aes(ymin = ic_lo, ymax = ic_hi),
+                width = 0.2, linewidth = 0.9, color = "grey30") +
+  geom_text(aes(label = paste0(round(taux,1), "%")),
+            vjust = -1.3, size = 4.5, fontface = "bold", color = "grey20") +
+  scale_fill_manual(values = pal_sexe) +
+  scale_y_continuous(limits = c(0, max(ic_sexe$ic_hi)*1.18),
+                     labels = function(x) paste0(x,"%")) +
+  labs(title = "(A) Par sexe", x = NULL, y = "Taux de morbidite (%)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        plot.title = element_text(face="bold", size=12),
+        panel.grid.minor = element_blank())
+
+pB <- ggplot(ic_age, aes(x = groupe_age, y = taux, fill = groupe_age)) +
+  geom_col(alpha = 0.88) +
+  geom_errorbar(aes(ymin = ic_lo, ymax = ic_hi),
+                width = 0.3, linewidth = 0.9, color = "grey30") +
+  geom_text(aes(label = paste0(round(taux,1), "%")),
+            vjust = -1.0, size = 3.8, fontface = "bold", color = "grey20") +
+  scale_fill_brewer(palette = "RdYlBu", direction = -1) +
+  scale_y_continuous(limits = c(0, max(ic_age$ic_hi)*1.18),
+                     labels = function(x) paste0(x,"%")) +
+  labs(title = "(B) Par groupe d'age", x = NULL, y = "Taux de morbidite (%)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        plot.title = element_text(face="bold", size=12),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_text(angle = 30, hjust = 1))
+
+pC <- ggplot(ic_milieu, aes(x = milieu, y = taux, fill = milieu)) +
+  geom_col(alpha = 0.88, width = 0.5) +
+  geom_errorbar(aes(ymin = ic_lo, ymax = ic_hi),
+                width = 0.2, linewidth = 0.9, color = "grey30") +
+  geom_text(aes(label = paste0(round(taux,1), "%")),
+            vjust = -1.3, size = 4.5, fontface = "bold", color = "grey20") +
+  scale_fill_manual(values = pal_milieu) +
+  scale_y_continuous(limits = c(0, max(ic_milieu$ic_hi)*1.18),
+                     labels = function(x) paste0(x,"%")) +
+  labs(title = "(C) Par milieu de residence", x = NULL, y = "Taux de morbidite (%)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        plot.title = element_text(face="bold", size=12),
+        panel.grid.minor = element_blank())
+
+(pA | pB | pC) +
+  plot_annotation(
+    title    = "Taux de morbidite — GHS Nigeria Wave 4 (2018)",
+    subtitle = "Estimations ponderees (wt_wave4) | IC 95% methode binomiale exacte",
+    theme    = theme(plot.title    = element_text(face="bold", size=14),
+                     plot.subtitle = element_text(size=11, color="grey40"))
+  )
+```
+
+\newpage
+
+# Tâche 14 — Top 10 des types de maladies déclarées
+
+```{r t14-calculs}
+# ── Nettoyage des libellés ────────────────────────────────────────────────────
+# Les libellés peuvent contenir des codes numériques (ex: "1. Malaria")
+# On nettoie pour n'afficher que le texte propre
+nettoyer_label <- function(x) {
+  x |>
+    str_remove("^\\d+\\.\\s*") |>          # enlever "1. " en début
+    str_to_sentence() |>                    # première lettre majuscule
+    str_trunc(35, ellipsis = "…")           # tronquer si trop long
+}
+
+top10_maladies <- data_morbid |>
+  filter(malade == 1, !is.na(type_maladie),
+         type_maladie != "NA", type_maladie != "",
+         !is.na(poids)) |>
+  mutate(
+    # Nettoyer les codes numériques
+    label_propre = nettoyer_label(as.character(type_maladie))
+  ) |>
+  group_by(label_propre) |>
+  summarise(
+    n         = n(),
+    n_pondere = round(sum(poids, na.rm=TRUE)),
+    .groups   = "drop"
+  ) |>
+  arrange(desc(n_pondere)) |>
+  slice_head(n = 10) |>
+  mutate(
+    # Catégorisation médicale
+    categorie = case_when(
+      grepl("malaria|fever|fievre|typhoid|typhoide|cholera|diarrhea|diarrhee|tuberculosis|tuberculose|HIV|VIH|infection|paludisme|grippe|flu",
+            label_propre, ignore.case = TRUE)                             ~ "Infectieuse",
+      grepl("accident|injury|blessure|fracture|wound|plaie|burn|brulure|trauma",
+            label_propre, ignore.case = TRUE)                             ~ "Traumatique",
+      grepl("diabetes|diabete|hypertension|asthma|asthme|cancer|heart|coeur|chronic|chronique|arthritis|arthrite",
+            label_propre, ignore.case = TRUE)                             ~ "Chronique",
+      TRUE ~ "Autre"
+    ) |> factor(levels = c("Infectieuse","Traumatique","Chronique","Autre")),
+    proportion = n_pondere / sum(n_pondere) * 100
+  )
+
+n_top10 <- nrow(top10_maladies)
+```
+
+L'analyse des affections déclarées révèle un profil dominé par les **maladies infectieuses** (paludisme, fièvres, diarrhées), caractéristique d'une transition épidémiologique incomplète. Les maladies chroniques demeurent secondaires.
+
+```{r fig14, fig.cap="Figure 2 — Top 10 des affections declarees (libelles complets, effectifs ponderes) — W4, 2018", fig.height=5.5, fig.width=12}
+
+# Palette catégories
+pal_cat <- c("Infectieuse"="#d73027","Traumatique"="#fc8d59",
+             "Chronique"="#4575b4","Autre"="#91bfdb")
+
+ggplot(top10_maladies,
+       aes(x = reorder(label_propre, n_pondere),
+           y = n_pondere, fill = categorie)) +
+  geom_col(alpha = 0.88) +
+  geom_text(aes(label = paste0(round(proportion,1), "%")),
+            hjust = -0.12, size = 3.8, fontface = "bold", color = "grey20") +
+  coord_flip() +
+  scale_fill_manual(values = pal_cat) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.20)),
+                     labels = comma) +
+  labs(
+    title    = "Top 10 des affections declarees — W4 (2018)",
+    subtitle = "Effectifs ponderes (wt_wave4) | Individus ayant declare une maladie/blessure",
+    x        = NULL,
+    y        = "Effectif pondere",
+    fill     = "Categorie"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position    = "bottom",
+    legend.key.size    = unit(0.5, "cm"),
+    plot.title         = element_text(face="bold", size=14),
+    plot.subtitle      = element_text(size=10, color="grey40"),
+    panel.grid.minor   = element_blank(),
+    panel.grid.major.y = element_blank(),
+    axis.text.y        = element_text(size = 10)   # libellés lisibles
+  )
+```
+
+\newpage
+
+# Tâche 15 — Recours aux soins par type de prestataire
+
+```{r t15-calculs}
+# ── CORRECTION CRITIQUE ───────────────────────────────────────────────────────
+# La variable s3q50 a pour labels : "1. YES" "2. NO"
+# Dans nos données : 1 = a cherché soins, 2 = n'a pas cherché
+# → "Aucun" correspond à consulte == 0 (recodé depuis 2=NO)
+# Vérification :
+pct_aucun_brut <- round(mean(sect3b_clean$consulte == 0, na.rm=TRUE) * 100, 1)
+
+# Proportions pondérées par prestataire
+freq_prestataire <- data_recours |>
+  filter(!is.na(prestataire), !is.na(poids), poids > 0) |>
+  group_by(prestataire) |>
+  summarise(
+    n      = n(),
+    n_pond = sum(poids, na.rm=TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(proportion = n_pond / sum(n_pond) * 100) |>
+  arrange(desc(proportion))
+
+taux_aucun <- round(freq_prestataire$proportion[
+  freq_prestataire$prestataire == "Aucun"], 1)
+```
+
+> **Note méthodologique :** La variable consultation (`s3q50`) est codée 1=YES (a cherché soins) et 2=NO (n'a pas cherché). Le taux brut de non-consultation est de **`r pct_aucun_brut`%** ; le taux pondéré affiché est **`r taux_aucun`%**.
+
+```{r fig15, fig.cap="Figure 3 — Recours aux soins par type de prestataire, proportions ponderees, ordonne (W4, 2018)", fig.height=4.5, fig.width=10}
+ggplot(freq_prestataire,
+       aes(x = reorder(prestataire, proportion), y = proportion,
+           fill = prestataire)) +
+  geom_col(alpha = 0.88, show.legend = FALSE) +
+  geom_text(aes(label = paste0(round(proportion,1), "%")),
+            hjust = -0.15, size = 4, fontface = "bold", color = "grey20") +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set2") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.20)),
+                     labels = function(x) paste0(x,"%")) +
+  labs(
+    title    = "Recours aux soins par type de prestataire (W4, 2018)",
+    subtitle = "Proportions ponderees (wt_wave4) | Ordonne par frequence decroissante",
+    x = NULL, y = "Proportion ponderee (%)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title         = element_text(face="bold", size=14),
+        plot.subtitle      = element_text(size=10, color="grey40"),
+        panel.grid.minor   = element_blank(),
+        panel.grid.major.y = element_blank())
+```
+
+```{r tab15}
+freq_prestataire |>
+  mutate(n_pond = round(n_pond,0), proportion = round(proportion,2)) |>
+  rename(Prestataire = prestataire, `Effectif brut` = n,
+         `Effectif pondere` = n_pond, `Proportion pond. (%)` = proportion) |>
+  flextable() |>
+  set_caption("Tableau 1 — Frequences de consultation par prestataire (ponderees, W4)") |>
+  theme_booktabs() |> bold(part="header") |>
+  bg(j = "Prestataire", bg = "#EBF5FB", part = "body") |>
+  autofit()
+```
+
+\newpage
+
+# Tâche 16 — Distribution des dépenses de santé
+
+```{r t16-calculs}
+stats_dep   <- stats_descriptives(depenses_pos$depense, "Depenses sante (Naira)")
+deciles_dep <- stats_par_decile(depenses_pos$depense)
+
+Q1_d <- quantile(depenses_pos$depense, 0.25, na.rm=TRUE)
+Q3_d <- quantile(depenses_pos$depense, 0.75, na.rm=TRUE)
+seuil_ab  <- round(Q3_d + 3*(Q3_d - Q1_d), 0)
+n_out     <- sum(depenses_pos$depense > seuil_ab, na.rm=TRUE)
+med_dep   <- round(median(depenses_pos$depense, na.rm=TRUE), 0)
+moy_dep   <- round(mean(depenses_pos$depense,   na.rm=TRUE), 0)
+asym_dep  <- round(skewness(depenses_pos$depense, na.rm=TRUE), 2)
+cv_dep    <- round(sd(depenses_pos$depense, na.rm=TRUE) /
+                     mean(depenses_pos$depense, na.rm=TRUE) * 100, 1)
+```
+
+L'analyse porte sur **`r nrow(depenses_pos)` ménages** avec dépenses positives. La distribution est fortement asymétrique à droite (asymétrie = `r asym_dep`). Dépense **médiane = `r format(med_dep, big.mark=" ")` Naira** ; moyenne = `r format(moy_dep, big.mark=" ")` Naira ; CV = `r cv_dep`%. Seuil aberrant (IQR×3) = `r format(seuil_ab, big.mark=" ")` Naira → **`r n_out` valeurs aberrantes**.
+
+```{r tab16-stats}
+stats_dep |>
+  rename(`Ec. type`=Ec_type, `CV (%)`=CV_pct, Asymetrie=Asymetrie) |>
+  flextable() |>
+  set_caption("Tableau 2 — Statistiques descriptives des depenses de sante (W4)") |>
+  theme_booktabs() |> bold(part="header") |> autofit()
+```
+
+```{r tab16-deciles}
+deciles_dep |>
+  flextable() |>
+  set_caption("Tableau 3 — Deciles des depenses de sante (W4, menages depenses > 0)") |>
+  theme_booktabs() |> bold(part="header") |>
+  bg(j = "Seuil (Naira)", bg = "#FEF9E7", part="body") |>
+  autofit()
+```
+
+```{r fig16, fig.cap="Figure 4 — Histogramme (echelle log) et boxplot des depenses par prestataire (W4, 2018)", fig.height=5.5, fig.width=13}
+p16a <- ggplot(depenses_pos, aes(x = depense)) +
+  geom_histogram(bins=50, fill="#4dac26", color="white", alpha=0.85) +
+  scale_x_log10(labels=comma) +
+  geom_vline(xintercept=med_dep, color="#c0392b", linetype="dashed", linewidth=1) +
+  annotate("text", x=med_dep*1.8, y=Inf, vjust=1.8,
+           label=paste0("Mediane=",format(med_dep,big.mark=" "),"N"),
+           color="#c0392b", size=3.5, fontface="bold") +
+  labs(title    = "Distribution — echelle log",
+       subtitle = paste0(n_out," val. aberrantes (IQR×3 > ",
+                         format(seuil_ab,big.mark=" ")," N)"),
+       x="Depenses (Naira, log)", y="Effectif") +
+  theme_minimal(base_size=12) +
+  theme(plot.title=element_text(face="bold", size=13),
+        plot.subtitle=element_text(size=10, color="grey40"))
+
+dep_prest <- depenses_pos |>
+  filter(!is.na(prestataire), prestataire != "Aucun", depense > 0)
+
+p16b <- if (nrow(dep_prest) > 0) {
+  ggplot(dep_prest,
+         aes(x = reorder(prestataire, depense, FUN=median),
+             y = depense, fill = prestataire)) +
+    geom_boxplot(alpha=0.75, outlier.colour="#c0392b",
+                 outlier.size=1.2, outlier.alpha=0.5) +
+    scale_y_log10(labels=comma) +
+    scale_fill_brewer(palette="Set2") +
+    coord_flip() +
+    labs(title="Depenses par prestataire (log)",
+         x=NULL, y="Depenses (Naira, log)") +
+    theme_minimal(base_size=12) +
+    theme(legend.position="none",
+          plot.title=element_text(face="bold", size=13))
+} else {
+  ggplot() + annotate("text", x=0.5, y=0.5,
+                      label="Boxplot non disponible\n(donnees insuffisantes)") +
+    theme_void()
+}
+p16a | p16b
+```
+
+\newpage
+
+# Tâche 17 — Test d'indépendance : recours aux soins × quintile de consommation
+
+```{r t17-calculs}
+# ── CORRECTION : consulte = 1 (YES) ou 0 (recodé depuis 2=NO) ────────────────
+data_t17 <- data_recours |>
+  filter(!is.na(quintile), !is.na(consulte)) |>
+  mutate(
+    statut   = factor(consulte, levels=c(0,1),
+                      labels=c("Non consulté","Consulté")),
+    quintile = factor(quintile,
+                      labels=c("Q1 (plus pauvres)","Q2","Q3",
+                               "Q4","Q5 (plus riches)"))
+  )
+
+tab_cont  <- table(data_t17$quintile, data_t17$statut)
+min_cell  <- min(tab_cont)
+
+if (min_cell < 5) {
+  test_res      <- fisher.test(tab_cont, simulate.p.value=TRUE, B=10000)
+  v_cramer_calc <- NA_real_
+  interpretation <- ""
+  label_test    <- paste0("Test exact de Fisher | p = ",
+                           format(test_res$p.value, digits=3, scientific=FALSE))
+  methode <- "Fisher"; pval <- test_res$p.value
+} else {
+  test_res      <- chisq.test(tab_cont)
+  v_cramer_calc <- v_cramer_val(test_res, sum(tab_cont),
+                                nrow(tab_cont), ncol(tab_cont))
+  interpretation <- case_when(
+    v_cramer_calc < 0.1 ~ "negligeable", v_cramer_calc < 0.3 ~ "faible",
+    v_cramer_calc < 0.5 ~ "modere",      TRUE                ~ "fort"
+  )
+  label_test <- paste0("Chi2=",round(test_res$statistic,2),
+                       " | df=",test_res$parameter,
+                       " | p=",format(test_res$p.value,digits=3,scientific=FALSE),
+                       " | V Cramer=",round(v_cramer_calc,3),
+                       " (",interpretation,")")
+  methode <- "Chi-deux"; pval <- test_res$p.value
+}
+
+data_prop_q <- data_t17 |>
+  filter(!is.na(poids), poids>0) |>
+  group_by(quintile, statut) |>
+  summarise(n=n(), pond=sum(poids,na.rm=TRUE), .groups="drop") |>
+  group_by(quintile) |>
+  mutate(proportion = pond/sum(pond)*100)
+```
+
+Le test `r methode` est significatif (p = `r format(pval, digits=3, scientific=FALSE)`)`r if(!is.na(v_cramer_calc)) paste0(", V de Cramér = ", round(v_cramer_calc,3), " — ", interpretation)`. Le recours aux soins croît régulièrement avec le niveau de vie.
+
+```{r tab17}
+as.data.frame.matrix(tab_cont) |>
+  tibble::rownames_to_column("Quintile") |>
+  flextable() |>
+  set_caption("Tableau 4 — Recours aux soins x quintile de consommation (effectifs bruts, W4)") |>
+  theme_booktabs() |> bold(part="header") |>
+  bg(j="Consulté",      bg="#EBF5FB", part="body") |>
+  bg(j="Non consulté",  bg="#FDEDEC", part="body") |>
+  autofit()
+```
+
+```{r fig17, fig.cap="Figure 5 — Recours aux soins par quintile — barplot 100% empile, proportions ponderees (W4, 2018)", fig.height=5, fig.width=10}
+ggplot(data_prop_q, aes(x=quintile, y=proportion, fill=statut)) +
+  geom_col(position="fill", alpha=0.88) +
+  geom_text(aes(label=paste0(round(proportion,1),"%")),
+            position=position_fill(vjust=0.5),
+            size=4, color="white", fontface="bold") +
+  scale_y_continuous(labels=percent) +
+  scale_fill_manual(values=pal_statut) +
+  labs(title    = "Recours aux soins selon le quintile de consommation (W4, 2018)",
+       subtitle = label_test,
+       x="Quintile (Q1=plus pauvres)", y="Proportion ponderee", fill=NULL) +
+  theme_minimal(base_size=12) +
+  theme(plot.title=element_text(face="bold",size=13),
+        plot.subtitle=element_text(size=9,color="grey30"),
+        legend.position="bottom", legend.key.size=unit(0.5,"cm"),
+        axis.text.x=element_text(size=10))
+```
+
+\newpage
+
+# Tâche 18 — Dépenses médianes : Urbain vs Rural
+
+```{r t18-calculs}
+data_t18 <- depenses_pos |> filter(!is.na(milieu) & is.finite(depense))
+
+n_urb <- sum(data_t18$milieu=="Urbain", na.rm=TRUE)
+n_rur <- sum(data_t18$milieu=="Rural",  na.rm=TRUE)
+
+stats_milieu <- data_t18 |>
+  group_by(milieu) |>
+  summarise(
+    N              = n(),
+    `Eff. pondere` = round(sum(poids,na.rm=TRUE),0),
+    Mediane        = round(median(depense,na.rm=TRUE),0),
+    Moyenne        = round(mean(depense,  na.rm=TRUE),0),
+    Q1             = round(quantile(depense,0.25,na.rm=TRUE),0),
+    Q3             = round(quantile(depense,0.75,na.rm=TRUE),0),
+    .groups="drop"
+  )
+
+wilcox_m  <- wilcox.test(depense ~ milieu, data=data_t18, exact=FALSE)
+pval_w    <- wilcox_m$p.value
+z_val     <- qnorm(pval_w/2)
+r_eff     <- abs(z_val) / sqrt(n_urb + n_rur)
+interp_r  <- case_when(r_eff<0.1~"negligeable",r_eff<0.3~"petit",
+                        r_eff<0.5~"moyen",TRUE~"grand")
+
+med_urb <- stats_milieu$Mediane[stats_milieu$milieu=="Urbain"]
+med_rur <- stats_milieu$Mediane[stats_milieu$milieu=="Rural"]
+```
+
+Le test de Wilcoxon (W = `r round(wilcox_m$statistic,0)`, **p = `r format(pval_w,digits=3,scientific=FALSE)`**, r = `r round(r_eff,3)` — effet `r interp_r`) indique une différence `r if(pval_w<0.05)"statistiquement significative" else "non significative"` entre les médianes. Médiane **Urbain = `r format(med_urb,big.mark=" ")` Naira** vs **Rural = `r format(med_rur,big.mark=" ")` Naira**.
+
+```{r tab18}
+stats_milieu |>
+  rename(Milieu=milieu) |>
+  mutate(across(c(Mediane,Moyenne,Q1,Q3,`Eff. pondere`),
+                ~format(.x, big.mark=" "))) |>
+  flextable() |>
+  set_caption("Tableau 5 — Depenses de sante medianes par milieu de residence (W4)") |>
+  theme_booktabs() |> bold(part="header") |>
+  bg(i=~Milieu=="Urbain", bg="#E8F8F5", part="body") |>
+  bg(i=~Milieu=="Rural",  bg="#FEF9E7", part="body") |>
+  autofit()
+```
+
+```{r fig18, fig.cap="Figure 6 — Depenses Urbain vs Rural : violin plot + boxplot superpose (W4, 2018)", fig.height=6.5, fig.width=10}
+ggplot(data_t18, aes(x=milieu, y=depense, fill=milieu)) +
+  # Violin en arrière-plan
+  geom_violin(alpha=0.45, trim=TRUE, color=NA) +
+  # Boxplot superposé
+  geom_boxplot(width=0.14, fill="white", color="grey30",
+               outlier.colour="#c0392b", outlier.size=1.2,
+               outlier.alpha=0.5, outlier.shape=16) +
+  # Point médian
+  stat_summary(fun=median, geom="point",
+               shape=21, size=3.5, fill="white", color="grey20") +
+  scale_y_log10(labels=comma) +
+  scale_fill_manual(values=pal_milieu) +
+  labs(
+    title    = "Depenses de sante selon le milieu de residence (W4, 2018)",
+    subtitle = paste0("Wilcoxon W=",round(wilcox_m$statistic,0),
+                      " | p=",format(pval_w,digits=3,scientific=FALSE),
+                      " | r=",round(r_eff,3)," (",interp_r,")\n",
+                      "Mediane Urbain=",format(med_urb,big.mark=" ")," N",
+                      " | Mediane Rural=",format(med_rur,big.mark=" ")," N"),
+    x="Milieu de residence", y="Depenses de sante (Naira, log)"
+  ) +
+  theme_minimal(base_size=13) +
+  theme(legend.position="none",
+        plot.title=element_text(face="bold",size=14,color="#1a1a2e"),
+        plot.subtitle=element_text(size=10,color="grey30",lineheight=1.4),
+        panel.grid.minor=element_blank(),
+        axis.text.x=element_text(size=13,face="bold"))
+```
+
+\newpage
+
+# Tableau récapitulatif — Indicateurs par milieu de résidence
+
+```{r tab-recap, results='asis'}
+dep_menage <- data_depenses |>
+  filter(!is.na(depense) & depense > 0) |>
+  group_by(hhid) |>
+  summarise(
+    depense  = median(depense, na.rm = TRUE),
+    quintile = first(quintile),
+    .groups  = "drop"
+  )
+
+data_tab <- data_morbid |>
+  left_join(dep_menage, by = "hhid", suffix = c("", "_dep")) |>
+  filter(!is.na(milieu)) |>
+  transmute(
+    malade     = factor(malade,levels=c(0,1),labels=c("Non","Oui")),
+    sexe, groupe_age, depense,
+    quintile   = factor(quintile,
+                        labels=c("Q1 (pauvres)","Q2","Q3","Q4","Q5 (riches)")),
+    milieu     = milieu
+  )
+
+data_tab |>
+  tbl_summary(
+    by    = milieu,
+    label = list(
+      malade     ~ "Maladie/blessure declaree",
+      sexe       ~ "Sexe",
+      groupe_age ~ "Groupe d'age",
+      depense    ~ "Depenses de sante (Naira)",
+      quintile   ~ "Quintile de consommation"
+    ),
+    statistic = list(
+      all_continuous()  ~ "{median} [{p25} ; {p75}]",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "ifany"
+  ) |>
+  add_p() |> add_overall() |> bold_labels() |>
+  modify_caption("**Tableau 6 — Indicateurs de sante par milieu — GHS Nigeria W4 (2018)**")
+```
+
+\newpage
+
+# Conclusion
+
+Six résultats clés ressortent de l'analyse pondérée :
+
+1. **Morbidité élevée (`r taux_global`%)** touchant particulièrement les 0–4 ans et 60 ans et plus ; écart Urbain/Rural (`r taux_urbain`% vs `r taux_rural`%).
+2. **Profil infectieux dominant** : paludisme, fièvres, diarrhées — transition épidémiologique incomplète.
+3. **Renoncement massif (`r taux_aucun`% sans consultation pondéré)** : barrières financières, géographiques et culturelles.
+4. **Inégalités riches/pauvres** : test `r methode` (p = `r format(pval,digits=3,scientific=FALSE)`)`r if(!is.na(v_cramer_calc)) paste0(", V Cramér = ",round(v_cramer_calc,3)," (",interpretation,")")`.
+5. **Disparités Urbain/Rural** : médiane `r format(med_urb,big.mark=" ")` vs `r format(med_rur,big.mark=" ")` Naira — Wilcoxon p = `r format(pval_w,digits=3,scientific=FALSE)`.
+6. **Dépenses asymétriques** : médiane `r format(med_dep,big.mark=" ")` Naira, `r n_out` valeurs aberrantes (> `r format(seuil_ab,big.mark=" ")` Naira).
+
+---
+

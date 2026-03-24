@@ -3,8 +3,8 @@ title: "Analyse 2 - Éducation et alphabétisation des membres des ménages"
 author: "Ahmed Firhoun OUMAROU SOULEYE & Gérald Guerngué ADDJITA"
 date: "2026-03-12"
 output:
-  html_document: default
-  pdf_document: default
+  word_document: 
+    reference_docx: "style/template.docx"
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 packages <- c("haven", "dplyr", "ggplot2", "forcats", "rstatix",
               "ggpubr", "gtsummary", "viridis", "patchwork",
-              "scales", "tidyr", "stringr", "moments", "gt")
+              "scales", "tidyr", "stringr", "moments", "gt",
+              "survey", "srvyr")   # ← ajout
 
 installed <- rownames(installed.packages())
 to_install <- packages[!packages %in% installed]
@@ -86,12 +87,14 @@ cat("► sect1 :", nrow(sect1), "×", ncol(sect1), "\n")
 sect1_reduit <- sect1 %>%
   select(
     hhid, indiv,
-    sexe    = s1q2, 
+    sexe    = s1q2,
     age     = s1q4,
     zone_ru = sector,
-    etat    = state
+    etat    = state,
+    ea      = ea,          # ← unité primaire de sondage
+    strata  = strata,      # ← strate
+    wt      = wt_wave4     # ← poids Wave 4
   )
-
 cat("► Doublons hhid+indiv sect1 :",
     sect1_reduit %>%
       group_by(hhid, indiv) %>%
@@ -110,6 +113,28 @@ cat("► Sexe non manquant :", sum(!is.na(data_educ$sexe)), "\n")
 cat("► Zone_ru non manquante :",
     sum(!is.na(data_educ$zone_ru)), "\n")
 ```
+##### 7.d. Plan de sondage
+```{r}
+# ── Plan de sondage ───────────────────────────────────────────
+plan_sondage <- svydesign(
+  ids     = ~ea,
+  strata  = ~strata,
+  weights = ~wt,
+  data    = data_educ,
+  nest    = TRUE
+)
+
+# Sous-plan pour les adultes 18+ (utilisé en Q9, Q10, Q12)
+plan_adultes <- subset(plan_sondage,
+                        !is.na(age) & age >= 18 &
+                        !is.na(niveau_educ) & !is.na(sexe))
+
+# Sous-plan pour les enfants 6-17 ans (utilisé en Q11)
+plan_enfants <- subset(plan_sondage,
+                        !is.na(age) & age >= 6 & age <= 17 &
+                        !is.na(s2aq13a) & !is.na(zone_ru))
+```
+
 #### 7.d. Valeurs manquantes
 ```{r}
 cat("\n► Valeurs manquantes — variables éducation clés :\n")
@@ -168,19 +193,29 @@ data_educ <- data_educ %>%
 ```
 #### 8.b. Fréquences et proportions
 ```{r}
-freq_educ <- data_educ %>%
-  filter(!is.na(niveau_educ)) %>%
-  count(niveau_educ, name = "n") %>%
+# Fréquences pondérées (estimations représentatives)
+freq_educ_svy <- svymean(~niveau_educ,
+                          design = subset(plan_sondage,
+                                          !is.na(niveau_educ)),
+                          na.rm  = TRUE)
+
+freq_educ <- as.data.frame(freq_educ_svy) %>%
+  tibble::rownames_to_column("niveau_educ") %>%
+  rename(prop = mean, se = SE) %>%
   mutate(
-    prop      = n / sum(n),
-    pct_label = paste0(round(prop * 100, 1), "%\n(n=",
-                       format(n, big.mark = " "), ")")
+    niveau_educ = factor(
+      gsub("niveau_educ", "", niveau_educ),
+      levels  = c("Aucun", "Primaire", "Junior Secondary",
+                  "Senior Secondary", "Tertiaire"),
+      ordered = TRUE),
+    pct_label = paste0(round(prop * 100, 1), "%")
   )
 
-cat("► Total avec éducation renseignée :",
-    sum(freq_educ$n), "\n")
-cat("\n► Distribution du niveau d'éducation :\n")
-print(select(freq_educ, niveau_educ, n, prop))
+# Effectifs non pondérés pour information
+n_total_obs <- sum(!is.na(data_educ$niveau_educ))
+cat("► N observations (non pondéré) :", n_total_obs, "\n")
+cat("\n► Distribution pondérée du niveau d'éducation :\n")
+print(select(freq_educ, niveau_educ, prop))
 ```
 #### 8.c. Barplot horizontal
 ```{r}
