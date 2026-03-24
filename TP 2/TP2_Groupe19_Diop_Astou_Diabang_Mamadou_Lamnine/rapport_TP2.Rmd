@@ -1,0 +1,273 @@
+---
+title: ""
+output:
+  officedown::rdocx_document:
+    reference_docx: null
+    page_size:
+      width: 8.27
+      height: 11.69
+    page_margins:
+      top: 1.0
+      bottom: 1.0
+      left: 1.18
+      right: 1.18
+---
+
+```{r setup, include=FALSE}
+library(officedown)
+library(officer)
+library(flextable)
+library(knitr)
+
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  dpi = 150
+)
+
+knitr::opts_knit$set(officedown.line_spacing = 1.5)
+
+IMG <- "images"
+img <- function(f) file.path(IMG, f)
+```
+
+```{r pg-ansd}
+flextable(data.frame(x = "ANSD")) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("Agence Nationale de la Statistique et de la Démographie",
+             props = fp_text(bold = TRUE, color = "#1F4E79",
+                             font.size = 14, font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  border_remove() |>
+  delete_part(part = "header") |>
+  width(width = 5.9) |>
+  padding(padding.top = 2, padding.bottom = 2, part = "body") |>
+  set_table_properties(layout = "fixed")
+```
+
+```{r logo-ansd, fig.width=1.25, fig.height=1.13, fig.align='center'}
+include_graphics(img("image1.png"))
+```
+
+```{r pg-ensae}
+flextable(data.frame(x = "ENSAE")) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("École Nationale de la Statistique et de l'Analyse Économique",
+             props = fp_text(bold = TRUE, color = "#1F4E79",
+                             font.size = 14, font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  border_remove() |>
+  delete_part(part = "header") |>
+  width(width = 5.9) |>
+  padding(padding.top = 2, padding.bottom = 2, part = "body") |>
+  set_table_properties(layout = "fixed")
+```
+
+```{r logo-ensae, fig.width=1.78, fig.height=1.32, fig.align='center'}
+include_graphics(img("image2.png"))
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+```{r bloc-titre}
+ft_titre <- flextable(data.frame(x = c("t", "b", "s1", "s2"))) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("Traitement statistique avec R",
+             props = fp_text(bold = TRUE, color = "white",
+                             font.size = 22, font.family = "Arial")))) |>
+  compose(i = 2, j = 1, value = as_paragraph(
+    as_chunk("  TP2  ",
+             props = fp_text(bold = TRUE, color = "#1F3864",
+                             font.size = 12, font.family = "Arial",
+                             shading.color = "#BDD7EE")))) |>
+  compose(i = 3, j = 1, value = as_paragraph(
+    as_chunk("Analyse du niveau d'éducation et de l'alphabétisation",
+             props = fp_text(color = "white", font.size = 13,
+                             font.family = "Arial")))) |>
+  compose(i = 4, j = 1, value = as_paragraph(
+    as_chunk("des ménages nigérians — GHS Panel Wave 4 (2018)",
+             props = fp_text(color = "white", font.size = 13,
+                             font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  bg(i = c(1, 2, 3, 4), bg = "#1F3864", part = "body") |>
+  border_remove() |>
+  width(width = 5.9) |>
+  delete_part(part = "header") |>
+  padding(i = 1, padding.top = 20, padding.bottom = 8, part = "body") |>
+  padding(i = 2, padding.top = 6, padding.bottom = 6, part = "body") |>
+  padding(i = 3, padding.top = 8, padding.bottom = 4, part = "body") |>
+  padding(i = 4, padding.top = 4, padding.bottom = 20, part = "body") |>
+  set_table_properties(layout = "fixed")
+ft_titre
+```
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+```{r bloc-auteurs}
+bord <- fp_border(color = "#1F3864", width = 1)
+ft_aut <- flextable(data.frame(x = 1:4)) |>
+  compose(i = 1, j = 1, value = as_paragraph(
+    as_chunk("Auteurs : Diop Astou & Mamadou Lamine Diabang",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  compose(i = 2, j = 1, value = as_paragraph(
+    as_chunk("Filière : ISE1 – CL",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  compose(i = 3, j = 1, value = as_paragraph(
+    as_chunk("Professeur : Monsieur Aboubacar Hema",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  compose(i = 4, j = 1, value = as_paragraph(
+    as_chunk("Année académique : 2025/2026",
+             props = fp_text(color = "#1F3864", font.size = 12,
+                             font.family = "Arial")))) |>
+  align(align = "center", part = "body") |>
+  border_outer(border = bord, part = "body") |>
+  border_inner_h(border = bord, part = "body") |>
+  width(width = 5.9) |>
+  delete_part(part = "header") |>
+  padding(padding.top = 8, padding.bottom = 8, part = "body") |>
+  set_table_properties(layout = "fixed")
+ft_aut
+```
+
+**Introduction**
+
+L'éducation constitue l'un des principaux déterminants du développement économique et social d'un pays. Elle joue un rôle fondamental dans l'accumulation du capital humain, l'amélioration de la productivité du travail et la réduction des inégalités sociales.
+
+Dans ce travail, nous analysons la distribution du niveau d'éducation à partir des données du **Nigeria General Household Survey (GHS Panel)**. L'objectif principal est d'identifier les caractéristiques du système éducatif observé dans les données et de mettre en évidence les éventuelles disparités selon plusieurs dimensions : le sexe, l'âge et la zone de résidence.
+
+L'analyse repose essentiellement sur une exploration graphique des données afin de comprendre la structure des niveaux d'éducation et les inégalités qui peuvent exister au sein de la population.
+
+`r run_pagebreak()`
+
+**1. Qualité des données**
+
+```{r fig-na, fig.width=5.61, fig.height=3.37}
+include_graphics(img("01_valeurs_manquantes.png"))
+```
+
+Avant toute analyse statistique, il est essentiel d'évaluer la qualité des données disponibles. Le graphique ci-dessus présente la proportion de valeurs manquantes pour les différentes variables utilisées dans l'analyse.
+
+On observe que la majorité des variables présentent un taux relativement faible de valeurs manquantes. Cette situation constitue un avantage important pour l'analyse statistique car elle limite les biais potentiels liés à l'absence d'information.
+
+La faible proportion de valeurs manquantes suggère également que le processus de collecte des données a été réalisé de manière relativement rigoureuse. Par conséquent, les statistiques descriptives obtenues peuvent être interprétées avec un niveau de fiabilité relativement élevé.
+
+`r run_pagebreak()`
+
+**2. Distribution globale du niveau d'éducation**
+
+```{r fig-educ, fig.width=5.61, fig.height=3.27}
+include_graphics(img("02_niveau_education.png"))
+```
+
+La distribution globale du niveau d'éducation permet d'obtenir une première vision de la structure du capital humain dans la population étudiée.
+
+On observe généralement que les niveaux d'éducation les plus faibles occupent une proportion importante dans la distribution. Cette situation est fréquente dans de nombreux pays en développement où l'accès à l'éducation a longtemps été limité par des contraintes économiques, géographiques ou institutionnelles.
+
+Une forte proportion d'individus ayant un faible niveau d'éducation peut avoir des conséquences importantes sur la productivité du travail et sur les perspectives de croissance économique.
+
+`r run_pagebreak()`
+
+**3. Éducation selon le sexe**
+
+```{r fig-sexe, fig.width=5.61, fig.height=4.49}
+include_graphics(img("03_education_par_sexe.png"))
+```
+
+L'analyse du niveau d'éducation selon le sexe permet d'identifier d'éventuelles inégalités de genre dans l'accès à l'éducation.
+
+Dans de nombreux pays en développement, les femmes ont historiquement rencontré davantage d'obstacles à l'accès à l'éducation que les hommes. Ces obstacles peuvent être liés à des normes sociales, à des contraintes économiques ou à des pratiques culturelles.
+
+Si les graphiques mettent en évidence une proportion plus élevée d'hommes dans les niveaux d'éducation supérieurs, cela peut refléter la persistance de ces inégalités. Toutefois, les politiques éducatives mises en place au cours des dernières décennies ont souvent permis de réduire progressivement ces écarts.
+
+`r run_pagebreak()`
+
+**4. Éducation selon l'âge**
+
+```{r fig-age, fig.width=5.61, fig.height=3.27}
+include_graphics(img("04_education_par_age.png"))
+```
+
+L'analyse du niveau d'éducation selon l'âge permet d'identifier des différences entre générations.
+
+En général, les générations plus jeunes ont tendance à présenter des niveaux d'éducation plus élevés que les générations plus âgées. Cette évolution reflète souvent l'expansion progressive du système éducatif et l'amélioration de l'accès à l'école.
+
+Ainsi, une amélioration du niveau d'éducation chez les individus les plus jeunes peut être interprétée comme un signe de progrès dans l'accumulation du capital humain.
+
+`r run_pagebreak()`
+
+**5. Scolarisation selon la zone de résidence**
+
+```{r fig-scol, fig.width=5.61, fig.height=4.91}
+include_graphics(img("05_scolarisation_zone.png"))
+```
+
+Les disparités territoriales constituent un autre aspect important des inégalités éducatives.
+
+Dans de nombreux contextes, les zones urbaines bénéficient d'un accès plus important aux infrastructures éducatives que les zones rurales. Cela peut se traduire par des taux de scolarisation plus élevés et par une proportion plus importante d'individus ayant atteint des niveaux d'éducation supérieurs.
+
+Les différences observées entre zones peuvent donc refléter des inégalités d'accès aux ressources éducatives.
+
+`r run_pagebreak()`
+
+**6. Analphabétisme**
+
+```{r fig-heat, fig.width=5.61, fig.height=6.73}
+include_graphics(img("06_heatmap_analphabetisme.png"))
+```
+
+L'analphabétisme constitue un indicateur important du niveau de développement éducatif d'une société.
+
+Une proportion élevée d'individus analphabètes peut constituer un frein important au développement économique, car les compétences de base en lecture et en écriture sont essentielles pour participer pleinement à l'activité économique.
+
+L'analyse graphique permet d'identifier les groupes de population les plus concernés par ce phénomène.
+
+`r run_pagebreak()`
+
+**7. Tendance entre âge et éducation**
+
+```{r fig-tendance, fig.width=5.61, fig.height=3.27}
+include_graphics(img("07_education_age_tendance.png"))
+```
+
+La relation entre l'âge et le niveau d'éducation permet d'examiner les transformations intergénérationnelles du système éducatif.
+
+Une tendance montrant des niveaux d'éducation plus élevés chez les individus les plus jeunes suggère une amélioration progressive du système éducatif au fil du temps.
+
+Cela peut être interprété comme le résultat de politiques publiques visant à améliorer l'accès à l'éducation.
+
+`r run_pagebreak()`
+
+**8. Interaction entre sexe et éducation**
+
+```{r fig-matrice, fig.width=5.61, fig.height=3.37}
+include_graphics(img("08_matrice_sexe_education.png"))
+```
+
+L'analyse conjointe du sexe et du niveau d'éducation permet d'examiner les interactions entre ces deux dimensions.
+
+Cette approche permet de mieux comprendre comment les inégalités éducatives peuvent varier entre hommes et femmes selon les différents niveaux d'éducation.
+
+Dans certains contextes, les écarts entre sexes sont plus prononcés aux niveaux d'éducation supérieurs, ce qui peut refléter des obstacles spécifiques rencontrés par les femmes dans l'accès à l'enseignement secondaire ou supérieur.
+
+**Conclusion**
+
+L'analyse du niveau d'éducation met en évidence plusieurs caractéristiques importantes de la structure du capital humain dans la population étudiée.
+
+Les résultats suggèrent l'existence d'inégalités éducatives selon le sexe, l'âge et la zone de résidence. Toutefois, certaines tendances intergénérationnelles indiquent également une amélioration progressive de l'accès à l'éducation.
+
+Ces résultats soulignent l'importance des politiques publiques visant à améliorer l'accès à l'éducation et à réduire les disparités éducatives afin de favoriser un développement économique plus inclusif.
