@@ -1,0 +1,307 @@
+---
+title: 'TP2: Éducation et alphabétisation des membres des ménages'
+author: "Parfait Jemmy Prodige NGOYI, Analyste statisticien"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+7. visualiser avec un barplot horizontal coloré par catégorie. 
+```{r}
+#Affichage du résultat
+profil_educ_pondere
+```
+```{r}
+# Visualisation avec Barplot
+ggplot(df_visu, aes(x = niveau_educ, y = Pourcentage, fill = niveau_educ)) +
+  # Barres horizontales
+  geom_bar(stat = "identity", width = 0.7) +
+  
+  # Ajout des étiquettes (labels) au bout des barres
+  geom_text(aes(label = paste0(Pourcentage, "%")), 
+            hjust = -0.1, 
+            size = 4, 
+            fontface = "bold") +
+  
+  # Inversion pour le format horizontal
+  coord_flip() +
+  
+  # Palette de couleurs "Set2" (très lisible)
+  scale_fill_brewer(palette = "Set2") +
+  
+  # Habillage professionnel
+  labs(
+    title = "Répartition du niveau d'éducation (Données pondérées)",
+    subtitle = "Source : Enquête Wave 4 - Pondération : wt_wave4",
+    x = "Niveau d'instruction",
+    y = "Proportion dans la population (%)",
+    fill = "Légende"
+  ) +
+  
+  # Thème épuré
+  theme_minimal() +
+  theme(
+    legend.position = "none", # Pas besoin de légende si l'axe Y est clair
+    axis.text.y = element_text(size = 11, face = "italic"),
+    plot.title = element_text(size = 14, face = "bold")
+  ) +
+  
+  # Ajuster l'échelle pour ne pas couper les textes au bout des barres
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2)))
+
+```
+Interpretation:
+
+Primaire (36,26%) : C'est le niveau d'instruction le plus fréquent dans la population. Cela indique qu'une grande partie des individus s'arrête après le premier cycle éducatif.
+
+
+Aucun (20,31%) : Environ un individu sur cinq n'a reçu aucune éducation formelle. Cette catégorie est particulièrement hétérogène, regroupant aussi bien des enfants jamais scolarisés que des générations plus anciennes.
+
+Senior Secondary (25,26%) : Un quart de la population atteint la fin du cycle secondaire.Junior Secondary (10,71%) : Ce niveau est moins représenté, ce qui suggère que les individus ont tendance soit à s'arrêter au primaire, soit à poursuivre jusqu'au bout du secondaire.Tertiaire (7,46%) : C'est la catégorie la moins représentée. Ce faible taux s'explique en partie par la construction de la variable, qui ne capte que ceux ayant définitivement quitté le système scolaire, excluant ainsi les étudiants actuellement à l'université.
+
+
+graphique en barres 100% empilées côte à côte
+```{r}
+ggplot(profil_educ_pond, aes(x = niveau_educ, y = Pourcentage, fill = sexe)) +
+  # Utilisation de position = "stack" car les données sont déjà des pourcentages totalisant 100
+  geom_bar(stat = "identity", width = 0.7) +
+  
+  # Ajout des étiquettes au centre des segments
+  geom_text(aes(label = paste0(Pourcentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 4, 
+            color = "white", 
+            fontface = "bold") +
+  
+  # Inversion des axes pour le format horizontal
+  coord_flip() +
+  
+  # Couleurs et limites de l'axe Y à 100%
+  scale_fill_manual(values = c("Homme" = "steelblue", "Femme" = "tomato")) +
+  scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) +
+  
+  labs(
+    title = "Répartition Hommes/Femmes par niveau d'éducation (18+)",
+    subtitle = "Source : EHCVM - Calculs pondérés (wt_wave4)",
+    x = "Niveau d'éducation",
+    y = "Pourcentage (%)",
+    fill = "Sexe"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
+
+Interpretation:
+Surreprésentation féminine aux niveaux bas : Les femmes représentent la majorité des individus n'ayant "Aucun" niveau d'instruction (54,6%) ou ayant seulement atteint le niveau "Primaire" (53,4%).
+
+Dominance masculine aux niveaux élevés : À l'inverse, les hommes sont largement majoritaires au niveau "Tertiaire", où ils représentent 62,2% des effectifs contre seulement 37,8% pour les femmes.
+
+Le niveau "Junior Secondary" marque une étape de quasi-parité (environ 53,2% de femmes), mais c'est après ce stade que l'écart se creuse en faveur des hommes. Cela suggère que le décrochage scolaire féminin s'accentue fortement à l'entrée du second cycle secondaire et du supérieur.
+
+```{r}
+print(test_chi2)
+cat("V de Cramér :", round(v_cramer, 4))
+
+```
+
+Interpretation:
+
+La p-value (1.691e-14) : Elle reste extrêmement faible, bien en dessous du seuil de 1%.
+
+Le lien entre le sexe et le niveau d'instruction atteint n'est pas dû au hasard de l'échantillonnage, mais reflète une réalité structurelle de la population.2. Intensité de la relation (V de Cramér)Le V de Cramér (0.1195) mesure la force de l'association entre les deux variables qualitatives (sexe et niveau d'éducation).Interprétation : Une valeur de ~0,12 indique une association d'intensité faible à modérée.Analyse : Bien que la relation soit statistiquement très "vraie" (p-value quasi nulle), le sexe n'est pas le seul facteur explicatif du niveau d'éducation. D'autres variables (comme la zone de résidence ou l'État, que vous avez analysés par ailleurs ) jouent également un rôle majeur.3. Synthèse avec vos graphiquesCes statistiques confirment mathématiquement ce que votre graphique de répartition montrait visuellement :Le déséquilibre marqué au niveau Tertiaire (62,2% d'hommes contre 37,8% de femmes) est le principal moteur de cette dépendance statistique.La légère surreprésentation des femmes dans la catégorie "Aucun" (54,6%) contribue également à ce résultat significatif.
+
+
+10. Analyser la relation entre âge et niveau d'éducation:
+```{r}
+ggplot(data_plot, aes(x = niveau_educ, y = s1q4, fill = niveau_educ, weight = wt_wave4)) +
+  
+  # L'argument weight à l'intérieur de aes() ajuste les boîtes à la réalité démographique
+  geom_boxplot(outlier.shape = 21, 
+               outlier.size = 1.5, 
+               alpha = 0.7, 
+               width = 0.6) +
+  
+  # Palette de couleurs adaptée aux catégories ordonnées
+  scale_fill_brewer(palette = "Set2") +
+  
+  labs(
+    title = "Distribution de l'âge par niveau d'éducation",
+    subtitle = "Calculs pondérés (wt_wave4) - Population de l'enquête",
+    x = "Niveau d'instruction atteint",
+    y = "Âge (en années)"
+  ) +
+   # Amélioration visuelle
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 0, vjust = 0.5), # Garder horizontal pour la lisibilité
+    panel.grid.minor = element_blank()
+  )
+
+
+```
+Interpretation:
+
+Corrélation entre niveau et âge de sortie : On observe une progression logique et positive des médianes à mesure que le niveau d’éducation s'élève. Cette tendance est structurelle : l'allongement de la durée des études repousse mécaniquement l'âge de la sortie définitive du système scolaire.
+
+L'atypisme de la catégorie « Aucun » : Ce groupe se distingue par une hétérogénéité extrême. Sa médiane très basse (environ 8 ans) et sa dispersion exceptionnelle (l'écart interquartile le plus large) traduisent une population bivalente : elle agrège à la fois de jeunes enfants n'ayant jamais été scolarisés et des individus très âgés (jusqu'à 100 ans) issus de générations où l'accès à l'école était quasi inexistant.
+
+Homogénéité du cycle Junior Secondary : À l'opposé, ce niveau présente la distribution la plus resserrée avec une médiane basse (environ 17 ans). La faible dispersion indique que les sorties à ce stade sont très concentrées chronologiquement, correspondant à une tranche d'âge précise et standardisée.
+
+Spécificité du niveau Tertiaire : Ce groupe affiche la médiane la plus élevée (environ 33 ans). Cette valeur est toutefois influencée par un biais de sélection : la base ne recensant que les sorties définitives, les étudiants actuellement inscrits sont exclus, laissant place aux diplômés plus âgés. La dispersion y reste modérée, reflétant des parcours de fin d'études plus longs mais relativement stables.
+
+Présence de valeurs atypiques (outliers) : Des individus âgés de 75 à 100 ans apparaissent comme des valeurs aberrantes dans presque toutes les catégories, mais plus particulièrement dans les groupes « Aucun » et « Primaire ». Ces profils témoignent de réalités historiques où la scolarisation complète était l'exception.
+
+```{r}
+# Test de robustesse
+print(kw_test)
+
+dunn.test(data_plot$s1q4, 
+          g = data_plot$niveau_educ,
+          method = "bonferroni",
+          kw = TRUE,
+          label = TRUE)
+
+```
+Interpretation:
+
+Significativité globale : La p-valeur quasi nulle obtenue au test de Kruskal-Wallis impose le rejet de l'hypothèse nulle ($H_0$) d'égalité des distributions d'âge. Il existe donc une dépendance statistiquement significative entre l'âge et le niveau d'éducation atteint.Comparaisons par paires : L'intégralité des comparaisons post-hoc s'avère significative. Ce résultat confirme que chaque palier éducatif correspond à une distribution d'âge propre et distincte chez les individus ayant quitté le système scolaire.L'exception « Aucun » vs « Primaire » : La statistique $Z$ négative ($-18,58$) indique que le rang médian du groupe « Aucun » est inférieur à celui du « Primaire ». Bien que cela puisse paraître contre-intuitif, ce résultat valide l'observation des boxplots : la catégorie sans instruction est "tirée vers le bas" par une forte proportion de très jeunes enfants n'ayant jamais accédé à l'école.Proximité et contrastes :Le couple Junior Secondary vs Primaire affiche la statistique $Z$ la plus faible ($+4,43$). Bien que la différence soit significative, c'est la paire dont les distributions d'âge sont les plus proches, illustrant une transition scolaire relativement rapide entre ces deux niveaux.À l'inverse, les écarts les plus radicaux concernent les niveaux Senior Secondary et Tertiaire face au groupe Aucun ($Z \approx -50$ et $-47$). Ces valeurs traduisent des différences de rangs massives, marquant une rupture générationnelle et structurelle entre les individus les plus diplômés et ceux sans instruction.Cette analyse confirme que le niveau d'éducation n'est pas seulement un indicateur de formation, mais aussi un marqueur fort de la trajectoire d'âge au sein de la population nigériane.
+
+11. Comparer le taux de scolarisation des 6-17 ans entre zones rurales et urbaines 
+```{r}
+data_ic
+
+```
+Interpretation:
+
+- Le taux de scolarisation en milieu urbain est estimé a 95,93% avec un niveau de confiance de 95%.
+- Le taux de scolarisation en milieu urbain est estimé a 81,98% avec un niveau de confiance de 95%.
+
+```{r}
+ggplot(data_ic, aes(x = zone, y = taux * 100, fill = zone)) +
+  geom_col(width = 0.5, alpha = 0.85) +
+  geom_errorbar(aes(ymin = ic_lower * 100, ymax = ic_upper * 100),
+                width = 0.15, linewidth = 0.8) +
+  geom_text(aes(label = paste0(round(taux * 100, 1), "%")),
+            vjust = -1.8, fontface = "bold", size = 3.5) +
+  scale_fill_brewer(palette = "Set2") +
+  scale_y_continuous(limits = c(0, 100),
+                     labels = scales::percent_format(scale = 1)) +
+  labs(
+    title    = "Taux de scolarisation des 6-17 ans\npar zone géographique",
+    x        = "Zone",
+    y        = "Taux de scolarisation (%)",
+    caption  = "IC à 95% — Test du Chi-deux"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position  = "none",
+    plot.title       = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+
+```
+Interpretation:
+
+Un écart substantiel : Le taux de scolarisation atteint 95,9 % en zone urbaine, contre seulement 82,0 % en zone rurale. Cet écart de près de 14 points de pourcentage souligne une inégalité d'accès critique selon le lieu de résidence.Significativité statistique robuste : Le test d'indépendance est hautement significatif ($p < 0,001$), confirmant que cette différence n'est pas due au hasard de l'échantillonnage.Confirmation par les Intervalles de Confiance (IC) : L'absence totale de chevauchement entre les intervalles de confiance des deux zones vient valider visuellement la portée de cet écart. Cette séparation nette des estimations ponctuelles garantit, avec un niveau de confiance de 95 %, que la probabilité de scolarisation est intrinsèquement plus élevée en milieu urbain.En somme, le milieu de résidence demeure un déterminant de premier plan dans la trajectoire éducative des jeunes Nigérians, la zone rurale accusant un retard significatif qui nécessite une attention particulière dans les politiques publiques de scolarisation.
+
+
+12. Heatmap (geom_tile) croisant État nigérian (state) et niveau d'éducation: part d'adultes sans 
+instruction par État, colorée par quintile. 
+```{r}
+ggplot(data_heat, aes(x = 1, y = reorder(state_nom, part_aucun), fill = quintile)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  
+  # Ajout du texte (pourcentage pondéré)
+  geom_text(aes(label = paste0(round(part_aucun * 100, 1), "%")),
+            size = 3.2, color = "black", fontface = "bold") +
+  
+  # Palette de couleurs (du jaune au rouge pour marquer l'intensité)
+  scale_fill_brewer(palette = "YlOrRd", direction = 1) +
+  
+  labs(
+    title = "Part d'adultes sans instruction par État",
+    subtitle = "Calculs pondérés (wt_wave4) — Adultes 18 ans et plus",
+    x = NULL,
+    y = "État",
+    fill = "Niveau d'analphabétisme\n(par quintile)",
+   
+  ) +
+  
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x     = element_blank(),
+    axis.ticks.x    = element_blank(),
+    panel.grid      = element_blank(),
+    plot.title      = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle   = element_text(hjust = 0.5, color = "grey40"),
+    legend.position = "right",
+    # On ajuste la taille du texte des ordonnées si la liste est longue
+    axis.text.y     = element_text(size = 8)
+  )
+
+```
+
+Interpretation:
+
+
+```{r}
+# --- RAPPORT D'ANALYSE : ÉDUCATION NIGERIA (WAVE 4) ---
+
+# Fonction pour créer une séparation visuelle
+separator <- function() cat("\n", rep("-", 60), "\n")
+
+# 1. TITRE ET INTRODUCTION
+cat("\014") # Efface la console pour plus de clarté
+cat("============================================================\n")
+cat("   RAPPORT D'ANALYSE STATISTIQUE : ÉDUCATION ET DÉMOGRAPHIE\n")
+cat("   Source : EHCVM - Pondération : wt_wave4\n")
+cat("============================================================\n")
+
+# 2. SCOLARISATION PAR ZONE (6-17 ANS)
+separator()
+cat("1. ANALYSE DE LA SCOLARISATION PAR ZONE (6-17 ANS)\n")
+cat("------------------------------------------------------------\n")
+cat("RÉSULTATS :\n")
+cat("- Taux Urbain : 95,9% (IC non-chevauchant)\n")
+cat("- Taux Rural  : 82,0%\n")
+cat("- Écart       : ~14 points de pourcentage\n")
+cat("\nINTERPRÉTATION :\n")
+cat("L'écart est hautement significatif (p < 0,001). Le milieu de résidence\n")
+cat("demeure un déterminant majeur de l'accès à l'école au Nigeria.\n")
+
+# 3. TEST DE DÉPENDANCE GENRE/ÉDUCATION (RAO-SCOTT)
+separator()
+cat("2. TEST DE RAO-SCOTT : GENRE VS NIVEAU D'ÉDUCATION\n")
+cat("------------------------------------------------------------\n")
+# On affiche les valeurs que tu as obtenues
+cat(paste("Statistique F : 17.914\n"))
+cat(paste("p-value       : 1.691e-14 (Significativité extrême)\n"))
+cat(paste("V de Cramér   : 0.1195 (Association modérée)\n"))
+cat("\nCONCLUSION :\n")
+cat("On rejette l'hypothèse d'indépendance. Il existe une inégalité de\n")
+cat("genre structurelle, particulièrement marquée au niveau Tertiaire\n")
+cat("(62,2% d'hommes contre 37,8% de femmes).\n")
+
+# 4. DYNAMIQUE DES ÂGES (KRUSKAL-WALLIS & DUNN)
+separator()
+cat("3. ANALYSE DES ÂGES À LA SORTIE DU SYSTÈME\n")
+cat("------------------------------------------------------------\n")
+cat("OBSERVATIONS CLÉS :\n")
+cat("- Global : Les médianes croissent avec le niveau d'instruction.\n")
+cat("- Aucun  : Médiane ~8 ans (Profil hétérogène : enfants + seniors).\n")
+cat("- Junior : Niveau le plus homogène (médiane ~17 ans).\n")
+cat("- Tertiaire : Médiane la plus élevée (~33 ans).\n")
+cat("\nSYNTHÈSE DU TEST DE DUNN :\n")
+cat("Toutes les paires sont significativement différentes. L'anomalie\n")
+cat("Aucun/Primaire (Z = -18,58) confirme que le groupe 'Aucun' est\n")
+cat("structurellement plus jeune en raison des enfants jamais scolarisés.\n")
+
+separator()
+```
+
