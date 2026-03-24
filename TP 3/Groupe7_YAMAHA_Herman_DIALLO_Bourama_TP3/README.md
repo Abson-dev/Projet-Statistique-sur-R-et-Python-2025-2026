@@ -1,4 +1,4 @@
-# Analyse 3 — Accès aux services de santé et chocs sanitaires des ménages nigérians
+# TP 3 — Accès aux services de santé et chocs sanitaires des ménages nigérians
 
 ---
 
