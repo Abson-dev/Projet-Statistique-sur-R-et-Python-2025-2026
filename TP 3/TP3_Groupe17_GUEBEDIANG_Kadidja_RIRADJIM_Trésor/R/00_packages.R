@@ -16,10 +16,11 @@ required_packages <- c(
   "fs",
   "glue",
   "scales",
-  "rstatix",
-  "ggpubr",
-  "patchwork",
-  "naniar"
+  "survey",
+  "rmarkdown",
+  "knitr",
+  "flextable",
+  "officer"
 )
 
 install_if_missing <- function(pkgs) {
@@ -31,5 +32,6 @@ install_if_missing <- function(pkgs) {
 }
 
 install_if_missing(required_packages)
-
 invisible(lapply(required_packages, library, character.only = TRUE))
+
+options(survey.lonely.psu = "adjust")

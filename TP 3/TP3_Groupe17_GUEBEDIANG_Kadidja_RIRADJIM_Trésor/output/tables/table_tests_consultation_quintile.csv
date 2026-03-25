@@ -1,4 +1,2 @@
-test,statistic,p_value,note
-Chi-deux,388.2503769275571,9.61203154230955e-83,Toujours calculé
-Fisher exact,NA,NA,Non nécessaire
-V de Cramér,0.12096584527292359,NA,Mesure de l'intensité de l'association
+test,statistic,ddl_num,ddl_denom,p_value,note
+Chi-deux de Rao-Scott,24.144045981886965,3.484160925476987,1397.148531116272,3.1162674173082845e-17,Test ajusté au plan de sondage
