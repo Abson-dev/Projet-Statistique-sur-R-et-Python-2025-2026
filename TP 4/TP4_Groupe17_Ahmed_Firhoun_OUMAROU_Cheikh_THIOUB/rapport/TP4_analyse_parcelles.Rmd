@@ -1,0 +1,537 @@
+---
+title: ""
+output:
+  officedown::rdocx_document:
+    reference_docx: reference.docx
+    toc: false
+    number_sections: false
+params:
+  outputs_dir: "outputs"
+  img_dir: "img"
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "92%"
+)
+library(officedown)
+library(officer)
+library(knitr)
+library(readr)
+library(tidyr)
+
+FIG <- file.path(params$outputs_dir, "figures")
+TAB <- file.path(params$outputs_dir, "tables")
+IMG <- params$img_dir
+
+```
+
+```{r cover, echo=FALSE}
+block_pour_docx("cover.docx")
+```
+
+\newpage
+
+# Table des matières {-}
+
+```{r toc, echo=FALSE}
+block_toc()
+```
+
+\newpage
+
+# Résumé {-}
+
+Ce rapport analyse la structure foncière des exploitations agricoles nigérianes à partir des modules parcelles du **General Household Survey Panel (GHS-Panel), vague 4**, conduite en 2018-2019 par le Bureau National de Statistique (NBS) du Nigeria en collaboration avec la Banque mondiale dans le cadre du programme LSMS-ISA. L'étude couvre **10 961 parcelles agricoles** appartenant à **4 976 ménages** répartis sur les 36 États fédérés et le Territoire de la Capitale Fédérale.
+
+Quatre résultats structurants se dégagent :
+
+- **Petite agriculture familiale dominante.** La superficie médiane par parcelle est de **0,26 ha** et la superficie totale médiane du ménage agricole de 0,66 ha. La distribution est fortement asymétrique à droite (CV = 150 %), révélant la coexistence d'une grande majorité de petits exploitants et d'une minorité de grandes exploitations qui tirent la moyenne vers le haut.
+
+- **Prédominance du régime coutumier.** L'héritage familial représente **62,9 % des parcelles**. Son association avec le milieu de résidence est extrêmement significative (χ² = 508,7 ; p < 10⁻¹⁰⁰), traduisant la dualité structurelle entre un système foncier coutumier en zone rurale et un marché foncier marchand émergent en zone urbaine.
+
+- **Fragmentation foncière faiblement déterminante.** La corrélation entre superficie totale du ménage et nombre de parcelles est positive mais faible (ρ = 0,19) : la taille individuelle des parcelles, et non leur nombre, est le principal déterminant de la superficie totale.
+
+- **Disparités géographiques marquées.** Les États du Nord affichent des superficies médianes plus de **8 fois supérieures** à celles des États du Sud-Est, reflet de conditions agro-écologiques et démographiques très différenciées.
+
+\newpage
+
+# Introduction {-}
+
+## Contexte et enjeux {-}
+
+La question foncière est au cœur des enjeux de développement agricole en Afrique subsaharienne. L'accès à la terre, sa sécurisation juridique et sa distribution conditionnent directement la productivité agricole, les revenus ruraux et la sécurité alimentaire. Au Nigeria, premier pays agricole du continent par la taille de sa population rurale, la compréhension fine de la structure des exploitations est indispensable pour concevoir des politiques publiques efficaces.
+
+L'agriculture nigériane se caractérise par une diversité extrême : grandes exploitations commerciales dans les zones sahéliennes du Nord, agriculture vivrière intensive sur de minuscules parcelles dans le Delta du Niger, systèmes d'exploitation familiaux dans la ceinture intermédiaire. Cette hétérogénéité rend toute analyse agrégée délicate et justifie l'utilisation de données d'enquête représentatives à l'échelle nationale.
+
+## Présentation du dispositif GHS-Panel {-}
+
+Le **General Household Survey Panel (GHS-Panel)**, mis en œuvre depuis 2010 par le NBS en partenariat avec la Banque mondiale dans le cadre du programme LSMS-ISA (*Living Standards Measurement Study — Integrated Surveys on Agriculture*), constitue à ce jour la source de données la plus complète sur les ménages agricoles nigérians. Ce dispositif de suivi longitudinal combine des modules ménages classiques avec des modules agriculture détaillés, dont un module parcelles permettant de recenser individuellement chaque parcelle cultivée, d'en mesurer la superficie par GPS et d'en documenter le régime de tenure.
+
+La **quatrième vague** (2018-2019) mobilise un échantillon de **4 976 ménages** répartis dans **517 zones de dénombrement** tirées de manière aléatoire à l'échelle nationale, selon un plan de sondage stratifié à deux degrés (État × milieu de résidence). Deux passages d'enquête sont conduits : un passage post-semis (juillet-août 2018) et un passage post-récolte (janvier-février 2019).
+
+## Objectifs et organisation du rapport {-}
+
+Ce travail pratique vise à analyser, de façon rigoureuse et reproductible, plusieurs dimensions du foncier agricole : la construction et la distribution de la variable superficie (Tâche 19), la robustesse des estimations et les biais de mesure GPS (Tâche 20), les régimes de tenure foncière et leur association avec le milieu de résidence (Tâche 21), la relation entre fragmentation parcellaire et superficie totale (Tâche 23), et les disparités géographiques entre États fédérés (Tâche 24).
+
+Le rapport est organisé comme suit : la section 1 présente les données et le pipeline de traitement ; les sections 2 à 6 développent les cinq tâches analytiques ; la section 7 confronte nos résultats au rapport officiel LSMS 2019 ; une conclusion synthétise les principaux enseignements.
+
+\newpage
+
+# 1. Données et pipeline de traitement
+
+## 1.1 Bases de données mobilisées
+
+L'analyse repose sur quatre bases de données issues du GHS-Panel Wave 4, toutes au format Stata (`.dta`) et disponibles librement sur le portail de microdonnées de la Banque mondiale (LSMS Data Catalog). Ces bases couvrent deux passages d'enquête distincts et sont jointes via les identifiants ménage (`hhid`) et parcelle (`plotid`).
+
+```{r table-bases}
+bases <- data.frame(
+  Base = c("secta_harvestw4", "secta1_harvestw4",
+           "sect11a1_plantingw4", "sect11b1_plantingw4"),
+  Niveau = c("Ménage", "Parcelle (récolte)",
+             "Parcelle (semis)", "Parcelle (semis)"),
+  Obs = c("4 976", "10 961", "Var.", "Var."),
+  Role = c(
+    "Poids de sondage (weight_wave4), État fédéré, milieu résidence",
+    "Superficie GPS récolte (sa1q11), indicateur re-mesure (sa1q9)",
+    "Superficie GPS semis (s11aq4c)",
+    "Mode d'acquisition (tenure), titre foncier, qualité des sols"
+  )
+)
+kable(bases,
+      caption = "Bases de données du GHS-Panel Wave 4 mobilisées",
+      col.names = c("Base", "Niveau", "Obs.", "Variables clés"),
+      booktabs = TRUE)
+```
+
+La base principale est **secta1_harvestw4**, qui liste l'ensemble des parcelles déclarées comme cultivées lors du passage récolte. Elle est enrichie par les informations foncières de **sect11b1** et les mesures GPS complémentaires de **sect11a1**.
+
+## 1.2 Pipeline de traitement
+
+Le pipeline de traitement, implémenté en R et organisé en six scripts modulaires numérotés, applique les étapes suivantes dans un ordre strict pour garantir la reproductibilité.
+
+**Étape 1 — Vérification des clés d'identification.** Les paires (`hhid`, `plotid`) sont vérifiées pour unicité dans chaque base avant toute fusion. Des doublons de clé produiraient des fusions cartésiennes biaisantes. Résultat : *aucun doublon détecté*.
+
+**Étape 2 — Traitement des codes spéciaux.** Les valeurs 999, 9999, -99 et -999 (convention Banque mondiale pour les non-réponses et refus) sont remplacées par `NA` dans toutes les variables numériques.
+
+**Étape 3 — Consolidation de la superficie GPS.** Trois sources de mesure sont intégrées par ordre de priorité : (1) re-mesure GPS à la récolte (`sa1q11`, si `sa1q9 = 1`) ; (2) GPS semis (`s11aq4c`) ; (3) superficie pré-remplie vague précédente. Toutes les mesures (en m²) sont converties en hectares (÷ 10 000).
+
+**Étape 4 — Labellisation et recodage.** La tenure (`tenure_6`) est recodée en six catégories : *Héritage*, *Propriété pleine*, *Location*, *Prêt*, *Don communautaire*, *Métayage*. Le milieu est dichotomisé en *Rural* / *Urbain*.
+
+**Étape 5 — Jointure des poids de sondage.** Les poids transversaux (`weight_wave4`), stockés dans la base ménage, sont joints aux bases parcelles via `hhid`.
+
+**Étape 6 — Agrégation ménage.** La superficie totale et le nombre de parcelles sont calculés par ménage pour les tâches 23 et 24.
+
+## 1.3 Poids de sondage
+
+Le **poids transversal** (`weight_wave4`) rend l'échantillon représentatif de la population nigériane 2018-2019 en corrigeant les probabilités d'inclusion inégales et les non-réponses. Il est utilisé dans **toutes les analyses**. Le poids longitudinal (`wt_longpanel`), réservé au sous-échantillon suivi depuis 2010, n'est pas mobilisé ici.
+
+\newpage
+
+# 2. Distribution de la superficie parcellaire (Tâche 19)
+
+## 2.1 Construction de la variable superficie
+
+```{r t19-load}
+t19 <- read_csv(file.path(TAB, "t19_stats_parcelle.csv"), show_col_types = FALSE)
+src  <- read_csv(file.path(TAB, "t19_sources_superficie.csv"), show_col_types = FALSE)
+dec  <- read_csv(file.path(TAB, "t19_deciles_menage.csv"), show_col_types = FALSE)
+
+src_disp <- src
+src_disp$source_superficie <- c("GPS semis", "Aucune mesure GPS", "GPS récolte")[
+  match(src$source_superficie, c("gps_semis", "aucune", "gps_recolte"))]
+```
+
+Sur les **10 961 parcelles** de la base récolte, une mesure GPS est disponible pour **`r sum(src$n[src$source_superficie != "aucune"])` parcelles** (`r round(100 - src$pct[src$source_superficie == "aucune"], 1)` % du total). Les `r src$n[src$source_superficie == "aucune"]` parcelles restantes (`r src$pct[src$source_superficie == "aucune"]` %) ne disposent d'aucune mesure GPS objective et sont exclues de l'analyse afin de garantir la comparabilité des mesures.
+
+```{r t19-sources-table}
+kable(src_disp,
+      caption = "Répartition des parcelles selon la source de superficie GPS retenue",
+      col.names = c("Source de mesure", "Effectif", "% du total"),
+      booktabs = TRUE)
+```
+
+La source dominante est la mesure GPS au semis (`r src$pct[src$source_superficie == "gps_semis"]` % des parcelles). La re-mesure récolte, bien que plus précise car effectuée après délimitation définitive de la parcelle cultivée, n'est disponible que pour `r src$pct[src$source_superficie == "gps_recolte"]` % des parcelles — ce qui explique l'importance de la source semis dans notre variable consolidée.
+
+## 2.2 Statistiques descriptives de la superficie parcellaire
+
+```{r t19-stats-table}
+t19_disp <- data.frame(
+  Indicateur = c(
+    "Effectif (parcelles avec GPS)", "Moyenne (ha)", "Médiane (ha)",
+    "Écart-type (ha)", "Coefficient de variation (%)",
+    "Minimum (ha)", "P10 (ha)", "P25 — 1er quartile (ha)",
+    "P75 — 3e quartile (ha)", "P90 (ha)", "Maximum (ha)"
+  ),
+  Valeur = c(
+    formatC(t19$n, format = "d", big.mark = " "),
+    round(t19$moyenne, 4), round(t19$mediane, 3),
+    round(t19$ecart_type, 4), round(t19$cv, 1),
+    t19$min, round(t19$p10, 4), round(t19$p25, 4),
+    round(t19$p75, 4), round(t19$p90, 4), round(t19$max, 4)
+  )
+)
+kable(t19_disp,
+      caption = "Statistiques descriptives de la superficie parcellaire (ha)",
+      col.names = c("Indicateur", "Valeur"),
+      booktabs = TRUE)
+```
+
+Ces résultats appellent plusieurs commentaires analytiques.
+
+La **médiane de `r t19$mediane` ha** est l'indicateur le plus pertinent pour caractériser la parcelle typique : robuste aux valeurs extrêmes, elle signifie que la moitié des parcelles font moins d'un quart d'hectare — soit environ la superficie d'un grand terrain de football. Cette valeur est caractéristique d'une agriculture de subsistance familiale.
+
+La **moyenne de `r round(t19$moyenne, 2)` ha** est nettement supérieure à la médiane, signe d'une distribution asymétrique à droite. Quelques grandes exploitations (jusqu'à `r round(t19$max, 2)` ha) tirent fortement la moyenne vers le haut ; la moyenne **sur-estime** donc la superficie de la parcelle typique et ne doit pas être utilisée comme seul indicateur de tendance centrale.
+
+Le **coefficient de variation de `r round(t19$cv, 1)` %** confirme l'hétérogénéité extrême des superficies. À titre de référence, un CV inférieur à 30 % indique une faible variabilité ; 150 % traduit une dispersion caractéristique des distributions log-normales fréquemment observées pour les variables économiques positives.
+
+L'**écart interquartile (IQR = P75 − P25 = `r round(t19$p75 - t19$p25, 4)` ha)** montre que les 50 % centraux de la distribution s'étalent sur moins de 0,6 ha — une gamme relativement étroite — tandis que la queue supérieure est très étalée, jusqu'au maximum de `r round(t19$max, 2)` ha.
+
+## 2.3 Distributions graphiques
+
+Les histogrammes suivants utilisent une **échelle logarithmique** sur l'axe horizontal. Ce choix est justifié par la nature approximativement log-normale des superficies agricoles : l'échelle log symétrise la distribution et permet de distinguer simultanément les petites et grandes valeurs. Une forme en cloche sur l'axe log confirme une distribution log-normale.
+
+```{r fig-t19-parcelle, fig.cap="Distribution de la superficie parcellaire (log) — niveau plot individuel"}
+knitr::include_graphics(file.path(FIG, "t19_histo_parcelle_log.png"))
+```
+
+La concentration des valeurs autour de 0,1–0,5 ha et la queue droite étalée jusqu'à plus de 10 ha sont bien visibles. La forme en cloche sur l'axe log est cohérente avec une distribution log-normale.
+
+```{r fig-t19-menage, fig.cap="Distribution de la superficie totale cumulée par ménage (log)"}
+knitr::include_graphics(file.path(FIG, "t19_histo_menage_log.png"))
+```
+
+Au niveau ménage, la superficie totale est la somme des parcelles du ménage. La distribution reste asymétrique à droite, mais la queue est légèrement moins prononcée qu'au niveau parcelle, l'agrégation tendant à modérer les extrêmes relatifs.
+
+```{r fig-t19-sources, fig.cap="Répartition des parcelles selon leur source de superficie GPS"}
+knitr::include_graphics(file.path(FIG, "t19_sources_superficie.png"))
+```
+
+## 2.4 Déciles de superficie au niveau ménage
+
+La décomposition en déciles caractérise la structure complète de la distribution et permet de quantifier les inégalités foncières.
+
+```{r t19-deciles}
+dec_disp <- dec
+dec_disp$decile <- paste0("D", dec$decile)
+kable(dec_disp,
+      caption = "Déciles de superficie totale par ménage (ha)",
+      col.names = c("Décile", "n ménages", "Min (ha)", "Max (ha)", "Médiane", "Moyenne"),
+      booktabs = TRUE, digits = 3)
+```
+
+Les ménages du **premier décile** (D1) cultivent moins de 0,08 ha en totalité — soit moins de 800 m², l'équivalent d'un grand jardin potager. À l'opposé, les ménages du **dernier décile** (D10) cultivent en médiane `r round(dec$mediane[dec$decile == 10], 3)` ha, soit une exploitation que l'on peut qualifier de grande dans le contexte africain. Le **rapport D10/D1** en termes de médiane atteint `r round(dec$mediane[dec$decile == 10] / dec$mediane[dec$decile == 1], 1)`, illustrant l'ampleur des inégalités foncières au sein de l'échantillon.
+
+\newpage
+
+# 3. Robustesse des estimations et biais de mesure GPS (Tâche 20)
+
+## 3.1 Statistiques pondérées versus non pondérées
+
+```{r t20-load}
+t20_stats <- read_csv(file.path(TAB, "t20_stats_parcelle.csv"), show_col_types = FALSE)
+t20_bvp   <- read_csv(file.path(TAB, "t20_brut_vs_pondere.csv"), show_col_types = FALSE)
+t20_spe   <- read_csv(file.path(TAB, "t20_spearman_gps.csv"), show_col_types = FALSE)
+rho    <- round(t20_spe$rho, 3)
+ic_inf <- round(t20_spe$ic_inf, 3)
+ic_sup <- round(t20_spe$ic_sup, 3)
+n_gps  <- t20_spe$n
+```
+
+Dans une enquête à probabilités d'inclusion inégales, les statistiques brutes (non pondérées) peuvent différer des statistiques pondérées représentatives de la population. Leur comparaison systématique constitue une étape de validation fondamentale : si les deux sont proches, le plan de sondage est approximativement auto-pondéré et les résultats bruts constituent déjà un bon reflet de la réalité nationale.
+
+```{r t20-bvp-table}
+kable(t20_bvp,
+      caption = "Comparaison des estimations brutes et pondérées de la superficie au niveau ménage",
+      col.names = c("Type d'estimation", "n", "Moyenne (ha)", "Médiane (ha)",
+                    "CV (%)", "P10 (ha)", "P90 (ha)"),
+      booktabs = TRUE, digits = 3)
+```
+
+Les résultats sont très encourageants : les statistiques pondérées (`weight_wave4`) sont quasi-identiques aux statistiques brutes sur tous les indicateurs. La médiane pondérée (`r t20_bvp$mediane[t20_bvp$type == "Pondéré (weight_wave4)"]` ha) diffère de moins de 2 % de la médiane brute (`r t20_bvp$mediane[t20_bvp$type == "Non pondéré"]` ha). Cela confirme que **le plan de sondage est approximativement équilibré** entre les strates : les ménages sur- ou sous-représentés ont des comportements fonciers similaires à la moyenne nationale. Les résultats non pondérés constituent donc de bonnes approximations des estimations représentatives.
+
+```{r fig-t20-histo-brut, fig.cap="Distribution des superficies au niveau ménage — estimation non pondérée"}
+knitr::include_graphics(file.path(FIG, "t20_histo_parcelle.png"))
+```
+
+```{r fig-t20-histo-pond, fig.cap="Distribution des superficies au niveau ménage — estimation pondérée (weight_wave4)"}
+knitr::include_graphics(file.path(FIG, "t20_histo_menage_pondere.png"))
+```
+
+## 3.2 Cohérence et biais des mesures GPS entre passages
+
+L'originalité de la Wave 4 est de disposer de **deux mesures GPS indépendantes** pour une même parcelle : au semis et à la récolte. Cette double mesure permet d'évaluer la **fiabilité** (cohérence ordinale des mesures) et le **biais éventuel** (tendance systématique de l'une à dépasser l'autre) de l'instrument GPS de collecte.
+
+La corrélation de **Spearman** est préférée à Pearson car elle est robuste aux valeurs extrêmes et ne requiert pas l'hypothèse de normalité — particulièrement adaptée aux distributions fortement asymétriques observées ici.
+
+> **ρ de Spearman = `r rho`** | IC 95 % [`r ic_inf` ; `r ic_sup`] | *n* = `r n_gps` parcelles appariées
+
+La corrélation **ρ = `r rho`** est élevée et statistiquement très robuste : les parcelles classées parmi les plus grandes au semis le restent à la récolte, et réciproquement. Cette stabilité ordinale valide la qualité de la collecte GPS.
+
+Cependant, la cohérence de rang n'exclut pas un **biais systématique de niveau**. Les graphiques ci-dessous révèlent que la mesure récolte est systématiquement supérieure à la mesure semis, la droite de régression se situant nettement au-dessus de la bissectrice d'égalité parfaite. Ce biais — de l'ordre de 60 à 70 % en valeur relative — peut s'expliquer par plusieurs mécanismes : en fin de cycle, les cultures ayant envahi les bords de la parcelle élargissent le périmètre GPS mesuré ; ou les enquêteurs à la récolte intègrent les espaces inter-cultures que ceux du semis excluaient. Ce point mérite attention dans toute analyse comparative inter-passages.
+
+```{r fig-t20-scatter, fig.cap="Nuage de points GPS semis vs. récolte (échelles log-log) — la droite rouge est la bissectrice d'égalité parfaite"}
+knitr::include_graphics(file.path(FIG, "t20_scatter_gps_vs_gps.png"))
+```
+
+```{r fig-t20-boxplot, fig.cap="Boxplot des superficies GPS par passage d'enquête — le décalage visible illustre le biais systématique récolte > semis"}
+knitr::include_graphics(file.path(FIG, "t20_boxplot_parcelle.png"))
+```
+
+\newpage
+
+# 4. Régimes de tenure foncière (Tâche 21)
+
+## 4.1 Fréquences et répartition des modes d'acquisition
+
+```{r t21-load}
+t21_freq <- read_csv(file.path(TAB, "t21_frequences_tenure.csv"), show_col_types = FALSE)
+t21_chi2 <- read_csv(file.path(TAB, "t21_chi2_tenure_milieu.csv"), show_col_types = FALSE)
+t21_res  <- read_csv(file.path(TAB, "t21_residus_standardises.csv"), show_col_types = FALSE)
+chi2_stat <- round(t21_chi2$statistique, 2)
+chi2_ddl  <- t21_chi2$ddl
+chi2_p    <- formatC(t21_chi2$p_valeur, format = "e", digits = 2)
+```
+
+La variable de tenure foncière (`tenure_6`) synthétise le mode d'acquisition déclaré par le chef de ménage pour chaque parcelle. Elle capture la nature juridique et sociale du droit foncier exercé, ce qui est essentiel pour comprendre la sécurité d'occupation et les incitations à investir.
+
+```{r t21-freq-table}
+kable(t21_freq,
+      caption = "Fréquences des régimes de tenure foncière — brut vs. pondéré",
+      col.names = c("Régime de tenure", "Effectif brut", "% brut", "% pondéré"),
+      booktabs = TRUE, digits = 1)
+```
+
+L'héritage familial domine très nettement avec **`r t21_freq$pct_brut[t21_freq$tenure_6 == "Héritage"]` % des parcelles** en termes bruts (`r t21_freq$pct_pond[t21_freq$tenure_6 == "Héritage"]` % en pondéré). Ce régime reflète la prépondérance du droit foncier coutumier, transmis de génération en génération au sein des familles élargies — le système dominant dans la grande majorité des communautés rurales nigérianes. La propriété pleine par achat représente `r t21_freq$pct_brut[t21_freq$tenure_6 == "Propriété pleine"]` % des parcelles, suivie de la location (`r t21_freq$pct_brut[t21_freq$tenure_6 == "Location"]` %) et du prêt (`r t21_freq$pct_brut[t21_freq$tenure_6 == "Prêt"]` %). Le métayage reste marginal (`r t21_freq$pct_brut[t21_freq$tenure_6 == "Métayage"]` %). La quasi-concordance entre pourcentages bruts et pondérés confirme la bonne représentativité de l'échantillon.
+
+```{r fig-t21-barplot, fig.cap="Répartition des régimes de tenure foncière (effectifs bruts, classés par fréquence décroissante)"}
+knitr::include_graphics(file.path(FIG, "t21_barplot_tenure.png"))
+```
+
+## 4.2 Association entre tenure et milieu de résidence
+
+### 4.2.1 Test du χ² d'indépendance
+
+L'économie foncière nigériane présente une dualité bien documentée : droits coutumiers d'héritage en zone rurale, marchés fonciers formels (achat, location) en zone urbaine sous l'effet de la pression démographique et de la monétarisation. La tâche 21 teste statistiquement cette hypothèse.
+
+Le **test du χ² d'indépendance** est l'outil approprié pour évaluer l'existence d'une association entre deux variables catégorielles nominales. L'hypothèse nulle H₀ stipule que la distribution des modes de tenure est identique dans les deux milieux.
+
+> **χ²(`r chi2_ddl`) = `r chi2_stat`** | p-valeur = `r chi2_p`
+> Effectif théorique minimum = `r round(t21_chi2$eff_th_min, 2)` — Validité du test : `r t21_chi2$validite`
+
+Le test est **hautement significatif** (p ≈ 10⁻¹⁰⁸), conduisant au rejet catégorique de H₀. La validité formelle est assurée : l'effectif théorique minimum (`r round(t21_chi2$eff_th_min, 2)`) dépasse le seuil de 5 requis pour la validité de l'approximation chi-deux.
+
+### 4.2.2 Résidus standardisés d'Haberman
+
+Le test du χ² détecte une dépendance globale, mais ne localise pas sa source. Les **résidus standardisés d'Haberman** identifient précisément les cellules qui contribuent le plus à l'association : un résidu en valeur absolue supérieur à 2 indique une contribution significative au seuil de 5 % ; au-delà de 3,5, la contribution est extrêmement forte.
+
+```{r t21-residus}
+res_wide <- t21_res |>
+  tidyr::pivot_wider(names_from = milieu, values_from = residu_standardise)
+kable(res_wide,
+      caption = "Résidus standardisés d'Haberman — χ² (tenure × milieu de résidence)",
+      col.names = c("Régime de tenure", "Milieu rural", "Milieu urbain"),
+      booktabs = TRUE, digits = 2)
+```
+
+La lecture est sans ambiguïté. En **milieu rural**, l'héritage est massivement sur-représenté (résidu = +`r abs(t21_res$residu_standardise[t21_res$tenure == "Héritage" & t21_res$milieu == "Rural"])`) et la propriété pleine fortement sous-représentée (−`r abs(t21_res$residu_standardise[t21_res$tenure == "Propriété pleine" & t21_res$milieu == "Rural"])`). En **milieu urbain**, le patron s'inverse exactement : la propriété par achat est sur-représentée (+`r abs(t21_res$residu_standardise[t21_res$tenure == "Propriété pleine" & t21_res$milieu == "Urbain"])`), de même que la location (+`r abs(t21_res$residu_standardise[t21_res$tenure == "Location" & t21_res$milieu == "Urbain"])`) et le prêt (+`r abs(t21_res$residu_standardise[t21_res$tenure == "Prêt" & t21_res$milieu == "Urbain"])`).
+
+Ces résultats confirment et quantifient la **dualité structurelle du système foncier nigérian** : le monde rural fonctionne selon la logique du droit coutumier, où la terre est un bien collectif familial non commercialisable ; le monde urbain obéit de plus en plus à une logique marchande, où la terre s'achète, se loue et se prête selon des mécanismes de marché.
+
+```{r fig-t21-milieu, fig.cap="Répartition des régimes de tenure foncière par milieu de résidence"}
+knitr::include_graphics(file.path(FIG, "t21_tenure_par_milieu.png"))
+```
+
+\newpage
+
+# 5. Superficie totale et fragmentation foncière (Tâche 23)
+
+## 5.1 Cadre analytique
+
+La **fragmentation foncière** désigne le fait pour un exploitant de cultiver plusieurs parcelles distinctes et non contiguës plutôt qu'une seule surface équivalente. Elle est souvent présentée comme un obstacle à la mécanisation et à l'efficacité productive. La tâche 23 examine une question précise : **les ménages avec plus de parcelles cultivent-ils nécessairement de plus grandes superficies totales ?**
+
+Une forte corrélation suggèrerait que l'accumulation foncière se fait par ajout de nouvelles parcelles — logique cohérente avec un système d'héritage où chaque héritier reçoit une parcelle supplémentaire. Une faible corrélation indiquerait que la taille individuelle des parcelles est le déterminant dominant.
+
+## 5.2 Superficie selon le nombre de parcelles
+
+```{r t23-load}
+t23_spe  <- read_csv(file.path(TAB, "t23_spearman_par_milieu.csv"), show_col_types = FALSE)
+t23_tab  <- read_csv(file.path(TAB, "t23_superficie_par_nparcelles.csv"), show_col_types = FALSE)
+```
+
+```{r t23-tab}
+kable(t23_tab,
+      caption = "Superficie totale du ménage (ha) selon le nombre de parcelles cultivées",
+      col.names = c("Nb parcelles", "n ménages", "Médiane (ha)", "Moyenne (ha)",
+                    "P25 (ha)", "P75 (ha)"),
+      booktabs = TRUE, digits = 3)
+```
+
+Le tableau montre une **progression tendancielle** de la superficie médiane avec le nombre de parcelles, passant de `r t23_tab$mediane_ha[t23_tab$nb_parcelles == 1]` ha (1 parcelle) à `r t23_tab$mediane_ha[t23_tab$nb_parcelles == 10]` ha (10 parcelles). Cette tendance est cependant **non monotone** — des irrégularités apparaissent pour les groupes à 8–9 parcelles, dont les effectifs sont faibles — et la dispersion intra-groupe est très large à chaque niveau, ce qui affaiblit le lien apparent.
+
+## 5.3 Corrélation de Spearman avec intervalle de confiance
+
+```{r t23-spearman-table}
+kable(t23_spe,
+      caption = "Corrélation de Spearman entre superficie totale et nombre de parcelles, par milieu",
+      col.names = c("Milieu", "ρ", "IC 95 % inf.", "IC 95 % sup.", "p-valeur", "n"),
+      booktabs = TRUE, digits = 3)
+```
+
+La corrélation de Spearman est **positive, statistiquement très significative** (p < 10⁻¹⁶), mais sa **valeur pratique est faible** (ρ ≈ 0,19 ; R² de rang ≈ 3,6 %). Il est essentiel de distinguer ici **signification statistique et signification pratique** : avec un échantillon de plusieurs milliers de ménages, même une corrélation infime serait statistiquement significative. La robustesse de la p-valeur ne compense pas la modestie de ρ.
+
+La corrélation est similaire en milieu rural (ρ = `r t23_spe$rho[t23_spe$milieu_label == "Rural"]`) et urbain (ρ = `r t23_spe$rho[t23_spe$milieu_label == "Urbain"]`), confirmant que la faiblesse du lien est un phénomène structurel indépendant du milieu.
+
+**Implication clé :** La superficie totale d'un ménage est davantage déterminée par la *taille unitaire* de ses parcelles que par leur *nombre*. Ce résultat nuance les discours qui font de la fragmentation le principal obstacle à la productivité : la vraie question est la taille des parcelles, pas leur nombre.
+
+```{r fig-t23-scatter, fig.cap="Superficie totale vs. nombre de parcelles par ménage — axe Y en log, courbe LOESS en bleu"}
+knitr::include_graphics(file.path(FIG, "t23_scatter_superficie_nparcelles.png"))
+```
+
+```{r fig-t23-facettes, fig.cap="Nuages de points superficie/nombre de parcelles par milieu (rural vs. urbain)"}
+knitr::include_graphics(file.path(FIG, "t23_scatter_facettes_milieu.png"))
+```
+
+\newpage
+
+# 6. Disparités géographiques entre États (Tâche 24)
+
+## 6.1 Méthodologie
+
+```{r t24-load}
+t24_par_etat <- read_csv(file.path(TAB, "t24_superficie_par_etat.csv"), show_col_types = FALSE)
+t24_top_bot  <- read_csv(file.path(TAB, "t24_top5_bottom5_etats.csv"), show_col_types = FALSE)
+top5 <- t24_top_bot[t24_top_bot$groupe == "Top 5 (plus grande superficie)", ]
+bot5 <- t24_top_bot[t24_top_bot$groupe == "Bottom 5 (plus petite superficie)", ]
+ratio_max_min <- round(
+  max(t24_par_etat$mediane_pond_ha) /
+  min(t24_par_etat$mediane_pond_ha[t24_par_etat$mediane_pond_ha > 0]), 1)
+```
+
+La **médiane pondérée** est calculée pour chaque État par la méthode du cumul des poids (`weight_wave4`) : les observations sont triées par superficie croissante, les poids sont accumulés progressivement, et la médiane correspond à la première observation pour laquelle le cumul atteint 50 % du poids total de l'État. Elle est préférée à la moyenne afin d'éviter que quelques grandes exploitations ne biaisent l'indicateur d'État.
+
+La **jointure cartographique** est réalisée avec le fond de carte GADM v4.1 (niveau administratif 1, 36 États + FCT). Les divergences de nommage ont été corrigées manuellement : le FCT s'appelle « Federal Capital Territory » dans GADM, et « Nassarawa » est la graphie GADM pour « Nasarawa ».
+
+## 6.2 Carte choroplèthe des superficies médianes
+
+```{r fig-t24-carte, fig.cap="Superficie médiane pondérée (ha) par État nigérian — palette YlOrRd, rouge foncé = grande superficie", out.width = "100%"}
+knitr::include_graphics(file.path(FIG, "t24_carte_superficie_etats.png"))
+```
+
+La carte révèle un **gradient géographique Nord-Sud** très marqué, les États du Nord (orange à rouge foncé) affichant des superficies nettement supérieures aux États du Sud (jaune clair). Ce gradient reflète des différences profondes d'agro-écologie, de densité de population et de système agricole.
+
+## 6.3 Top 5 et Bottom 5 des États
+
+```{r t24-top5-table}
+kable(top5[, c("rang", "nom_etat", "mediane_pond_ha", "mediane_brute_ha", "n_menages")],
+      caption = "Top 5 — États avec les superficies médianes les plus élevées",
+      col.names = c("Rang", "État", "Médiane pondérée (ha)", "Médiane brute (ha)", "n ménages"),
+      booktabs = TRUE, digits = 3)
+```
+
+```{r t24-bot5-table}
+kable(bot5[, c("rang", "nom_etat", "mediane_pond_ha", "mediane_brute_ha", "n_menages")],
+      caption = "Bottom 5 — États avec les superficies médianes les plus faibles",
+      col.names = c("Rang", "État", "Médiane pondérée (ha)", "Médiane brute (ha)", "n ménages"),
+      booktabs = TRUE, digits = 3)
+```
+
+```{r fig-t24-top5, fig.cap="Classement des États du Top 5 et Bottom 5 selon la superficie médiane pondérée"}
+knitr::include_graphics(file.path(FIG, "t24_top5_bottom5.png"))
+```
+
+Le **ratio maximum/minimum** inter-états est de **`r ratio_max_min`×** — l'État de `r top5$nom_etat[1]` (`r top5$mediane_pond_ha[1]` ha) affiche une superficie `r ratio_max_min` fois supérieure à celle de `r bot5$nom_etat[nrow(bot5)]` (`r bot5$mediane_pond_ha[nrow(bot5)]` ha). Ces inégalités s'expliquent par des facteurs structurels profonds.
+
+**États du Nord** (Plateau, Bauchi, Niger, Kwara, Yobe) : densité démographique généralement plus faible, cultures céréalières extensives (mil, sorgho) requérant de grandes surfaces, et pratiques d'héritage qui maintiennent parfois les exploitations comme entités collectives.
+
+**États du Sud-Est** (Anambra, Imo, Akwa Ibom, Enugu) : densité démographique parmi les plus élevées du Nigeria, morcellement foncier extrême dû à des pratiques successorales divisant la terre à chaque génération, agriculture vivrière intensive (palmier à huile, manioc, igname) adaptée aux petites surfaces.
+
+\newpage
+
+# 7. Confrontation avec le rapport officiel LSMS 2019
+
+## 7.1 Comparaison des indicateurs clés
+
+```{r lsms-table}
+lsms_comp <- data.frame(
+  Indicateur = c(
+    "Superficie moyenne par parcelle (ha)",
+    "Superficie médiane par parcelle (ha)",
+    "Superficie totale moyenne par ménage (ha)",
+    "Part des parcelles sous héritage (%)"
+  ),
+  LSMS = c("0,45", "—", "1,28", "62,7–63,4"),
+  Notre = c(
+    as.character(round(t20_stats$moyenne, 2)),
+    as.character(t20_stats$mediane),
+    as.character(round(t20_bvp$moyenne[t20_bvp$type == "Non pondéré"], 2)),
+    as.character(t21_freq$pct_pond[t21_freq$tenure_6 == "Héritage"])
+  ),
+  Ecart = c(
+    paste0("+", round((t20_stats$moyenne / 0.45 - 1) * 100, 0), " %"),
+    "—",
+    paste0(round((t20_bvp$moyenne[t20_bvp$type == "Non pondéré"] / 1.28 - 1) * 100, 0), " %"),
+    "~0 %"
+  )
+)
+kable(lsms_comp,
+      caption = "Confrontation des indicateurs avec le rapport LSMS officiel (2019)",
+      col.names = c("Indicateur", "LSMS 2019", "Notre étude", "Écart relatif"),
+      booktabs = TRUE)
+```
+
+Les divergences sur la superficie moyenne sont attendues et s'expliquent méthodologiquement. Le rapport LSMS utilise **toutes** les parcelles (y compris celles sans GPS, dont la superficie déclarée est retenue) et inclut les parcelles non cultivées. Notre étude se restreint aux parcelles avec mesure GPS objective, excluant les 33 % de parcelles sans GPS. Cette restriction améliore la qualité de la mesure mais réduit la couverture.
+
+La structure de tenure est en revanche **parfaitement cohérente** : notre estimation de `r t21_freq$pct_pond[t21_freq$tenure_6 == "Héritage"]` % pour l'héritage est quasi-identique aux 62,7–63,4 % du rapport officiel, ce qui valide notre pipeline de traitement.
+
+## 7.2 Apports spécifiques de cette étude
+
+Notre travail enrichit le rapport LSMS sur quatre points :
+
+1. **Quantification du biais GPS inter-passages** avec intervalle de confiance (ρ = `r rho` ; IC 95 % [`r ic_inf` ; `r ic_sup`]) calculé par transformation de Fisher — le rapport officiel ne documente pas ce biais quantitativement.
+
+2. **Localisation fine de l'association tenure-milieu** par les résidus standardisés d'Haberman, permettant d'identifier précisément quelles modalités sont sur- ou sous-représentées dans chaque milieu.
+
+3. **Contrôle systématique du plan de sondage** : toutes les estimations sont produites en versions brute et pondérée côte à côte.
+
+4. **Cartographie inter-étatique** avec la médiane pondérée sur fond GADM v4.1, offrant une visualisation plus robuste que les tableaux du rapport officiel.
+
+\newpage
+
+# Conclusion {-}
+
+Ce rapport a analysé la structure foncière des exploitations agricoles nigérianes à partir des modules parcelles du GHS-Panel Wave 4, en couvrant cinq dimensions analytiques complémentaires. Quatre enseignements structurants se dégagent.
+
+**La petite agriculture familiale est la norme.** La superficie médiane par parcelle (0,26 ha) et la superficie totale médiane par ménage (0,66 ha) placent l'agriculture nigériane dans la catégorie des agricultures de subsistance à petite échelle. La distribution extrêmement asymétrique (CV = 150 %) révèle la coexistence d'une grande majorité de petits exploitants et d'une minorité de grandes exploitations. Cette hétérogénéité appelle des politiques agricoles différenciées selon la taille des exploitations, plutôt que des interventions uniformes.
+
+**Le droit coutumier domine, mais une transition est en cours.** L'héritage familial concentre près des deux tiers des parcelles, reflet de la prépondérance des systèmes coutumiers hérités du droit précolonial. Cependant, la différenciation rurale-urbaine révélée par les résidus d'Haberman montre que le milieu urbain est déjà caractérisé par une sur-représentation significative de la propriété par achat et de la location, signalant une transition foncière vers des mécanismes de marché, alimentée par la pression démographique et la monétarisation des échanges.
+
+**La fragmentation n'est pas la variable-clé.** La corrélation faible entre nombre de parcelles et superficie totale (ρ ≈ 0,19, R² ≈ 3,6 %) relativise les discours qui font de la fragmentation le principal déterminant de la productivité. La taille unitaire des parcelles, héritée de l'histoire foncière familiale et des conditions locales, est le facteur dominant.
+
+**Les inégalités géographiques sont profondes et structurelles.** Le ratio de superficies médianes entre États du Nord et du Sud-Est dépasse `r ratio_max_min`×. Ces disparités cristallisent des différences agro-écologiques (pluviométrie, sols), démographiques (densité) et institutionnelles (modes de succession) dont les effets se cumulent et se renforcent mutuellement.
+
+Ces résultats, cohérents avec le rapport LSMS officiel de 2019 et enrichis par des analyses complémentaires, constituent une base solide pour des travaux futurs visant à identifier les déterminants de la productivité agricole au Nigeria.
+
+\newpage
+
+# Références bibliographiques {-}
+
+- NBS & World Bank (2019). *Nigeria General Household Survey Panel, Wave 4 (2018/2019) — Survey Report.* National Bureau of Statistics, Abuja.
+
+- World Bank LSMS-ISA (2023). *Nigeria GHS-Panel, Wave 4 — Microdataset.* https://microdata.worldbank.org
+
+- Carletto, G., Savastano, S., & Zezza, A. (2013). Fact or artifact: The impact of measurement errors on the farm size–productivity relationship. *Journal of Development Economics*, 103, 254–261.
+
+- Deininger, K., Savastano, S., & Carletto, C. (2012). Land Fragmentation, Cropland Abandonment, and Land Market Operation in Albania. *World Development*, 40(10), 2108–2122.
+
+- GADM (2022). *Database of Global Administrative Areas, version 4.1.* https://gadm.org
+
+- R Core Team (2024). *R: A language and environment for statistical computing.* R Foundation for Statistical Computing, Vienna, Austria.
+
+- Wickham, H., et al. (2019). Welcome to the Tidyverse. *Journal of Open Source Software*, 4(43), 1686.
+
+- Bivand, R., Pebesma, E., & Gómez-Rubio, V. (2013). *Applied Spatial Data Analysis with R.* Springer, New York.

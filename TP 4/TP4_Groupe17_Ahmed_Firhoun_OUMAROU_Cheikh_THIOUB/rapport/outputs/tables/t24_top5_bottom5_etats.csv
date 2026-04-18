@@ -1,0 +1,11 @@
+rang,nom_etat,mediane_pond_ha,mediane_brute_ha,n_menages,groupe
+1,Plateau,2.317,2.223,75,Top 5 (plus grande superficie)
+2,Bauchi,2.216,2.138,212,Top 5 (plus grande superficie)
+3,Niger,2,1.799,76,Top 5 (plus grande superficie)
+4,Kwara,1.922,1.853,115,Top 5 (plus grande superficie)
+5,Yobe,1.523,1.734,55,Top 5 (plus grande superficie)
+32,Abia,0.181,0.182,176,Bottom 5 (plus petite superficie)
+33,Enugu,0.127,0.152,124,Bottom 5 (plus petite superficie)
+34,Akwa Ibom,0.124,0.121,156,Bottom 5 (plus petite superficie)
+35,Anambra,0.092,0.091,61,Bottom 5 (plus petite superficie)
+36,Imo,0.091,0.093,142,Bottom 5 (plus petite superficie)

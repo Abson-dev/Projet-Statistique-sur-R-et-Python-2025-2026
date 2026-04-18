@@ -1,0 +1,13 @@
+tenure,milieu,residu_standardise
+Héritage,Rural,18.85
+Propriété pleine,Rural,-15.94
+Location,Rural,-9.79
+Prêt,Rural,-5.78
+Autre,Rural,4.95
+Métayage,Rural,-3.69
+Héritage,Urbain,-18.85
+Propriété pleine,Urbain,15.94
+Location,Urbain,9.79
+Prêt,Urbain,5.78
+Autre,Urbain,-4.95
+Métayage,Urbain,3.69
