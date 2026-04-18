@@ -1,0 +1,22 @@
+"nom_culture","type_culture","N","n_amelioree","taux_amelioree","n_certifiee","taux_certifiee"
+"Manioc","Tubercule",2989,490,16.3934426229508,347,70.8163265306122
+"Coton","Culture de rente",13,2,15.3846153846154,2,100
+"Maïs","Céréale",2712,308,11.3569321533923,198,64.2857142857143
+"Riz","Céréale",627,70,11.1642743221691,45,64.2857142857143
+"Tomate","Légume",62,5,8.06451612903226,5,100
+"Patate douce","Tubercule",68,5,7.35294117647059,3,60
+"Igname jaune","Tubercule",49,3,6.12244897959184,2,66.6666666666667
+"Arachide","Légumineuse",733,30,4.09276944065484,14,46.6666666666667
+"Soja","Légumineuse",283,11,3.886925795053,9,81.8181818181818
+NA,NA,1143,43,3.76202974628172,32,74.4186046511628
+"Igname 3 feuilles","Tubercule",107,3,2.80373831775701,2,66.6666666666667
+"Niébé/Haricot","Légumineuse",1121,29,2.58697591436218,23,79.3103448275862
+"Igname blanche","Tubercule",962,23,2.39085239085239,17,73.9130434782609
+"Igname d'eau","Tubercule",256,5,1.953125,4,80
+"Colocase","Tubercule",350,5,1.42857142857143,5,100
+"Egusi/Melon","Autre",127,1,0.78740157480315,1,100
+"Sorgho","Céréale",1556,12,0.77120822622108,7,58.3333333333333
+"Mil","Céréale",1028,6,0.583657587548638,5,83.3333333333333
+"Bambara","Légumineuse",30,0,0,0,NA
+"Canne à sucre","Culture de rente",36,0,0,0,NA
+"Pomme de terre","Tubercule",23,0,0,0,NA

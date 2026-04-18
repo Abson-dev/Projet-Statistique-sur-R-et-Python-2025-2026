@@ -1,0 +1,370 @@
+---
+output:
+  officedown::rdocx_document:
+    toc: false
+    number_sections: true
+    plots:
+      align: center
+      caption:
+        style: Image Caption
+        pre: 'Figure '
+        sep: ' — '
+    tables:
+      caption:
+        style: Table Caption
+        pre: 'Tableau '
+        sep: ' — '
+    page_size:
+      width: 8.27
+      height: 11.69
+      orient: portrait
+    page_margins:
+      bottom: 0.79
+      top: 0.98
+      right: 0.71
+      left: 0.98
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE,
+                      dpi=300, out.width="95%")
+library(officedown)
+library(officer)
+library(flextable)
+library(dplyr)
+library(knitr)
+
+FIG <- "figures"
+TAB <- "tables"
+
+rt <- function(n) read.csv(file.path(TAB, paste0(n, ".csv")),
+                            check.names=FALSE, stringsAsFactors=FALSE)
+
+mft <- function(df, cap=NULL, bgh="#1A6B3A", bgs="#D5F5E3") {
+  ft <- flextable(df) %>%
+    theme_vanilla() %>%
+    bold(part="header") %>%
+    bg(part="header", bg=bgh) %>%
+    color(part="header", color="white") %>%
+    fontsize(part="all", size=10) %>%
+    font(part="all", fontname="Calibri") %>%
+    border_outer(part="all", border=fp_border(color=bgh, width=1.5)) %>%
+    border_inner_h(part="body", border=fp_border(color="#BDC3C7", width=0.5)) %>%
+    set_table_properties(width=1, layout="autofit")
+  nr <- nrow(df)
+  if (nr >= 1) ft <- bg(ft, i=seq(1,nr,2), bg=bgs)
+  if (!is.null(cap))
+    ft <- set_caption(ft, caption=as_paragraph(
+      as_chunk(cap, props=fp_text(bold=TRUE, color=bgh, font.size=10))))
+  ft
+}
+
+cv <- function(df, col_idx, row_idx=1) as.numeric(df[row_idx, col_idx])
+```
+
+```{r garde, results='asis'}
+# Logos + noms institutions
+flextable(data.frame(A="", B="", check.names=FALSE)) %>%
+  delete_part("header") %>%
+  compose(j="A", value=as_paragraph(
+    as_image("ANSD.png", width=1.5, height=1.1),
+    as_chunk("\nAgence Nationale de la Statistique\net de la Démographie",
+             props=fp_text(bold=TRUE, font.size=9, color="#1A6B3A",
+                           font.family="Calibri")))) %>%
+  compose(j="B", value=as_paragraph(
+    as_image("ENSAE.png", width=1.5, height=1.1),
+    as_chunk("\nÉcole Nationale de la Statistique\net de l'Analyse Économique",
+             props=fp_text(bold=TRUE, font.size=9, color="#1A6B3A",
+                           font.family="Calibri")))) %>%
+  align(align="center", part="all") %>%
+  border_remove() %>%
+  set_table_properties(width=0.6, layout="autofit") %>%
+  padding(padding=6)
+```
+
+```{r titre-garde}
+fpar(run_linebreak(),
+     fp_p=fp_par(border.bottom=fp_border(color="#1A6B3A", width=4),
+                 padding.bottom=4))
+fpar(run_linebreak()); fpar(run_linebreak()); fpar(run_linebreak())
+
+fpar(ftext("TP5 — Cultures, Intrants et Rendements Agricoles",
+           fp_text(bold=TRUE, font.size=26, color="#1A6B3A",
+                   font.family="Calibri")),
+     fp_p=fp_par(text.align="center"))
+fpar(run_linebreak())
+fpar(ftext("Pratiques Agricoles et Performance des Exploitations Nigérianes",
+           fp_text(italic=TRUE, font.size=15, color="#27AE60",
+                   font.family="Calibri")),
+     fp_p=fp_par(text.align="center"))
+fpar(run_linebreak(),
+     fp_p=fp_par(border.bottom=fp_border(color="#27AE60", width=2),
+                 padding.bottom=4))
+fpar(ftext("Nigeria General Household Survey-Panel (GHS-Panel) — Wave 4 (2018/2019)",
+           fp_text(italic=TRUE, font.size=10, color="#6C757D",
+                   font.family="Calibri")),
+     fp_p=fp_par(text.align="center"))
+fpar(ftext("National Bureau of Statistics / World Bank",
+           fp_text(italic=TRUE, font.size=10, color="#6C757D",
+                   font.family="Calibri")),
+     fp_p=fp_par(text.align="center"))
+
+fpar(run_linebreak()); fpar(run_linebreak()); fpar(run_linebreak())
+
+flextable(data.frame(
+  ` `  = c("Auteurs", "Professeur", "Classe",
+            "Établissement", "Année académique"),
+  `  ` = c("Diop Astou  &  Eugène Crespo",
+            "M. Aboubacar Hema",
+            "ISE1 — Ingénieur Statisticien Économiste",
+            "ENSAE Dakar", "2025 — 2026"),
+  check.names=FALSE)) %>%
+  delete_part("header") %>%
+  bg(j=1, bg="#1A6B3A") %>% color(j=1, color="white") %>% bold(j=1) %>%
+  bg(j=2, bg="#D5F5E3") %>% bold(j=2) %>% color(j=2, color="#1A6B3A") %>%
+  font(part="all", fontname="Calibri") %>%
+  fontsize(part="all", size=11) %>%
+  border_outer(part="all", border=fp_border(color="#1A6B3A", width=2)) %>%
+  border_inner_h(part="body", border=fp_border(color="#BDC3C7", width=0.5)) %>%
+  align(j=1, align="right") %>%
+  padding(padding=6) %>%
+  set_table_properties(width=0.8, layout="autofit")
+  fpar(run_pagebreak())
+```
+
+# Sommaire {-}
+
+```{r toc}
+block_toc(level=3)
+fpar(run_pagebreak())
+```
+
+
+# Introduction
+
+L'agriculture nigérianes reste le premier secteur d'emploi du pays. Comprendre les **systèmes de culture**, les **pratiques d'utilisation des intrants** et les **niveaux de rendement** est indispensable à toute politique d'intensification agricole durable.
+
+La présente analyse mobilise le **Nigeria GHS-Panel, Wave 4 (2018/2019)** et couvre les **tâches 25 à 30**.
+
+---
+
+# Données et Méthodologie
+
+## Bases de données mobilisées
+
+```{r tab-sources}
+mft(data.frame(
+  `Fichier`=c("secta3i_harvestw4","secta11c2_harvestw4","secta11c3_harvestw4",
+               "sect11f_plantingw4","sect11e1_plantingw4",
+               "sect11a1_plantingw4","secta_harvestw4"),
+  `Contenu`=c("Cultures récoltées — quantités, conversion kg",
+               "Engrais (NPK, Urée, organique), pesticides, herbicides",
+               "Intrants achetés — quantité, coût",
+               "Cultures plantées — type de semence",
+               "Acquisition des semences",
+               "Superficie des parcelles",
+               "Milieu, État, poids de sondage"),
+  `Vague`=rep("W4",7), check.names=FALSE),
+  "Tableau 1 — Bases de données mobilisées (Wave 4, 2018/2019)")
+```
+
+## Indicateurs construits
+
+- **Diversification** : nombre de cultures distinctes par ménage
+- **Adoption** : proportion de ménages utilisant un intrant
+- **Rendement** : production kg / superficie ha — outliers IQR×3 exclus
+
+---
+
+# Cultures Pratiquées
+
+## Les 15 cultures les plus fréquentes (Tâche 25)
+
+```{r tab-t25}
+d25 <- rt("T25_cultures_frequentes")
+mft(d25 %>%
+  mutate(nom_culture=ifelse(grepl("^Culture_",nom_culture),
+                            paste0("Code ",cropcode),nom_culture),
+         pct_menages=round(pct_menages,1)) %>%
+  select(nom_culture,type_culture,n_menages,pct_menages) %>%
+  rename(`Culture`=nom_culture,`Type`=type_culture,
+         `Nb ménages`=n_menages,`%`=pct_menages),
+  "Tableau 2 — Les 15 cultures les plus fréquentes (W4, 2018/2019)") %>%
+  bold(i=1) %>% bg(i=1,bg="#A9DFBF")
+```
+
+```{r fig-cultures, fig.cap="Les 15 cultures les plus fréquentes (W4, 2018/2019)"}
+knitr::include_graphics(file.path(FIG,"T25_cultures_frequentes.png"))
+```
+
+**Maïs** : `r round(d25$pct_menages[1],1)`% | **Sorgho** : `r round(d25$pct_menages[2],1)`% | **Igname blanche** : `r round(d25$pct_menages[3],1)`%.
+
+## Diversification culturale (Tâche 26)
+
+```{r tab-t26}
+d26  <- rt("T26_stats_diversification")
+d26m <- rt("T26_stats_diversification_milieu")
+t26  <- rt("T26_test_wilcoxon_diversification")
+mft(data.frame(
+  `Statistique`=c("N ménages","Moyenne","Médiane","Écart-type","Min","Max"),
+  `Valeur`=c(format(round(cv(d26,1)),big.mark=" "),round(cv(d26,2),2),
+             round(cv(d26,3),0),round(cv(d26,4),2),d26[[5]],d26[[6]]),
+  check.names=FALSE),
+  "Tableau 3 — Indice de diversification culturale") %>%
+  bold(i=3) %>% bg(i=3,bg="#A9DFBF")
+```
+
+```{r fig-diversification, fig.cap="Distribution de l'indice de diversification culturale"}
+knitr::include_graphics(file.path(FIG,"T26_diversification_culturale.png"))
+```
+
+```{r tab-t26m}
+mft(data.frame(
+  `Milieu`=d26m[[1]], `N`=d26m[[2]],
+  `Médiane`=round(as.numeric(d26m[[3]]),2),
+  `Moyenne`=round(as.numeric(d26m[[4]]),2),
+  `Écart-type`=round(as.numeric(d26m[[5]]),2),check.names=FALSE),
+  paste0("Tableau 4 — Diversification par milieu — Wilcoxon : p=",
+         t26$p," (",t26$p.signif,")")) %>%
+  bold(i=1) %>% bg(i=1,bg="#A9DFBF")
+```
+
+Rural : `r round(as.numeric(d26m[[4]][1]),2)` cultures vs Urbain : `r round(as.numeric(d26m[[4]][2]),2)` — **hautement significatif** (p=`r t26$p`, `r t26$p.signif`).
+
+---
+
+# Intrants Agricoles (Tâche 27)
+
+```{r tab-t27}
+d27   <- rt("T27_taux_utilisation_intrants")
+chi27 <- rt("T27_chi2_engrais_milieu")
+mft(d27 %>%
+  mutate(across(starts_with("taux_"),~round(.,1))) %>%
+  rename(`Milieu`=milieu,`N`=N,`Inorg.(%)`=taux_inorg,
+         `NPK(%)*`=taux_npk,`Urée(%)*`=taux_uree,`Org.(%)`=taux_org,
+         `Pest.(%)`=taux_pesticide,`Herb.(%)`=taux_herbicide),
+  paste0("Tableau 5 — Taux d'utilisation des intrants (χ²=",
+         round(chi27$statistic,2),", p=",
+         format(chi27$p,scientific=TRUE,digits=3),")")) %>%
+  bold(i=1) %>% bg(i=1,bg="#A9DFBF") %>% bold(j=3)
+```
+
+*(*) Parmi les utilisateurs d'engrais inorganique uniquement.*
+
+```{r fig-intrants, fig.cap="Taux d'utilisation des intrants par milieu avec IC 95%"}
+knitr::include_graphics(file.path(FIG,"T27_taux_intrants_milieu.png"))
+```
+
+Herbicides et engrais inorganique dominants. χ²=`r round(chi27$statistic,2)`, p<0,001.
+
+---
+
+# Rendements Agricoles
+
+## Distribution des rendements — Maïs et Mil (Tâche 28)
+
+```{r tab-t28}
+d28 <- rt("T28_stats_rendement_mais_mil")
+mft(data.frame(
+  `Culture`=d28[[1]],`N`=d28[[2]],
+  `Min`=round(as.numeric(d28[[3]]),1),
+  `Q1`=round(as.numeric(d28[[4]]),1),
+  `Médiane`=round(as.numeric(d28[[5]]),1),
+  `Moyenne`=round(as.numeric(d28[[6]]),1),
+  `Q3`=round(as.numeric(d28[[7]]),1),
+  `Max`=round(as.numeric(d28[[8]]),1),
+  `SD`=round(as.numeric(d28[[9]]),1),check.names=FALSE),
+  "Tableau 6 — Rendements (kg/ha) — outliers IQR×3 exclus") %>%
+  bold(j=5) %>% bg(i=1,bg="#FEF9E7") %>% bg(i=2,bg="#A9DFBF")
+```
+
+```{r fig-rendements-etat, fig.cap="Distribution des rendements par État — Maïs et Mil"}
+knitr::include_graphics(file.path(FIG,"T28_rendements_par_etat.png"))
+```
+
+Maïs médiane : `r round(cv(d28,5),1)` kg/ha | Mil médiane : `r round(cv(d28,5,2),1)` kg/ha.
+
+## Engrais chimique et rendements (Tâche 29)
+
+```{r tab-t29}
+d29s <- rt("T29_stats_rendement_par_engrais")
+d29w <- rt("T29_wilcoxon_engrais_rendement")
+d29e <- rt("T29_taille_effet_engrais_rendement")
+mft(data.frame(
+  `Culture`=d29s[[1]],`Engrais`=d29s[[2]],`N`=d29s[[3]],
+  `Médiane (kg/ha)`=round(as.numeric(d29s[[4]]),1),
+  `Moyenne (kg/ha)`=round(as.numeric(d29s[[5]]),1),check.names=FALSE),
+  "Tableau 7 — Rendements selon l'utilisation d'engrais") %>%
+  bg(i=c(1,3),bg="#A9DFBF") %>% bg(i=c(2,4),bg="#FDFEFE")
+```
+
+```{r tab-t29-tests}
+mft(data.frame(
+  `Culture`=d29w$culture_label,`p-value`=d29w$p,
+  `Signif.`=d29w$p.signif,
+  `r de rang`=round(d29e$effsize,3),
+  `Magnitude`=d29e$magnitude,check.names=FALSE),
+  "Tableau 8 — Tests de Wilcoxon et taille d'effet") %>%
+  bold(i=1,j=3) %>% color(i=1,j=3,color="#C0392B") %>%
+  bg(i=2,j=3,bg="#FEF9E7")
+```
+
+```{r fig-rendement-engrais, fig.cap="Rendements selon l'utilisation d'engrais chimique"}
+knitr::include_graphics(file.path(FIG,"T29_rendement_engrais.png"))
+```
+
+**Maïs** : quasi doublement avec engrais (`r round(cv(d29s,4),1)` vs `r round(cv(d29s,4,2),1)` kg/ha), p<10⁻³⁷ (****). **Mil** : pas d'effet (p=`r d29w$p[2]`).
+
+---
+
+# Semences Améliorées (Tâche 30)
+
+```{r tab-t30-global}
+d30g <- rt("T30_tableau_recapitulatif_adoption")
+mft(data.frame(
+  `Intrant`=c("Semence améliorée","Semence certifiée","Engrais inorganique",
+               "Engrais organique","Pesticide","Herbicide"),
+  `Taux global (%)`=c(as.numeric(d30g[1,2]),as.numeric(d30g[1,3]),
+                       as.numeric(d30g[1,4]),as.numeric(d30g[1,5]),
+                       as.numeric(d30g[1,6]),as.numeric(d30g[1,7])),
+  check.names=FALSE),
+  "Tableau 9 — Taux d'adoption des intrants — Ensemble des ménages") %>%
+  bg(i=1:2,bg="#FEF9E7") %>% bg(i=3:4,bg="#A9DFBF") %>% bg(i=5:6,bg="#EBF5FB")
+```
+
+```{r fig-adoption-milieu, fig.cap="Taux d'adoption des intrants par milieu"}
+knitr::include_graphics(file.path(FIG,"T30a_adoption_intrants_milieu.png"))
+```
+
+Semences améliorées : **`r as.numeric(d30g[1,2])`%** — fort potentiel d'intensification.
+
+```{r fig-semences-culture, fig.cap="Adoption des semences améliorées par culture (Top 10)"}
+knitr::include_graphics(file.path(FIG,"T30b_semences_ameliorees_par_culture.png"))
+```
+
+```{r tab-t30-top5}
+d30c <- rt("T30_adoption_semences_par_culture") %>%
+  filter(!is.na(nom_culture), nom_culture!="NA") %>%
+  arrange(desc(taux_amelioree)) %>% head(5) %>%
+  mutate(taux_amelioree=round(taux_amelioree,1),
+         taux_certifiee=round(taux_certifiee,1)) %>%
+  select(nom_culture,type_culture,N,taux_amelioree,taux_certifiee) %>%
+  rename(`Culture`=nom_culture,`Type`=type_culture,`N`=N,
+         `Taux amél.(%)`=taux_amelioree,`Taux cert.(%)`=taux_certifiee)
+mft(d30c,"Tableau 10 — Top 5 cultures — semences améliorées") %>%
+  bold(i=1) %>% bg(i=1,bg="#A9DFBF")
+```
+
+> **Note** : Comparaison W1 vs W4 non réalisable — variable `s11fq3b` absente en Wave 1.
+
+---
+
+# Conclusion
+
+- **Cultures** : Maïs dominant (`r round(d25$pct_menages[1],1)`%). Diversification plus élevée en rural (p=`r t26$p`, `r t26$p.signif`).
+- **Intrants** : Semences améliorées : `r as.numeric(d30g[1,2])`%. Herbicides et engrais inorganiques dominent.
+- **Rendements** : Maïs médiane `r round(cv(d28,5),1)` kg/ha. Engrais double le rendement maïs (p<10⁻³⁷). Pas d'effet sur mil.
+
+---
+
+
