@@ -1,0 +1,10 @@
+####### Importation des bases de données nécessaires pour le TP ##########
+library( haven)
+library(dplyr)
+library(gtsummary)
+library(rstatix)
+library(ggplot2)
+library(patchwork)
+secta_w4  <- read_dta("data/raw/secta_harvestw4.dta")
+sect11b1_p4  <- read_dta("data/raw/sect11b1_plantingw4.dta")
+sect11a1_p4  <- read_dta("data/raw/sect11a1_plantingw4.dta")
