@@ -1,5 +1,6 @@
 file_name,full_path
 HHTrack.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2012_GHSP-W2_v02_M_STATA/HHTrack.dta
+HHTrack.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2015_GHSP-W3_v02_M_Stata/HHTrack.dta
 NGA_HouseholdGeovariables_Y1.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2010_GHSP-W1_v03_M_STATA/Geodata/NGA_HouseholdGeovariables_Y1.dta
 NGA_HouseholdGeovars_Y2.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2012_GHSP-W2_v02_M_STATA/Geodata Wave 2/NGA_HouseholdGeovars_Y2.dta
 NGA_HouseholdGeovars_Y3.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2015_GHSP-W3_v02_M_Stata/NGA_HouseholdGeovars_Y3.dta
@@ -7,6 +8,7 @@ NGA_PlotGeovariables_Y1.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_
 NGA_PlotGeovariables_Y2.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2012_GHSP-W2_v02_M_STATA/Geodata Wave 2/NGA_PlotGeovariables_Y2.dta
 NGA_PlotGeovariables_Y3.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2015_GHSP-W3_v02_M_Stata/NGA_PlotGeovariables_Y3.dta
 PTrack.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2012_GHSP-W2_v02_M_STATA/PTrack.dta
+PTrack.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2015_GHSP-W3_v02_M_Stata/PTrack.dta
 ag_conv_w3.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2015_GHSP-W3_v02_M_Stata/ag_conv_w3.dta
 aux_harvestw4.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/aux_harvestw4.dta
 aux_plantingw4.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/aux_plantingw4.dta
@@ -322,6 +324,7 @@ secta_harvestw3.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM
 secta_harvestw4.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/secta_harvestw4.dta
 secta_plantingw1.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2010_GHSP-W1_v03_M_STATA/Post Planting Wave 1/Household/secta_plantingw1.dta
 secta_plantingw2.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2012_GHSP-W2_v02_M_STATA/Post Planting Wave 2/Agriculture/secta_plantingw2.dta
+secta_plantingw2.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2012_GHSP-W2_v02_M_STATA/Post Planting Wave 2/Household/secta_plantingw2.dta
 secta_plantingw3.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2015_GHSP-W3_v02_M_Stata/secta_plantingw3.dta
 secta_plantingw4.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2018_GHSP-W4_v03_M_Stata12/secta_plantingw4.dta
 sectaa_harvestw1.dta,/Users/HP/Downloads/TP3_Groupe17_GUEBEDIANG_Kadidja_RIRADJIM_Trésor/data_unzipped/NGA_2010_GHSP-W1_v03_M_STATA/Post Harvest Wave 1/Agriculture/sectaa_harvestw1.dta

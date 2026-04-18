@@ -1,6 +1,10 @@
 # =========================================================
 # main.R
-# Fichier principal : exécute tout le pipeline du projet
+# Pipeline principal du TP 3
+# Architecture fidèle au dépôt GitHub :
+# téléchargement, extraction, détection des .dta,
+# construction de la base, analyses pondérées,
+# rendu Word du rapport.
 # =========================================================
 
 rm(list = ls())
@@ -18,8 +22,10 @@ source(file.path("R", "03_detect_relevant_files.R"))
 source(file.path("R", "04_utils.R"))
 source(file.path("R", "05_build_analysis_data.R"))
 source(file.path("R", "06_run_analysis3.R"))
+source(file.path("R", "07_render_report.R"))
 
-cat("========================================\n")
+cat("\n========================================\n")
 cat("Pipeline terminé avec succès.\n")
-cat("Résultats disponibles dans le dossier output/\n")
+cat("Résultats disponibles dans le dossier outputs/\n")
+cat("Rapport Word généré dans le dossier report/\n")
 cat("========================================\n")

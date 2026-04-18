@@ -1,11 +1,11 @@
-maladie,categorie,n
-Paludisme,Infectieuse,2632
-Douleurs corporelles,Autre,1596
-Mal de tête,Autre,805
-Toux,Infectieuse,778
-Rhume / catarrhe,Infectieuse,775
-Rhume,Infectieuse,388
-Typhoïde,Infectieuse,351
-Ulcère / douleur d'estomac,Chronique,320
-Blessure,Traumatique,218
-Autre,Autre,153
+maladie,categorie,effectif_pondere
+Paludisme,Infectieuse,14431833.472229004
+Douleurs corporelles,Autre,7998947.436828613
+Mal de tête,Autre,4394990.377990723
+Toux,Infectieuse,4347849.0753479
+Rhume / catarrhe,Infectieuse,4279620.717803955
+Rhume,Infectieuse,2448480.7725219727
+Typhoïde,Infectieuse,1883967.1193237305
+Ulcère / douleur d'estomac,Chronique,1690696.0536193848
+Blessure,Traumatique,1102160.3912353516
+Autre,Autre,871359.543182373

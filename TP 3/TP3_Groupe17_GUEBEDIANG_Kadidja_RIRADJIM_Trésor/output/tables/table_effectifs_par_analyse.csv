@@ -1,8 +1,8 @@
-analyse,n_utilisable
-Base totale,26556
-Morbidité (malade + sexe + âge_groupe),22171
-Types de maladies,6450
-Prestataires consultés,6450
-Dépenses de santé,8624
-Dépenses par milieu,8624
-Consultation x quintile,26533
+analyse,n_utilisable,somme_poids
+Base totale,26556,149016938.11026
+Morbidité (malade + sexe + âge_groupe + poids),22157,124753403.74255371
+Types de maladies,6439,35062322.04711914
+Prestataires consultés,6439,35062322.04711914
+Dépenses de santé,8612,46736001.287323
+Dépenses par milieu,8612,46736001.287323
+Consultation x quintile,26533,149016938.11026

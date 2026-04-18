@@ -1,0 +1,388 @@
+---
+title: "Analyse 2 -- Education et alphabetisation des membres des menages"
+subtitle: "Nigeria GHS Panel -- Wave 4 (2018) | ENSAE ISE 1 -- 2025-2026"
+author: |
+  ANDRIALALAOSOA Marcellin  
+  Andil Ben Andjiboudine
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_width: 8
+    fig_height: 5
+    reference_docx: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "",
+  fig.align = "center",
+  out.width = "95%"
+)
+```
+
+```{r racine, include=FALSE}
+knitr::opts_knit$set(root.dir = "D:/ENSAE/ISE_1_SEMESTRE_2/R/mon_projet")
+```
+
+```{r packages, include=FALSE}
+pkgs <- c("haven","dplyr","ggplot2","forcats","gtsummary","rstatix",
+          "viridis","patchwork","purrr","scales","knitr","flextable","officer")
+invisible(lapply(pkgs[pkgs %in% rownames(installed.packages())], library, character.only=TRUE))
+new_pkgs <- pkgs[!pkgs %in% rownames(installed.packages())]
+if(length(new_pkgs)){ install.packages(new_pkgs); lapply(new_pkgs, library, character.only=TRUE) }
+```
+
+```{r import, include=FALSE}
+sectaa_harvestw4 <- read_dta("data/raw/NGA_2018_GHSP-W4_v03_M_Stata12/sectaa_harvestw4.dta")
+sect2_harvestw4  <- read_dta("data/raw/NGA_2018_GHSP-W4_v03_M_Stata12/sect2_harvestw4.dta")
+sect1_harvestw4  <- read_dta("data/raw/NGA_2018_GHSP-W4_v03_M_Stata12/sect1_harvestw4.dta")
+
+poids <- sectaa_harvestw4 %>%
+  select(hhid, wt_wave4) %>%
+  distinct(hhid, .keep_all=TRUE)
+```
+
+```{r preparation, include=FALSE}
+educ_data <- sect2_harvestw4 %>%
+  left_join(sect1_harvestw4 %>% select(hhid, indiv, s1q2, s1q4), by=c("hhid","indiv")) %>%
+  left_join(poids, by="hhid") %>%
+  mutate(
+    sexe = case_when(s1q2==1~"Homme", s1q2==2~"Femme", TRUE~NA_character_),
+    age  = as.numeric(s1q4),
+    zone = case_when(sector==1~"Rural", sector==2~"Urbain", TRUE~NA_character_),
+    niveau_educ = case_when(
+      s2aq9 %in% c(0,1,2,3,51,52,61)  ~ "Aucun",
+      s2aq9 %in% 11:16                 ~ "Primaire",
+      s2aq9 %in% c(21,22,23,321)       ~ "Junior Secondary",
+      s2aq9 %in% c(24,25,26,27,28,322) ~ "Senior Secondary",
+      s2aq9 %in% c(31,33,34,35,41,43,411,412,421,422,423,424) ~ "Tertiaire",
+      TRUE ~ NA_character_
+    ),
+    niveau_educ = factor(niveau_educ,
+      levels=c("Aucun","Primaire","Junior Secondary","Senior Secondary","Tertiaire"),
+      ordered=TRUE)
+  )
+
+# Frequences ponderees
+freq_educ <- educ_data %>%
+  filter(!is.na(niveau_educ), !is.na(wt_wave4)) %>%
+  group_by(niveau_educ) %>%
+  summarise(n_pondere=sum(wt_wave4), .groups="drop") %>%
+  mutate(prop=n_pondere/sum(n_pondere)*100) %>%
+  arrange(desc(prop))
+
+prop_primaire <- round(freq_educ$prop[freq_educ$niveau_educ=="Primaire"], 1)
+prop_aucun    <- round(freq_educ$prop[freq_educ$niveau_educ=="Aucun"], 1)
+prop_tert     <- round(freq_educ$prop[freq_educ$niveau_educ=="Tertiaire"], 1)
+
+# Adultes 18+
+educ_adultes <- educ_data %>%
+  filter(!is.na(niveau_educ), !is.na(sexe), age>=18) %>%
+  mutate(
+    groupe_age = case_when(
+      age>=18 & age<=30 ~ "18-30",
+      age>=31 & age<=45 ~ "31-45",
+      age>=46 & age<=60 ~ "46-60",
+      age>60            ~ "60+",
+      TRUE              ~ NA_character_
+    ),
+    groupe_age      = factor(groupe_age, levels=c("18-30","31-45","46-60","60+")),
+    niveau_educ_num = as.integer(niveau_educ)
+  )
+
+# Chi2 sexe
+tab_cont  <- table(educ_adultes$sexe, educ_adultes$niveau_educ)
+chi2      <- chisq.test(tab_cont)
+V_cramer  <- sqrt(chi2$statistic/(sum(tab_cont)*(min(dim(tab_cont))-1)))
+
+# Kruskal-Wallis + Dunn
+kw   <- kruskal.test(niveau_educ_num~groupe_age, data=educ_adultes %>% filter(!is.na(groupe_age)))
+dunn <- rstatix::dunn_test(
+  data=educ_adultes %>% filter(!is.na(groupe_age)),
+  formula=niveau_educ_num~groupe_age,
+  p.adjust.method="bonferroni"
+)
+
+# Scolarisation 6-17
+scol_data <- educ_data %>%
+  filter(age>=6, age<=17, !is.na(zone), !is.na(wt_wave4)) %>%
+  mutate(scolarise=case_when(s2aq3==1~"Scolarise", s2aq3==2~"Non scolarise", TRUE~NA_character_)) %>%
+  filter(!is.na(scolarise))
+
+tab_scol  <- table(scol_data$zone, scol_data$scolarise)
+chi2_scol <- chisq.test(tab_scol)
+
+scol_stats <- scol_data %>%
+  group_by(zone, scolarise) %>%
+  summarise(n_pondere=sum(wt_wave4), n_brut=n(), .groups="drop") %>%
+  group_by(zone) %>%
+  mutate(prop=n_pondere/sum(n_pondere), n_tot=sum(n_brut),
+         ic_low  = mapply(function(x,n) binom.test(x,n)$conf.int[1], n_brut, n_tot),
+         ic_high = mapply(function(x,n) binom.test(x,n)$conf.int[2], n_brut, n_tot)) %>%
+  filter(scolarise=="Scolarise")
+
+taux_rural  <- round(scol_stats$prop[scol_stats$zone=="Rural"]*100, 1)
+taux_urbain <- round(scol_stats$prop[scol_stats$zone=="Urbain"]*100, 1)
+
+# Heatmap
+heatmap_data <- educ_data %>%
+  filter(!is.na(niveau_educ), age>=18, !is.na(wt_wave4)) %>%
+  group_by(state) %>%
+  summarise(
+    taux_aucun = sum(wt_wave4[niveau_educ=="Aucun"])/sum(wt_wave4)*100,
+    .groups="drop"
+  ) %>%
+  mutate(state=fct_reorder(as_factor(state), taux_aucun))
+
+etat_max <- as.character(heatmap_data$state[which.max(heatmap_data$taux_aucun)])
+etat_min <- as.character(heatmap_data$state[which.min(heatmap_data$taux_aucun)])
+taux_max  <- round(max(heatmap_data$taux_aucun), 1)
+taux_min  <- round(min(heatmap_data$taux_aucun), 1)
+```
+
+---
+
+**Objectif :** Analyser les niveaux d'instruction et les taux d'alphabetisation de la population nigeriane, et comparer les profils entre sexes, tranches d'age et zones geographiques, en tenant compte de la ponderation `wt_wave4`.
+
+**Fichiers :** `sect2_harvestw4.dta` + `sect1_harvestw4.dta` + `sectaa_harvestw4.dta` | **Poids :** `wt_wave4`
+
+---
+
+# Distribution du niveau d'education (ponderee)
+
+## Frequences ponderees
+
+```{r freq-educ-table}
+freq_educ %>%
+  mutate(prop=round(prop,1)) %>%
+  select(niveau_educ, prop) %>%
+  rename(`Niveau d'education`=niveau_educ, `Proportion ponderee (%)`=prop) %>%
+  flextable() %>%
+  set_caption("Distribution ponderee du niveau d'education -- Wave 4 (2018)") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+## Barplot pondere
+
+```{r barplot-educ, fig.cap="Distribution ponderee du niveau d'education -- Population nigeriane, Wave 4", fig.height=3.8}
+ggplot(freq_educ, aes(x=prop, y=fct_reorder(niveau_educ, prop), fill=niveau_educ)) +
+  geom_col(width=0.7, alpha=0.9) +
+  geom_text(aes(label=paste0(round(prop,1),"%")), hjust=-0.2, size=3.5) +
+  scale_fill_manual(values=c("Aucun"="#c0392b","Primaire"="#e67e22",
+    "Junior Secondary"="#f1c40f","Senior Secondary"="#27ae60","Tertiaire"="#1a5276"),
+    guide="none") +
+  scale_x_continuous(limits=c(0, max(freq_educ$prop)*1.2),
+                     labels=function(x) paste0(x,"%")) +
+  labs(title="Distribution ponderee du niveau d'education",
+       subtitle="Poids : wt_wave4 | Wave 4 (2018) | Nigeria",
+       x="Proportion ponderee (%)", y=NULL) +
+  theme_minimal(base_size=11) +
+  theme(plot.title=element_text(face="bold"), panel.grid.major.y=element_blank())
+```
+
+Au niveau de la **population nigeriane**, le niveau **Primaire** est le plus repandu (`r prop_primaire`%). Une part importante de la population (`r prop_aucun`%) n'a atteint aucun niveau d'instruction, reflet des inegalites historiques d'acces a l'education. Seulement `r prop_tert`% de la population a atteint le niveau tertiaire, illustrant le fort goulot d'etranglement du systeme educatif nigerian.
+
+---
+
+# Education par sexe (adultes 18+)
+
+## Test du Chi-deux et V de Cramer
+
+```{r chi2-table}
+data.frame(
+  `Chi-deux` = round(chi2$statistic,3),
+  `ddl`      = chi2$parameter,
+  `p-valeur` = format.pval(chi2$p.value, digits=4),
+  `V de Cramer` = round(V_cramer, 4),
+  `Interpretation` = case_when(
+    V_cramer<0.1 ~ "Faible", V_cramer<0.3 ~ "Moderee",
+    V_cramer<0.5 ~ "Forte", TRUE ~ "Tres forte")
+) %>%
+  flextable() %>%
+  set_caption("Test du Chi-deux -- Education par sexe (adultes 18+)") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+## Barplot 100% pondere par sexe
+
+```{r barplot-sexe, fig.cap="Niveau d'education pondere par sexe -- Population adulte nigeriane, Wave 4", fig.height=4}
+educ_adultes %>%
+  filter(!is.na(wt_wave4)) %>%
+  group_by(sexe, niveau_educ) %>%
+  summarise(n_pondere=sum(wt_wave4), .groups="drop") %>%
+  group_by(sexe) %>%
+  mutate(prop=n_pondere/sum(n_pondere)) %>%
+  ggplot(aes(x=sexe, y=prop, fill=niveau_educ)) +
+  geom_col(position="fill", width=0.6) +
+  geom_text(aes(label=ifelse(prop>=0.05, paste0(round(prop*100,1),"%"),"")),
+            position=position_fill(vjust=0.5), size=3.5, color="white", fontface="bold") +
+  scale_fill_manual(values=c("Aucun"="#c0392b","Primaire"="#e67e22",
+    "Junior Secondary"="#f1c40f","Senior Secondary"="#27ae60","Tertiaire"="#1a5276"),
+    name="Niveau d'education") +
+  scale_y_continuous(labels=percent_format()) +
+  labs(title="Niveau d'education pondere par sexe (adultes 18+)",
+       subtitle=paste0("Chi-deux p = ", format.pval(chi2$p.value, digits=3),
+                       " | V de Cramer = ", round(V_cramer,3)),
+       x="Sexe", y="Proportion ponderee (%)") +
+  theme_minimal(base_size=11) +
+  theme(plot.title=element_text(face="bold"), legend.position="right")
+```
+
+Au sein de la population adulte nigeriane, le test du Chi-deux revele une association `r ifelse(V_cramer<0.1,"faible",ifelse(V_cramer<0.3,"moderee","forte"))` entre le sexe et le niveau d'education (p = `r format.pval(chi2$p.value, digits=3)`, V = `r round(V_cramer,3)`). Les **femmes sont significativement desavantagees** : elles representent une proportion plus elevee sans instruction, tandis que les hommes sont sur-representes aux niveaux secondaire et superieur. Ces inegalites de genre persistent au sein de la population nigerianes malgre les progres recents.
+
+---
+
+# Relation age et niveau d'education
+
+## Test de Kruskal-Wallis et post-hoc Dunn
+
+```{r kw-table}
+data.frame(
+  Test        = "Kruskal-Wallis",
+  `Chi-carre` = round(kw$statistic,3),
+  `ddl`       = kw$parameter,
+  `p-valeur`  = format.pval(kw$p.value, digits=4),
+  Conclusion  = ifelse(kw$p.value<0.05,"Differences significatives","Non significatif")
+) %>%
+  flextable() %>%
+  set_caption("Test de Kruskal-Wallis -- Education par groupe d'age") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+```{r dunn-table}
+dunn %>%
+  select(group1, group2, statistic, p, p.adj, p.adj.signif) %>%
+  mutate(across(where(is.numeric), ~round(.,4))) %>%
+  rename(`Groupe 1`=group1, `Groupe 2`=group2, Statistique=statistic,
+         `p-valeur`=p, `p ajustee`=p.adj, Signif=p.adj.signif) %>%
+  flextable() %>%
+  set_caption("Post-hoc Dunn (Bonferroni) -- Groupes d'age") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+## Boxplot pondere par groupe d'age
+
+```{r boxplot-age, fig.cap="Niveau d'education par groupe d'age -- Population adulte nigeriane, Wave 4", fig.height=4}
+educ_adultes %>%
+  filter(!is.na(groupe_age)) %>%
+  ggplot(aes(x=groupe_age, y=niveau_educ_num, fill=groupe_age)) +
+  geom_boxplot(aes(weight=wt_wave4), alpha=0.75, outlier.alpha=0.3) +
+  scale_y_continuous(breaks=1:5, labels=c("Aucun","Primaire","JSS","SSS","Tertiaire")) +
+  scale_fill_manual(values=c("18-30"="#1a5276","31-45"="#2874a6",
+                              "46-60"="#85c1e9","60+"="#aed6f1"), guide="none") +
+  labs(title="Niveau d'education pondere par groupe d'age (adultes 18+)",
+       subtitle=paste0("Kruskal-Wallis : p = ", format.pval(kw$p.value, digits=3)),
+       x="Groupe d'age", y="Niveau d'education") +
+  theme_minimal(base_size=11) +
+  theme(plot.title=element_text(face="bold"))
+```
+
+Au niveau de la population nigeriane, le test de Kruskal-Wallis confirme des differences **hautement significatives** du niveau d'education entre les groupes d'age (p = `r format.pval(kw$p.value, digits=3)`). Les generations **18-30 ans** atteignent des niveaux d'education nettement superieurs aux generations precedentes, temoignant des progres de l'acces a l'education au Nigeria au fil des decennies. Le test post-hoc de Dunn avec correction de Bonferroni confirme que toutes les paires de groupes se distinguent significativement.
+
+---
+
+# Scolarisation des 6-17 ans par zone (ponderee)
+
+## Test du Chi-deux
+
+```{r chi2-scol-table}
+data.frame(
+  `Chi-deux`   = round(chi2_scol$statistic, 3),
+  `ddl`        = chi2_scol$parameter,
+  `p-valeur`   = format.pval(chi2_scol$p.value, digits=4),
+  Conclusion   = ifelse(chi2_scol$p.value<0.05,"Association significative","Non significatif")
+) %>%
+  flextable() %>%
+  set_caption("Test du Chi-deux -- Scolarisation des 6-17 ans par zone") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  autofit()
+```
+
+## Barplot pondere avec IC
+
+```{r barplot-scol, fig.cap="Taux de scolarisation pondere des 6-17 ans -- Population nigeriane, Wave 4", fig.height=3.8}
+ggplot(scol_stats, aes(x=zone, y=prop, fill=zone)) +
+  geom_col(width=0.5, alpha=0.85) +
+  geom_errorbar(aes(ymin=ic_low, ymax=ic_high), width=0.15, linewidth=0.8) +
+  geom_text(aes(label=paste0(round(prop*100,1),"%")), vjust=-1.5, size=4, fontface="bold") +
+  scale_fill_manual(values=c("Rural"="#2874a6","Urbain"="#e74c3c"), guide="none") +
+  scale_y_continuous(labels=percent_format(), limits=c(0,1)) +
+  labs(title="Taux de scolarisation pondere des 6-17 ans par zone",
+       subtitle=paste0("Chi-deux p = ", format.pval(chi2_scol$p.value, digits=3),
+                       " | IC a 95% (binomial)"),
+       x="Zone de residence", y="Taux de scolarisation") +
+  theme_minimal(base_size=11) +
+  theme(plot.title=element_text(face="bold"))
+```
+
+Au sein de la **population nigeriane** de 6 a 17 ans, le taux de scolarisation pondere est de **`r taux_urbain`% en milieu urbain** contre **`r taux_rural`% en milieu rural**, soit un ecart de **`r taux_urbain - taux_rural` points**. Cette difference est statistiquement significative (p = `r format.pval(chi2_scol$p.value, digits=3)`). Les inegalites geographiques d'acces a l'education persistent dans la population nigeriane, liees au manque d'infrastructures scolaires en zone rurale.
+
+---
+
+# Heatmap : taux d'analphabetisme pondere par Etat
+
+```{r heatmap, fig.cap="Taux d'analphabetisme pondere par Etat -- Population adulte nigeriane, Wave 4", fig.height=9, fig.width=7}
+ggplot(heatmap_data, aes(x="Taux sans instruction", y=state, fill=taux_aucun)) +
+  geom_tile(color="white", linewidth=0.4) +
+  geom_text(aes(label=paste0(round(taux_aucun,1),"%")),
+            size=2.8, color="white", fontface="bold") +
+  scale_fill_viridis_c(option="plasma", name="% sans\ninstruction") +
+  labs(title="Taux d'analphabetisme pondere par Etat nigerian",
+       subtitle="Part des adultes (18+) sans instruction -- Wave 4 (2018)",
+       x=NULL, y="Etat") +
+  theme_minimal(base_size=9) +
+  theme(plot.title=element_text(face="bold"), axis.text.x=element_blank())
+```
+
+La heatmap ponderee revele de fortes **disparites geographiques** dans la population nigeriane. L'Etat de **`r etat_max`** enregistre le taux d'analphabetisme le plus eleve (**`r taux_max`%**), tandis que **`r etat_min`** presente le plus faible (**`r taux_min`%**). Les Etats du **Nord Nigeria** concentrent les taux les plus eleves, refletant des inegalites historiques d'acces a l'education formelle dans cette partie du pays.
+
+---
+
+# Synthese de l'Analyse 2
+
+```{r synthese}
+data.frame(
+  Tache = c("Education (5 cat.)","Education par sexe","Age x Education",
+            "Scolarisation 6-17","Heatmap par Etat"),
+  `Resultat principal` = c(
+    paste0("Primaire = ",prop_primaire,"% | Aucun = ",prop_aucun,"%"),
+    paste0("Chi2 p = ",format.pval(chi2$p.value,digits=3)," | V = ",round(V_cramer,3),
+           " -- Femmes desavantagees"),
+    paste0("Kruskal-Wallis p = ",format.pval(kw$p.value,digits=3)," -- Jeunes plus eduques"),
+    paste0("Urbain = ",taux_urbain,"% vs Rural = ",taux_rural,"% | Ecart = ",
+           taux_urbain-taux_rural," pts"),
+    paste0("Max : ",etat_max," (",taux_max,"%) | Min : ",etat_min," (",taux_min,"%)")
+  )
+) %>%
+  flextable() %>%
+  set_caption("Synthese des resultats ponderes -- Analyse 2") %>%
+  bold(part="header") %>%
+  bg(part="header", bg="#1a5276") %>%
+  color(part="header", color="white") %>%
+  set_table_properties(width=1, layout="autofit") %>%
+  autofit()
+```
+
+---
+
+*Rapport genere avec R `r paste(R.version$major, R.version$minor, sep=".")` -- Source : Nigeria GHS Panel, Wave 4 (2018), World Bank LSMS-ISA.*

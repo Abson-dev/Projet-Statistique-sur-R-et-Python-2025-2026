@@ -1,0 +1,491 @@
+---
+title: "Éducation et alphabétisation des membres des ménages nigérians"
+subtitle: "Nigeria General Household Survey Panel — Wave 4 (2018)"
+author: "DIOP Marème, KANE Boubacar"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 4
+)
+```
+
+```{r libraries, include=FALSE}
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(rstatix)
+library(ggpubr)
+library(scales)
+library(patchwork)
+library(gtsummary)
+library(naniar)
+library(gt)
+library(labelled)
+library(viridis)
+library(forcats)
+library(openxlsx)
+library(survey)
+library(tidyr)
+```
+
+```{r import, include=FALSE}
+sect2 <- read_dta("data/sect2_harvestw4.dta")
+sect1 <- read_dta("data/sect1_harvestw4.dta")
+cons  <- read_dta("data/totcons_final.dta")
+
+if (!dir.exists("outputs")) dir.create("outputs")
+```
+
+```{r verif-import, include=FALSE}
+dim(sect2)
+dim(sect1)
+n_distinct(sect2$hhid, sect2$indiv)
+colSums(is.na(sect2[, c("s2aq5", "s2aq6", "s2aq9", "s2aq10", "s2aq13a", "s2aq13")]))
+table(sect2$s2aq9, useNA = "always")
+labelled::val_labels(sect2$s2aq9)
+labelled::val_labels(sect2$s2aq6)
+```
+
+```{r construction-variables, include=FALSE}
+sect2 <- sect2 %>%
+  mutate(
+    niveau_educ = case_when(
+      s2aq6 == 2 ~ "Aucun",
+      TRUE ~ NA_character_
+    ),
+    niveau_raw = coalesce(
+      as.numeric(s2aq9),
+      as.numeric(s2aq13b),
+      as.numeric(s2aq15)
+    ),
+    niveau_educ = case_when(
+      !is.na(niveau_educ)              ~ niveau_educ,
+      niveau_raw == 0                  ~ "Aucun",
+      niveau_raw %in% c(1, 2, 3)       ~ "Préscolaire",
+      niveau_raw %in% 11:16            ~ "Primaire",
+      niveau_raw %in% 21:23            ~ "Junior Secondary",
+      niveau_raw %in% c(24:28,321,322) ~ "Senior Secondary",
+      niveau_raw %in% c(31,33:35,41,43,
+                        51,52,61,
+                        411,412,
+                        421:424)       ~ "Tertiaire",
+      TRUE                             ~ NA_character_
+    ),
+    niveau_educ = factor(niveau_educ,
+                         levels = c("Aucun", "Primaire",
+                                    "Junior Secondary",
+                                    "Senior Secondary",
+                                    "Tertiaire"))
+  )
+
+table(sect2$niveau_educ, useNA = "always")
+```
+
+```{r fusion, include=FALSE}
+df_educ <- sect2 %>%
+  left_join(sect1 %>% select(hhid, indiv, s1q2, s1q4),
+            by = c("hhid", "indiv")) %>%
+  mutate(sexe = factor(s1q2, levels = c(1, 2), labels = c("Homme", "Femme")))
+
+dim(df_educ)
+colSums(is.na(df_educ[, c("s1q2", "s1q4", "sexe")]))
+```
+
+```{r poids, include=FALSE}
+df_educ <- df_educ %>%
+  left_join(cons %>% select(hhid, wt_wave4), by = "hhid")
+
+summary(df_educ$wt_wave4)
+colSums(is.na(df_educ["wt_wave4"]))
+
+design_educ <- svydesign(
+  ids     = ~hhid,
+  weights = ~wt_wave4,
+  data    = df_educ %>% filter(!is.na(wt_wave4))
+)
+```
+
+# Introduction
+
+Ce rapport analyse les niveaux d'instruction et les taux d'alphabétisation des membres des ménages nigérians à partir des données de la quatrième vague (2018) du Nigeria General Household Survey (GHS) Panel, collectée dans le cadre du programme LSMS-ISA de la Banque Mondiale. L'objectif est de comparer les profils éducatifs entre sexes, tranches d'âge et zones géographiques, afin de mettre en évidence les inégalités d'accès à l'éducation au Nigeria en 2018. Toutes les estimations sont pondérées à l'aide des poids de sondage `wt_wave4` pour assurer la représentativité nationale des résultats.
+
+## Description des bases de données
+
+**`sect2_harvestw4`** est la section éducation individuelle du GHS Panel Wave 4. Elle contient 26 557 observations et 60 variables couvrant le statut scolaire actuel, le niveau d'instruction atteint, les raisons de non-scolarisation et les dépenses éducatives. Contrairement aux Waves 1 et 2 où les modules éducation étaient scindés en `sect2a` et `sect2b`, la Wave 4 fusionne toutes les informations en un seul fichier. Les variables clés mobilisées sont `s2aq5` (alphabétisation), `s2aq6` (scolarisation passée), `s2aq9` (niveau atteint), `s2aq13a` (scolarisation actuelle 2018/2019) et `s2aq15` (niveau fréquenté en 2017/2018).
+
+**`sect1_harvestw4`** est la section démographique du ménage. Elle contient 30 337 observations et 59 variables dont le sexe (`s1q2`) et l'âge (`s1q4`) des membres, utilisés pour stratifier les analyses par groupe démographique. La jointure avec `sect2` est réalisée sur les identifiants `hhid` et `indiv`, sans perte d'observation.
+
+**`totcons_final`** contient les agrégats de consommation par ménage. La variable `wt_wave4` (poids de sondage) est extraite de ce fichier et fusionnée via `hhid` pour pondérer toutes les estimations. On dénombre 24 NA sur cette variable (0,09%), négligeables et exclus de l'analyse.
+
+## Construction de la variable niveau d'éducation
+
+La variable `niveau_educ` à 5 catégories ordonnées a été construite en trois passes : (1) les individus jamais scolarisés (`s2aq6 = 2`) sont directement classés "Aucun" ; (2) le niveau est reconstitué par `coalesce(s2aq9, s2aq13b, s2aq15)` pour maximiser la couverture ; (3) un filet via `s2aq10` complète les cas résiduels. La catégorie "Préscolaire" a été supprimée en raison d'effectifs trop faibles. Les NA restants correspondent aux enfants de moins de 3 ans exclus du questionnaire éducation.
+
+# Distribution du niveau d'éducation
+
+## Méthodologie
+
+Les proportions sont estimées par la fonction `svymean` du package `survey`, avec intervalles de confiance à 95% par la méthode de linéarisation de Taylor. L'analyse porte sur l'ensemble des individus de 3 ans et plus disposant d'une information éducative.
+
+## Résultats
+
+```{r tache8-pondere, include=FALSE}
+tab8 <- svymean(~niveau_educ, design_educ, na.rm = TRUE)
+tab8
+confint(tab8)
+```
+
+```{r tableau-niveau-educ}
+tab8_df <- as.data.frame(tab8) %>%
+  tibble::rownames_to_column("niveau_educ") %>%
+  mutate(
+    niveau_educ = gsub("niveau_educ", "", niveau_educ),
+    niveau_educ = factor(niveau_educ,
+                         levels = c("Aucun", "Primaire", "Junior Secondary",
+                                    "Senior Secondary", "Tertiaire")),
+    pct     = mean * 100,
+    ic_bas  = confint(tab8)[, 1] * 100,
+    ic_haut = confint(tab8)[, 2] * 100
+  )
+
+tab8_df %>%
+  select(niveau_educ, pct, ic_bas, ic_haut) %>%
+  gt() %>%
+  tab_header(title = "Distribution pondérée du niveau d'éducation — Wave 4 (2018)") %>%
+  cols_label(
+    niveau_educ = "Niveau d'éducation",
+    pct         = "Proportion (%)",
+    ic_bas      = "IC bas (%)",
+    ic_haut     = "IC haut (%)"
+  ) %>%
+  fmt_number(columns = c(pct, ic_bas, ic_haut), decimals = 1) %>%
+  tab_source_note("Estimations pondérées — poids wt_wave4 | Source : GHS Panel Wave 4")
+```
+
+```{r barplot-niveau-educ, fig.cap="Distribution pondérée du niveau d'éducation atteint (individus de 3 ans et plus)"}
+p1 <- ggplot(tab8_df, aes(x = fct_rev(niveau_educ), y = pct, fill = niveau_educ)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = ic_bas, ymax = ic_haut), width = 0.3) +
+  geom_text(aes(label = round(pct, 1)), hjust = -1.2, size = 3) +
+  coord_flip() +
+  labs(x = "", y = "Proportion pondérée (%)",
+       caption = "Estimations pondérées — poids wt_wave4") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig1_barplot_niveau_educ.png", p1, width = 7, height = 4, dpi = 300)
+p1
+```
+
+## Interprétation
+
+Les estimations pondérées révèlent que le niveau Primaire est le plus représenté (29,7%, IC : [28,7% — 30,7%]), suivi du niveau "Aucun" (25,9%, IC : [24,7% — 27,2%]). Le Senior Secondary concerne 19,0% de la population et le niveau Tertiaire 16,5%. Ces résultats indiquent qu'environ un quart de la population nigériane de 3 ans et plus n'a aucun niveau d'instruction formelle, reflétant les défis persistants du système éducatif nigérian.
+
+# Comparaison du niveau d'éducation entre hommes et femmes
+
+## Méthodologie
+
+L'analyse porte sur les adultes de 18 ans et plus. Un design survey spécifique est créé pour ce sous-groupe. Le tableau de contingence est obtenu par `svytable` et le test d'indépendance par le chi-deux de Rao-Scott (`svychisq`), adapté aux données d'enquêtes complexes.
+
+## Résultats
+
+```{r tache9-pondere, include=FALSE}
+df_adultes <- df_educ %>%
+  filter(s1q4 >= 18, !is.na(niveau_educ), !is.na(sexe), !is.na(wt_wave4))
+
+design_adultes <- svydesign(
+  ids     = ~hhid,
+  weights = ~wt_wave4,
+  data    = df_adultes
+)
+
+svyby(~niveau_educ, ~sexe, design_adultes, svymean, na.rm = TRUE)
+
+design_adultes2 <- update(design_adultes,
+                           niveau_educ = as.factor(niveau_educ))
+svychisq(~niveau_educ + sexe, design_adultes2)
+```
+
+```{r tableau-contingence-sexe}
+tab9_cont <- svytable(~sexe + niveau_educ, design_adultes)
+
+tab9_cont %>%
+  as.data.frame.matrix() %>%
+  tibble::rownames_to_column("Sexe") %>%
+  gt() %>%
+  tab_header(title = "Niveau d'éducation par sexe — adultes 18+ (effectifs pondérés)") %>%
+  fmt_number(columns = -Sexe, decimals = 0) %>%
+  tab_source_note("Test de Rao-Scott : F = 80.10, p < 2.2e-16 | Estimations pondérées wt_wave4")
+```
+
+```{r barplot-sexe-educ, fig.cap="Répartition pondérée du niveau d'éducation par sexe (adultes 18+)"}
+tab9_df <- svyby(~niveau_educ, ~sexe, design_adultes, svymean, na.rm = TRUE) %>%
+  as.data.frame() %>%
+  pivot_longer(cols = starts_with("niveau_educ"),
+               names_to = "niveau_educ",
+               values_to = "pct") %>%
+  filter(!grepl("^se\\.", niveau_educ)) %>%
+  mutate(
+    niveau_educ = gsub("niveau_educ", "", niveau_educ),
+    niveau_educ = factor(niveau_educ,
+                         levels = c("Aucun", "Primaire", "Junior Secondary",
+                                    "Senior Secondary", "Tertiaire")),
+    pct = pct * 100
+  )
+
+p2 <- ggplot(tab9_df, aes(x = sexe, y = pct, fill = niveau_educ)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(round(pct, 1), "%")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  labs(x = "", y = "%", fill = "Niveau",
+       caption = "Estimations pondérées — poids wt_wave4") +
+  theme_minimal()
+
+ggsave("outputs/fig2_barplot_sexe_educ.png", p2, width = 7, height = 4, dpi = 300)
+p2
+```
+
+## Interprétation
+
+Les inégalités de genre sont marquées et hautement significatives (test de Rao-Scott : F = 80,10, p < 2,2×10⁻¹⁶). Les femmes adultes sont surreprésentées dans la catégorie "Aucun" par rapport aux hommes, et sous-représentées aux niveaux Senior Secondary et Tertiaire. Ces écarts reflètent les inégalités historiques d'accès à l'éducation qui ont défavorisé les filles au Nigeria, bien qu'une convergence progressive soit observée pour les générations récentes.
+
+# Relation entre âge et niveau d'éducation
+
+## Méthodologie
+
+Les adultes de 18 ans et plus ont été regroupés en quatre tranches d'âge (18-30, 31-45, 46-60, 60+). Le niveau d'éducation étant une variable ordinale, le test de Kruskal-Wallis pondéré (`svyranktest`) est utilisé pour tester les différences entre groupes, suivi d'un test post-hoc de Dunn avec correction de Bonferroni.
+
+## Résultats
+
+```{r tache10-pondere, include=FALSE}
+df_adultes <- df_adultes %>%
+  mutate(
+    groupe_age = cut(s1q4,
+                     breaks = c(18, 30, 45, 60, Inf),
+                     labels = c("18-30", "31-45", "46-60", "60+"),
+                     right = TRUE,
+                     include.lowest = TRUE),
+    niveau_num = as.numeric(niveau_educ)
+  )
+
+design_adultes <- update(design_adultes,
+                          groupe_age = df_adultes$groupe_age,
+                          niveau_num = df_adultes$niveau_num)
+
+svyranktest(niveau_num ~ groupe_age, design_adultes)
+```
+
+```{r boxplot-age-educ, fig.cap="Distribution pondérée du niveau d'éducation par groupe d'âge (adultes 18+)"}
+p3 <- ggplot(df_adultes, aes(x = groupe_age,
+                              y = niveau_num,
+                              fill = groupe_age,
+                              weight = wt_wave4)) +
+  geom_boxplot() +
+  scale_y_continuous(breaks = 1:5,
+                     labels = levels(df_adultes$niveau_educ)) +
+  labs(x = "Groupe d'âge", y = "Niveau d'éducation",
+       caption = "Estimations pondérées — poids wt_wave4") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig3_boxplot_age_educ.png", p3, width = 7, height = 4, dpi = 300)
+p3
+```
+
+```{r dunn-tableau}
+dunn_res <- dunn_test(df_adultes,
+                      niveau_num ~ groupe_age,
+                      p.adjust.method = "bonferroni")
+
+dunn_res %>%
+  select(group1, group2, statistic, p, p.adj, p.adj.signif) %>%
+  gt() %>%
+  tab_header(title = "Test post-hoc de Dunn — comparaisons par paires (Bonferroni)") %>%
+  cols_label(
+    group1       = "Groupe 1",
+    group2       = "Groupe 2",
+    statistic    = "Statistique",
+    p            = "p-valeur",
+    p.adj        = "p ajustée",
+    p.adj.signif = "Signif."
+  ) %>%
+  fmt_number(columns = c(statistic, p, p.adj), decimals = 4)
+```
+
+## Interprétation
+
+Le test de Kruskal-Wallis pondéré révèle une différence hautement significative entre les groupes d'âge (Chi² = 418,7, ddl = 3, p < 2,2×10⁻¹⁶). Le test post-hoc de Dunn confirme que toutes les paires de groupes sont significativement différentes après correction de Bonferroni (p.adj < 0,0001 pour toutes les comparaisons). Les jeunes adultes de 18 à 30 ans présentent le niveau d'éducation le plus élevé, tandis que les personnes de 60 ans et plus ont le niveau le plus bas. Ce gradient générationnel reflète l'expansion progressive du système éducatif nigérian et les politiques d'universalisation de l'éducation post-1990.
+
+# Taux de scolarisation des 6-17 ans selon le milieu de résidence
+
+## Méthodologie
+
+Le taux de scolarisation est calculé à partir de `s2aq13a` (scolarisation en cours en 2018/2019). Les enfants n'ayant jamais été à l'école (`s2aq6 = 2`) ont été recodés comme "Non scolarisés". Un design survey spécifique est créé pour les 6-17 ans. Le test du chi-deux de Rao-Scott (`svychisq`) mesure l'association entre milieu de résidence et scolarisation.
+
+## Résultats
+
+```{r tache11-pondere, include=FALSE}
+df_enfants <- df_educ %>%
+  filter(s1q4 >= 6, s1q4 <= 17, !is.na(wt_wave4)) %>%
+  mutate(
+    milieu = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural")),
+    scolarise = case_when(
+      s2aq13a == 1 ~ "Scolarisé",
+      s2aq13a == 2 ~ "Non scolarisé",
+      s2aq6 == 2   ~ "Non scolarisé",
+      TRUE         ~ NA_character_
+    ),
+    scolarise = factor(scolarise, levels = c("Scolarisé", "Non scolarisé"))
+  )
+
+design_enfants <- svydesign(
+  ids     = ~hhid,
+  weights = ~wt_wave4,
+  data    = df_enfants %>% filter(!is.na(scolarise))
+)
+
+svyby(~scolarise, ~milieu, design_enfants, svymean, na.rm = TRUE)
+svychisq(~scolarise + milieu, design_enfants)
+```
+
+```{r tableau-scolarisation}
+svytable(~scolarise + milieu, design_enfants) %>%
+  as.data.frame.matrix() %>%
+  tibble::rownames_to_column("Scolarisation") %>%
+  gt() %>%
+  tab_header(title = "Scolarisation des 6-17 ans par milieu (effectifs pondérés)") %>%
+  fmt_number(columns = -Scolarisation, decimals = 0) %>%
+  tab_source_note("Test de Rao-Scott : F = 67.43, p < 2.2e-16 | Estimations pondérées wt_wave4")
+```
+
+```{r barplot-scolarisation, fig.cap="Taux de scolarisation pondéré des 6-17 ans par milieu de résidence avec IC à 95%"}
+taux11 <- svyby(~scolarise, ~milieu, design_enfants,
+                svymean, na.rm = TRUE, vartype = "ci") %>%
+  as.data.frame() %>%
+  mutate(
+    pct     = scolariseScolarisé * 100,
+    ic_bas  = ci_l.scolariseScolarisé * 100,
+    ic_haut = ci_u.scolariseScolarisé * 100
+  )
+
+p4 <- ggplot(taux11, aes(x = milieu, y = pct, fill = milieu)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = ic_bas, ymax = ic_haut), width = 0.2) +
+  geom_text(aes(label = paste0(round(pct, 1), "%")), vjust = -0.8, size = 4) +
+  labs(x = "", y = "Taux de scolarisation (%)",
+       caption = "Estimations pondérées — poids wt_wave4") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggsave("outputs/fig4_barplot_scolarisation.png", p4, width = 7, height = 4, dpi = 300)
+p4
+```
+
+## Interprétation
+
+Les estimations pondérées confirment un écart significatif de scolarisation entre milieux urbain et rural (test de Rao-Scott : F = 67,43, p < 2,2×10⁻¹⁶). Le taux de scolarisation est plus élevé en milieu urbain qu'en milieu rural. Cet écart illustre les inégalités d'accès à l'éducation liées à la distance aux établissements scolaires, aux contraintes économiques et à la disponibilité des infrastructures éducatives en milieu rural.
+
+# Analphabétisme par État nigérian
+
+## Méthodologie
+
+Le taux d'analphabétisme est calculé comme la proportion pondérée d'adultes de 18 ans et plus ne sachant ni lire ni écrire dans aucune langue (`s2aq5 = 2`), estimée par `svyby`. Les 37 États nigérians sont classés par taux croissant et colorés selon leur quintile d'analphabétisme.
+
+## Résultats
+
+```{r tache12-pondere, include=FALSE}
+df_alpha <- df_educ %>%
+  filter(s1q4 >= 18, !is.na(s2aq5), !is.na(wt_wave4)) %>%
+  mutate(analphabete = as.numeric(s2aq5 == 2))
+
+design_alpha <- svydesign(
+  ids     = ~hhid,
+  weights = ~wt_wave4,
+  data    = df_alpha
+)
+
+tab12 <- svyby(~analphabete, ~state, design_alpha,
+               svymean, na.rm = TRUE) %>%
+  as.data.frame() %>%
+  mutate(
+    state       = as_factor(state),
+    taux_analph = analphabete * 100,
+    quintile    = ntile(taux_analph, 5)
+  ) %>%
+  arrange(desc(taux_analph))
+
+head(tab12, 10)
+```
+
+```{r heatmap, fig.cap="Taux d'analphabétisme pondéré par État nigérian (adultes 18+)", fig.height=7}
+p5 <- ggplot(tab12, aes(x = 1,
+                         y = fct_reorder(state, taux_analph),
+                         fill = taux_analph)) +
+  geom_tile(color = "white", linewidth = 0.3) +
+  geom_text(aes(label = paste0(round(taux_analph, 1), "%")),
+            size = 2.5, color = "white", fontface = "bold") +
+  scale_fill_gradientn(
+    colours = c("#2ecc71", "#f1c40f", "#e67e22", "#e74c3c", "#8e44ad"),
+    name = "Taux (%)"
+  ) +
+  labs(title = "Taux d'analphabétisme pondéré par État (adultes 18+)",
+       y = "", x = "") +
+  theme_minimal() +
+  theme(axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank())
+
+ggsave("outputs/fig5_heatmap_analphabetisme.png", p5,
+       width = 7, height = 9, dpi = 300)
+p5
+```
+
+## Interprétation
+
+Les estimations pondérées révèlent une fracture géographique Nord/Sud prononcée. L'État de Kebbi enregistre le taux d'analphabétisme le plus élevé (72,5%), suivi de Niger (60,4%), Borno (55,3%) et Bauchi (50,9%). À l'opposé, les États du Sud affichent des taux inférieurs à 10%. Cet écart de plus de 60 points entre les extrêmes constitue la fracture éducative la plus profonde au Nigeria, reflétant des disparités structurelles héritées dans l'implantation du système éducatif formel.
+
+# Conclusion générale
+
+Cette analyse des données d'éducation du GHS Panel Wave 4, basée sur des estimations pondérées représentatives au niveau national, met en évidence cinq résultats majeurs.
+
+Premièrement, environ 25,9% de la population nigériane de 3 ans et plus n'a aucun niveau d'instruction reconnu, illustrant les défis persistants du système éducatif.
+
+Deuxièmement, les inégalités de genre sont significatives (F = 80,10, p < 2,2×10⁻¹⁶) : les femmes adultes sont surreprésentées sans instruction et sous-représentées aux niveaux secondaire et tertiaire.
+
+Troisièmement, un effet de cohorte générationnel prononcé est documenté (Chi² = 418,7, p < 2,2×10⁻¹⁶) : les 18-30 ans sont significativement mieux éduqués que toutes les cohortes plus âgées.
+
+Quatrièmement, le fossé rural-urbain de scolarisation des 6-17 ans est statistiquement robuste (F = 67,43, p < 2,2×10⁻¹⁶), appelant à des politiques ciblées pour l'éducation en milieu rural.
+
+Cinquièmement, la fracture géographique Nord/Sud constitue l'inégalité la plus profonde, avec des taux d'analphabétisme allant de moins de 5% dans les États du Sud à plus de 70% dans certains États du Nord.
+
+```{r export-xlsx, include=FALSE}
+wb <- createWorkbook()
+
+addWorksheet(wb, "Niveau_education")
+writeData(wb, "Niveau_education",
+          tab8_df %>% select(niveau_educ, pct, ic_bas, ic_haut))
+
+addWorksheet(wb, "Education_par_sexe")
+writeData(wb, "Education_par_sexe", tab9_df)
+
+addWorksheet(wb, "Scolarisation_milieu")
+writeData(wb, "Scolarisation_milieu", taux11)
+
+addWorksheet(wb, "Analphabetisme_etat")
+writeData(wb, "Analphabetisme_etat",
+          tab12 %>% select(state, taux_analph, quintile) %>%
+            arrange(desc(taux_analph)))
+
+saveWorkbook(wb, "outputs/tableaux_TP2.xlsx", overwrite = TRUE)
+```
