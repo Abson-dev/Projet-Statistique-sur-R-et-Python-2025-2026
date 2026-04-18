@@ -1,0 +1,206 @@
+---
+title: "Analyse des parcelles agricoles : superficie, tenure foncière et utilisation des terres au Nigeria (2018–2019)"
+author: "Astou DIOP & Eugène Crespo SAAH YEMELI"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    reference_docx: "reference.docx"
+    toc: true
+    toc_depth: 3
+    number_sections: true
+bibliography: references.bib
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/apa.csl
+lang: fr
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "100%",
+  dpi = 150
+)
+
+library(tidyverse)
+library(haven)
+library(here)
+library(srvyr)
+library(gt)
+library(patchwork)
+library(scales)
+library(flextable)
+library(officer)
+
+# Couleurs organismes internationaux
+col_wb   <- "#009FDA"
+col_fao  <- "#4CAF50"
+col_warn <- "#E63329"
+col_grey <- "#6C757D"
+col_dark <- "#003A5C"
+```
+
+
+\newpage
+
+# Résumé {.unnumbered}
+
+
+
+Cette étude analyse la structure foncière des exploitations agricoles nigérianes à partir des données du Panel GHS (General Household Survey) de la vague 4 (2018–2019), en mobilisant les poids de pondération transversaux (`wt_wave4`) pour produire des estimations représentatives à l'échelle nationale. La variable de superficie, construite en privilégiant la mesure par GPS (disponible pour 62,3 % des parcelles en W4), révèle une distribution fortement asymétrique : la superficie médiane par parcelle s'établit à **0,23 ha** par parcelle , et la superficie médiane totale par ménage à **0,83 ha**, tandis que les moyennes respectives atteignent **7,99 ha** et **22,68 ha** sous l'effet de quelques grandes exploitations. Par suite on note que l'héritage foncier constitue le principal mode d'accès à la terre (63,1 % des parcelles), et le test du chi-deux confirme une dépendance hautement significative entre le régime de tenure et le milieu de résidence (χ² = 498,59, ddl = 6, p \< 0,001).En effet en zone rural **89,9%** des tenures sont des héritages. On note également qu'il ya une certaine cohérence entre les superficie déclarés et celle mésurés: à **68,6%**. Enfin, la relation entre la superficie totale du ménage et le nombre de parcelles est positive mais modérée (Spearman ρ = 0,456 ; IC 95 % : [0,431 ; 0,481]), suggérant un phénomène de morcellement foncier cohérent avec les dynamiques successorales coutumières en Afrique de l'Ouest.
+
+**Mots-clés :** foncier agricole, superficie, tenure, Nigeria, GHS Panel, LSMS, analyse pondérée.
+
+\newpage
+
+# Introduction
+
+Le foncier agricole constitue l'une des ressources les plus déterminantes pour les conditions de vie des ménages ruraux en Afrique subsaharienne. Au Nigeria, pays le plus peuplé du continent avec plus de 200 millions d'habitants, la question de l'accès à la terre et de la structure des exploitations agricoles revêt une importance particulière, dans un contexte où plus de 70 % des ménages ruraux tirent l'essentiel de leurs moyens de subsistance de l'agriculture [@NBS2019]. La fragmentation foncière, la prévalence des modes d'acquisition coutumiers et la faiblesse de la sécurisation juridique des droits fonciers constituent autant de défis structurels qui entravent la productivité agricole et l'accumulation de capital en milieu rural [@Deininger2012; @Larson2014]. La mesure de la superficie agricole représente elle-même un enjeu méthodologique central. La littérature empirique récente a mis en lumière des divergences systématiques entre les superficies déclarées par les agriculteurs et les mesures objectives par GPS, divergences qui peuvent biaiser substantiellement les estimations de productivité et les analyses de bien-être [@Carletto2015; @Kilic2017]. Ces enjeux de mesure sont d'autant plus critiques que les enquêtes ménages de grande envergure, comme le Panel GHS du Nigeria mené dans le cadre du programme LSMS-ISA de la Banque mondiale, constituent la principale source de données pour informer les politiques agricoles et foncières dans les pays à faible revenu.
+
+La présente analyse s'appuie sur la quatrième vague du Panel GHS (2018–2019), complétée par les trois vagues précédentes (W1 : 2010, W2 : 2012, W3 : 2015), pour produire une caractérisation rigoureuse et représentative de la structure foncière des exploitations agricoles nigérianes. L'étude poursuit quatre objectifs principaux : (i) construire et valider la variable de superficie en hectares en mobilisant conjointement les mesures GPS et les déclarations des enquêtés ; (ii) analyser la distribution univariée des superficies à l'échelle de la parcelle et du ménage ; (iii) décrire le régime de tenure foncière et son articulation avec le milieu de résidence ;
+
+L'ensemble des estimations est produit avec les poids de sondage transversaux `wt_wave4`, garantissant la représentativité nationale des résultats conformément au plan de sondage stratifié du Panel GHS [@WorldBank2021].
+
+\newpage
+
+# Exploration et qualité des données
+
+## Sources et description des bases utilisées
+
+L'analyse principale repose sur la base `sect11a1_plantingw4`, qui recense les caractéristiques des parcelles agricoles au moment de la visite post-plantation (juillet–août 2018). Cette base comprend **11 076 observations** au niveau parcelle, correspondant à **3 915 ménages distincts**(qui ont déclaré avoir une parcelle) sur les 5 263 ménages enquêtés dans `secta_plantingw4`. L'écart de 1 348 ménages s'explique par l'absence de toute parcelle cultivée pour ces foyers (`ag1a = 2 : Non`), ce qui est cohérent avec la structure du questionnaire. La base des tenures foncières `sect11b1_plantingw4` est également mobilisée pour l'analyse du régime d'acquisition des terres. Par ailleurs nous avons également utilisé les bases: `secta_harvestw4` contenant les identifiants ménages, milieu, poids sondage; `secta_plantingw4` pour les poids des parcels et `secta1_harvestw4` contenant les GPS post-récolte préchargé
+
+## Construction de la variable superficie en hectares
+
+1.  **GPS post-planting** (`s11aq4c`, m²) ÷ 10 000 → hectares — mesure physique prioritaire, réalisée quand les cultures sont en place
+2.  **GPS post-récolte** (`prefilled_gps_area`, m²) ÷ 10 000 → hectares — utilisé uniquement si (1) absent ; les deux mesures GPS donnent des résultats très proches
+3.  **Superficie déclarée** (`s11aq4aa` + `s11aq4b`) — convertie selon l'unité déclarée. Les unités standard : Acres (× 0,404686), Hectares (valeur directe), Square meters (÷ 10 000). Les unités traditionnelles utilisent des facteurs zone-spécifiques :
+
+```{r tab-conversions}
+mft <- function(df, cap=NULL, bgh="#1B4F8C", bgs="#EBF3FB") {
+  ft <- flextable(df) %>%
+    theme_vanilla() %>%
+    bold(part="header") %>%
+    bg(part="header", bg=bgh) %>%
+    color(part="header", color="white") %>%
+    fontsize(part="all", size=10) %>%
+    font(part="all", fontname="Calibri") %>%
+    border_outer(part="all", border=fp_border(color=bgh, width=1.5)) %>%
+    border_inner_h(part="body", border=fp_border(color="#BDC3C7", width=0.5)) %>%
+    set_table_properties(width=1, layout="autofit")
+  nr <- nrow(df)
+  if (nr >= 1) ft <- bg(ft, i=seq(1,nr,2), bg=bgs)
+  if (!is.null(cap))
+    ft <- set_caption(ft, caption=as_paragraph(
+      as_chunk(cap, props=fp_text(bold=TRUE, color=bgh, font.size=10))))
+  ft
+}
+mft(data.frame(
+  `Zone` = c("North Central (1)","North East (2)","North West (3)",
+              "South East (4)","South South (5)","South West (6)"),
+  `Heaps` = c(0.00012, 0.00016, 0.00011, 0.00019, 0.00021, 0.00012),
+  `Ridges` = c(0.0027, 0.0040, 0.00494, 0.0023, 0.0023, 0.00001),
+  `Stands` = c(0.00006, 0.00016, 0.00004, 0.00004, 0.00013, 0.00041),
+  check.names=FALSE),
+  "Tableau — Facteurs de conversion zone-specifiques vers l'hectare (Source : World Bank GHS)")
+```
+Valeurs < 0 ou > 500 ha exclues comme aberrantes.
+
+
+## Qualité des données : valeurs manquantes et aberrantes
+
+En W4, **62,3 % des parcelles** disposent d'une mesure GPS.
+Sur les 11 076 parcels **62,3%**(soit 6 874 parcels) ont des GPS post-planting disponiblent. **55,9%**(soit 6 191 parcels) ont des superficie déclarée. Au final 9 900 (89,4%) superficie finale sont disponobles, soit **10,6%** de valeurs manquantes.Ces observations sont exclues des analyses graphiques et des statistiques descriptives afin de ne pas biaiser les estimations, mais conservées dans la base pour traçabilité.Enfin aucune avleur abérante n'a été détectée.(Valeurs < 0 ou > 500 ha)
+
+
+# Analyse univariée de la superficie par parcelle et par ménage
+
+## Distribution des superficies
+
+```{r fig-histogramme, fig.cap="Distribution de la superficie agricole en échelle logarithmique (W4, 2018–2019). Parcelles ≤ 500 ha. Poids : wt_wave4.", fig.height=7}
+knitr::include_graphics(here("outputs", "figures", "fig01_histogramme_superficie.png"))
+```
+
+```{r fig-boxplot, fig.cap="Boxplot de la superficie agricole par parcelle et par ménage — échelle logarithmique (W4, 2018–2019).", fig.height=5}
+knitr::include_graphics(here("outputs", "figures", "fig02_boxplot_superficie.png"))
+```
+
+La distribution des superficies agricoles, présentée en Figure 1, révèle une asymétrie à droite prononcée, caractéristique des systèmes fonciers d'Afrique subsaharienne [@FAO2020]. L'histogramme en échelle logarithmique met en évidence une concentration de la majorité des parcelles dans la tranche 0,05–1,0 ha, avec une queue de distribution étendue vers les grandes valeurs. Le boxplot (Figure 2) confirme visuellement l'importance de la dispersion et la présence de nombreuses valeurs extrêmes au-delà du troisième quartile.
+
+## Statistiques par décile
+
+
+
+La superficie médiane par parcelle s'établit à **0,21` ha** (D5), tandis que 90 % des parcelles n'excèdent pas **1,21 ha** (D9).  L'écart considérable entre les médianes et les moyennes au niveau parcelle  témoigne de l'influence déterminante de quelques grandes exploitations sur la distribution nationale [@GollinWilde2021].
+
+## Comparaison des mesures GPS et déclarées
+
+```{r fig-scatter-gps, fig.cap="Superficie GPS vs. superficie déclarée — GHS Panel W4, Nigeria 2018–2019. La ligne rouge en pointillés représente l'égalité parfaite (pente 45°).", fig.height=5}
+knitr::include_graphics(here("outputs", "figures", "livrable1_scatter_gps_declared.png"))
+```
+
+La confrontation entre la mesure GPS et la superficie déclarée (Figure 3) révèle une association positive modérée (Spearman ρ = 0,494 ; IC 95 % : [0,476 ; 0,512] ; p \< 0,001 ; n = 6 817 parcelles) et une dispersion importante autour de la ligne d'égalité parfaite. La sur-déclaration affecte **68,6 % des parcelles** comparées, avec un ratio médian déclaré/GPS de **1,68** — résultat cohérent avec la littérature sur les biais de perception de superficie dans les enquêtes agricoles africaines [@Carletto2015; @Kilic2017]. Ce biais plaide pour l'utilisation systématique de la mesure GPS comme référence.
+
+
+# Analyse du régime de tenure foncière
+
+## Fréquences et proportions par modalité
+
+```{r fig-tenure, fig.cap="Répartition des parcelles agricoles selon le régime de tenure — GHS Panel W4, Nigeria 2018–2019.", fig.height=4}
+knitr::include_graphics(here("outputs", "figures", "fig04_barplot_tenure.png"))
+```
+
+
+
+L'héritage constitue de loin le principal mode d'accès à la terre, représentant **63,1 % des parcelles**, suivi de la propriété pleine (13,1 %), de la location (11,2 %) et du prêt gratuit (8,7 %). Les modalités contractuelles formalisées — métayage (0,7 %) et échange temporaire (0,3 %) — demeurent marginales, reflétant la prédominance des systèmes fonciers coutumiers au Nigeria [@Otsuka2013].
+
+## Indépendance tenure–milieu de résidence
+
+
+
+Le test du chi-deux révèle une association hautement significative entre le régime de tenure et le milieu de résidence (χ² = 498,59; p \< 0,001). En milieu urbain, la location et la propriété pleine sont relativement plus fréquentes, tandis que l'héritage coutumier est encore plus dominant en milieu rural — résultat cohérent avec les dynamiques de marchandisation foncière observées dans les périphéries urbaines d'Afrique de l'Ouest.
+
+
+## Heatmap géographique et temporelle
+
+```{r fig-heatmap, fig.cap="Superficie médiane (ha) des exploitations par État à la vague_4— GHS Panel Nigeria, W1–W4 (2010–2018).", fig.height=5}
+knitr::include_graphics(here("outputs", "figures", "fig_heatmap_w4.png"))
+```
+
+La heatmap (Figure 6) met en évidence des disparités géographiques  prononcées. Les États du Nord ( Nasarawa,Borno,Katsina,FCT) affichent systématiquement les superficies médianes les plus élevées.À Nasarawa **50%** des exploitations ont une superficie inférieure ou égale à **1,28 ha**.  À l'inverse, les États du Sud-Est (Anambra, Gombe,Enugu, Kwara) présentent les superficies les plus faibles,  inférieures à 0,10 ha, reflétant la forte densité de population et la fragmentation foncière intense de cette région. 
+
+# Relation entre superficie totale et nombre de parcelles
+
+```{r fig-scatter-parcelles, fig.cap="Superficie totale du ménage selon le nombre de parcelles — GHS Panel W4, Nigeria 2018–2019. Courbe de tendance LOESS avec intervalle de confiance.", fig.height=5}
+knitr::include_graphics(here("outputs", "figures", "fig06_scatter_superficie_parcelles.png"))
+```
+
+
+La corrélation de Spearman entre le nombre de parcelles et la superficie totale du ménage s'établit à ρ = **0,4548** (IC 95 % : [0,4295;0,4795] ; p \< 0,001; indiquant une association positive mais modérée. La courbe LOESS met en évidence une relation croissante non linéaire : la superficie totale augmente rapidement pour les premiers niveaux de morcellement (1 à 4 parcelles), puis la progression ralentit, suggérant un effet de saturation au-delà d'un certain seuil de fragmentation [@Michler2019]. Ce phénomène, cohérent avec les dynamiques successorales coutumières, reflète à la fois les pratiques de partage lignager et les stratégies de diversification spatiale des risques agricoles adoptées par les ménages ruraux nigérians.
+
+
+# Discussion 
+## Confrontation avec le rapport officiel GHS-Panel W4 
+
+Les résultats obtenus sont en grande partie cohérents avec les statistiques publiées dans le rapport officiel de la vague 4 du GHS-Panel [@NBS2019]. Le rapport officiel indique que les ménages agricoles nigérians détiennent en moyenne **2,85 parcelles** d'une superficie moyenne de **0,45 ha** par parcelle, pour une superficie totale moyenne de **1,28 ha**. Ces chiffres sont proches des estimations calculées ici à partir des seules parcelles sans valeurs aberrantes, bien que notre estimation de la superficie médiane (0,23 ha par parcelle) soit inférieure à la moyenne officielle, ce qui s'explique par la forte asymétrie de la distribution. Par ailleurs, le rapport confirme la prédominance de l'héritage familial comme principal mode d'acquisition (62,7 % des parcelles gérées par des hommes et 63,4 % par des femmes), chiffres très proches de notre estimation de **63,1 %** tous gestionnaires confondus. La proportion de parcelles irriguées (2,2 % selon le rapport officiel) n'a pas été analysée ici mais constitue une piste d'approfondissement pertinente. 
+
+## Limites méthodologiques 
+
+ Plusieurs limites méritent d'être soulignées. Premièrement, les facteurs de conversion utilisés pour les unités locales (heaps, ridges, stands) reposent sur des approximations issues de la littérature, sans calibration spécifique au contexte nigérian ; les superficies calculées pour les parcelles exprimées dans ces unités sont donc potentiellement imprécises [@Carletto2015]. 
+ 
+## Implications pour les politiques publiques |
+ Les résultats de cette analyse appellent plusieurs recommandations en matière de politique foncière et agricole. La très faible superficie médiane des exploitations (0,83 ha par ménage) confirme que le Nigeria est dominé par de petites exploitations familiales dont la viabilité économique repose largement sur l'intensification — à travers le recours aux intrants et à l'irrigation — plutôt que sur l'extensification [@Otsuka2013; @Larson2014]. La prédominance de l'héritage coutumier comme mode d'accès à la terre souligne l'importance de sécuriser les droits fonciers coutumiers, notamment par des mécanismes de documentation adaptés aux réalités locales, sans nécessairement imposer une titularisation formelle coûteuse et inadaptée aux contextes ruraux [@Deininger2012]. La différence significative de structure foncière entre milieu urbain et rural, mise en évidence par le test du chi-deux, plaide pour des politiques différenciées tenant compte des dynamiques propres aux marchés fonciers périurbains, où la location et la propriété pleine gagnent du terrain. Enfin, le coefficient de variation interannuel élevé (77,6 %) invite à investir dans l'harmonisation des protocoles de mesure entre vagues d'enquête, en particulier par la généralisation de la mesure GPS dès W1, afin de produire des données longitudinales comparables indispensables au suivi des politiques agricoles [@WorldBank2021]. |
+
+\newpage
+
+# Conclusion
+
+Cette analyse de la structure foncière des exploitations agricoles nigérianes à partir du Panel GHS 2018–2019 met en évidence plusieurs résultats saillants. La distribution des superficies est fortement asymétrique à droite, avec une médiane par ménage de 0,83 ha masquant une hétérogénéité considérable allant de micro-parcelles inférieures à 0,05 ha à de grandes exploitations. L'héritage coutumier demeure le pilier du système foncier national, structurellement articulé à un milieu rural où la marchandisation de la terre reste limitée. L La relation entre superficie totale et nombre de parcelles, positive mais modérée, suggère que la fragmentation foncière est une réalité structurelle des exploitations nigérianes, sans que l'addition de parcelles ne se traduise mécaniquement par un gain proportionnel de superficie.
+
+Ces résultats constituent une base empirique solide pour l'élaboration de politiques foncières et agricoles adaptées au contexte nigérian. Ils appellent à la poursuite des investissements dans la mesure objective des superficies par GPS, à la sécurisation des droits fonciers coutumiers et à la conception de programmes de développement agricole tenant compte de la petite taille structurelle des exploitations.
+
+\newpage
+
+# Bibliographie {.unnumbered}
