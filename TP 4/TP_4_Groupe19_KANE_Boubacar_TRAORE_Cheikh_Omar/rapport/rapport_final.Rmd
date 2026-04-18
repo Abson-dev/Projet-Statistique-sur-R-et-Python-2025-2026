@@ -1,0 +1,346 @@
+---
+title: "TP4 — Analyse des parcelles agricoles : superficie, tenure foncière et utilisation des terres"
+subtitle: "Nigeria General Household Survey Panel — Vague 4 (2018–2019)"
+author: "Boubacar KANE & Cheikh Omar TRAORE — ENSAE ISE1 2025–2026"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+library(rprojroot)
+proj_root <- rprojroot::find_rstudio_root_file()
+knitr::opts_chunk$set(
+  echo       = FALSE,
+  message    = FALSE,
+  warning    = FALSE,
+  out.width  = "85%"
+)
+knitr::opts_knit$set(root.dir = proj_root)
+fig_dir   <- file.path(proj_root, "output/figures")
+table_dir <- file.path(proj_root, "output/tables")
+
+# Chargement des librairies
+library(haven); library(dplyr); library(ggplot2); library(patchwork)
+library(flextable); library(scales)
+library(survey); library(Hmisc)
+
+# Chargement des bases propres
+sect11a1_p4    <- readRDS(file.path(proj_root, "data/processed/sect11a1_clean.rds"))
+sect11b1_p4    <- readRDS(file.path(proj_root, "data/processed/sect11b1_clean.rds"))
+menage_parcelle <- readRDS(file.path(proj_root, "data/processed/menage_parcelle.rds"))
+
+# Chargement des objets graphiques et tableaux pré-calculés
+load(file.path(fig_dir,   "hist_superficie_menage.RDATA"))
+load(file.path(fig_dir,   "hist_superficie_parcelle.RDATA"))
+load(file.path(fig_dir,   "boxplot_MP.RDATA"))
+load(file.path(fig_dir,   "plot_SG.RDATA"))
+load(file.path(fig_dir,   "bar_regime_tenure.RDATA"))
+load(file.path(fig_dir,   "geom_point_SN.RDATA"))
+load(file.path(fig_dir,   "heatmap.RDATA"))
+load(file.path(table_dir, "table_conv.RDATA"))
+load(file.path(table_dir, "table_conv_s.RDATA"))
+load(file.path(table_dir, "table_test.RDATA"))
+
+# Recalcul des tests pour les valeurs inline
+corel_spearman <- cor.test(
+  sect11a1_p4$superficie_ha,
+  sect11a1_p4$superficie_gps_ha,
+  method = "spearman", use = "complete.obs"
+)
+
+mat_chi2 <- table(
+  sect11b1_p4$secteur[!is.na(sect11b1_p4$secteur) & !is.na(sect11b1_p4$tenure)],
+  sect11b1_p4$tenure[ !is.na(sect11b1_p4$secteur) & !is.na(sect11b1_p4$tenure)]
+)
+K2_test <- chisq.test(mat_chi2)
+cramer_val <- rstatix::cramer_v(mat_chi2)
+
+corel_SN <- cor.test(
+  menage_parcelle$nombre_parcelle,
+  menage_parcelle$superficie_totale_menage,
+  method = "spearman"
+)
+```
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+# Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP4, à partir des données de la **Nigeria General Household Survey (GHS) Panel — Vague 4 (2018–2019)**. L'objectif est de décrire la structure foncière des exploitations agricoles nigérianes : superficie des parcelles, comparaison entre mesure déclarée et mesure GPS, régime de tenure foncière, et disparités géographiques entre États.
+
+# Méthodologie
+
+## Source de données et fichiers utilisés
+
+Trois fichiers `.dta` ont été mobilisés pour cette analyse :
+
+- **`sect11a1_plantingw4.dta`** : roster des parcelles cultivées par ménage. Contient les variables de superficie déclarée (`s11aq4aa`), d'unité de mesure (`s11aq4b`), de superficie GPS (`s11aq4c` en m²), de zone géopolitique (`zone`), de milieu de résidence (`sector`) et d'État (`state`).
+
+- **`sect11b1_plantingw4.dta`** : module de tenure foncière. Contient le mode d'acquisition des parcelles (`s11b1q4`, 7 modalités) et le milieu de résidence (`sector`).
+
+- **`secta_harvestw4.dta`** : poids de sondage (`wt_wave4`), propagés au niveau parcelle via l'identifiant ménage `hhid`.
+
+## Construction de la variable superficie en hectares
+
+La superficie agricole est déclarée dans l'unité de mesure locale (`s11aq4b`). Les facteurs de conversion en hectares sont issus du **Nigeria General Household Survey 2018/19 Basic Information Document**.
+
+```{r tab-conv-general, results='asis'}
+tab_gen <- data.frame(
+  Unite = c("Plots", "Acres", "Hectares", "Metres carres"),
+  Facteur = c(0.0667, 0.4000, 1.0000, 0.0001)
+)
+knitr::kable(tab_gen,
+    col.names = c("Unité", "Facteur de conversion (vers ha)"),
+    caption = "Facteurs generaux de conversion en hectares")
+```
+
+Les unités **Heaps**, **Ridges** et **Stands** disposent de facteurs spécifiques par zone géopolitique :
+
+```{r tab-conv-zone, results='asis'}
+tab_zone <- data.frame(
+  Zone   = c("North Central", "North East", "North West",
+              "South East", "South South", "South West"),
+  Heaps  = c(0.00012, 0.00016, 0.00011, 0.00019, 0.00021, 0.00012),
+  Ridges = c(0.00270, 0.00400, 0.00494, 0.00230, 0.00230, 0.00001),
+  Stands = c(0.00006, 0.00016, 0.00004, 0.00004, 0.00013, 0.00041)
+)
+knitr::kable(tab_zone,
+    caption = "Facteurs specifiques de conversion (Heaps, Ridges, Stands)")
+```
+
+## Structure du projet
+
+Le projet est organisé en quatre dossiers : `data/` (bases brutes et traitées), `R/` (scripts d'import, recodage, nettoyage et analyse), `output/` (figures et tableaux) et `rapport/` (rapport final). Les scripts suivent le pipeline `01_import.R → 02_recodage.R → 03_nettoyage.R → 04_analyse.R`.
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+# Résultats
+
+## Question 19 — Qualité des données et valeurs manquantes
+
+### Méthodologie
+
+L'analyse de qualité porte sur les valeurs manquantes des variables principales et la détection des valeurs aberrantes. Une parcelle est considérée aberrante si sa superficie est négative ou supérieure à 500 ha, seuil cohérent avec les grandes exploitations documentées en Afrique subsaharienne.
+
+### Résultats
+
+```{r tab-qa, results='asis'}
+qa <- read.csv(file.path(table_dir, "qa_donnees_tp4.csv"))
+knitr::kable(qa,
+    col.names = c("Variable", "N total", "NA (n)", "NA (pct)", "Aberrants", "Seuil"),
+    caption   = "Diagnostic qualite des variables cles")
+```
+
+Après suppression des doublons, des `hhid` manquants, des superficies non renseignées et des valeurs aberrantes, la base analytique comprend **`r nrow(sect11a1_p4)` parcelles valides** appartenant à **`r nrow(menage_parcelle)` ménages agriculteurs**.
+
+### Interprétation
+
+Le taux de valeurs manquantes sur la superficie GPS reflète la collecte partielle lors de la visite post-plantation. Les poids de sondage (`wt_wave4`) sont quasi-exhaustifs ; le seul NA est exclu des analyses pondérées sous l'hypothèse MCAR.
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+## Question 20 — Analyse univariée de la superficie
+
+### Méthodologie
+
+La superficie est analysée à deux niveaux : la parcelle individuelle et le ménage (somme des superficies de ses parcelles). Les statistiques descriptives sont calculées sur données pondérées (`wt_wave4`). L'échelle logarithmique est utilisée pour la visualisation en raison de la forte asymétrie droite.
+
+### Résultats — Superficie par parcelle
+
+```{r tab-stats-parcelle, results='asis'}
+stats_p <- read.csv(file.path(table_dir, "stats_superf_parcelle.csv"))
+knitr::kable(stats_p,
+    digits   = 3,
+    caption  = "Statistiques descriptives de la superficie par parcelle (ha, ponderees)")
+```
+
+```{r tab-deciles, results='asis'}
+dec <- read.csv(file.path(table_dir, "deciles_superf_parcelle.csv"))
+knitr::kable(dec,
+    col.names = c("Decile", "Superficie (ha)"),
+    digits    = 4,
+    caption   = "Distribution par decile de la superficie par parcelle")
+```
+
+```{r fig-hist-parcelle, fig.cap="Distribution de la superficie par parcelle (echelle log, ponderee)", fig.height=3.5}
+print(hist_superficie_parcelle)
+```
+
+### Résultats — Superficie par ménage
+
+```{r tab-stats-menage, results='asis'}
+stats_m <- read.csv(file.path(table_dir, "stats_superf_menage.csv"))
+knitr::kable(stats_m,
+    digits   = 3,
+    caption  = "Statistiques descriptives de la superficie totale par menage (ha, ponderees)")
+```
+
+```{r fig-hist-menage, fig.cap="Distribution de la superficie totale par menage (echelle log, ponderee)", fig.height=3.5}
+print(hist_superficie_menage)
+```
+
+```{r fig-boxplot, fig.cap="Boxplots de la superficie par parcelle (gauche) et par menage (droite)", fig.height=4}
+print(boxplot_mp)
+```
+
+### Résultats — Comparaison superficie déclarée vs GPS
+
+```{r fig-scatter-gps, fig.cap="Superficie declaree vs superficie GPS (echelle log). La droite rouge a 45 deg represente la concordance parfaite.", fig.height=4}
+print(plot_SG)
+```
+
+La corrélation de Spearman entre superficie déclarée et superficie GPS est de **$\rho =$ `r round(corel_spearman$estimate, 3)`** (p < 2,2e-16), soit une très forte concordance de rang. **`r round(mean(sect11a1_p4$superficie_ha[!is.na(sect11a1_p4$superficie_gps_ha) & sect11a1_p4$superficie_ha > 0 & sect11a1_p4$superficie_gps_ha > 0] > sect11a1_p4$superficie_gps_ha[!is.na(sect11a1_p4$superficie_gps_ha) & sect11a1_p4$superficie_ha > 0 & sect11a1_p4$superficie_gps_ha > 0], na.rm = TRUE)*100, 1)`%** des parcelles présentent une superficie déclarée supérieure à la superficie GPS.
+
+### Interprétation
+
+La distribution des superficies est fortement asymétrique à droite, typique des structures foncières en Afrique subsaharienne. La prévalence de petites exploitations (médiane inférieure à 1 ha par parcelle et par ménage) témoigne d'une agriculture de subsistance fragmentée. La sur-déclaration systématique par rapport au GPS est un résultat classique dans la littérature : sans référence mesurée, les agriculteurs tendent à surestimer leurs surfaces.
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+## Question 21 — Régime de tenure foncière
+
+### Méthodologie
+
+Le régime de tenure est analysé à partir de la variable `s11b1q4` de `sect11b1_plantingw4`, recodée en sept modalités. La distribution des modes d'acquisition est décrite par fréquences et proportions. L'association avec le milieu de résidence (rural/urbain) est testée par le test du Chi-deux, complété par le V de Cramér pour mesurer l'intensité pratique de l'association.
+
+### Résultats
+
+```{r tab-tenure, results='asis'}
+tf <- read.csv(file.path(table_dir, "tenure_freq.csv"))
+knitr::kable(tf |> select(tenure, n, prop, label),
+    col.names = c("Mode d'acquisition", "Effectif", "Proportion (pct)", ""),
+    digits    = 1,
+    caption   = "Distribution des parcelles selon le mode d'acquisition (tenure)")
+```
+
+```{r fig-tenure, fig.cap="Repartition des parcelles selon le mode d'acquisition (tenure fonciere)", fig.height=3.5}
+print(bar_regime_tenure)
+```
+
+```{r tab-tenure-milieu, results='asis'}
+tm <- read.csv(file.path(table_dir, "tenure_par_milieu.csv"))
+knitr::kable(tm,
+    caption  = "Tableau croise : tenure x milieu de residence (effectifs)")
+```
+
+Le test du Chi-deux révèle une association très fortement significative entre le régime de tenure et le milieu de résidence : $\chi^2 =$ `r round(K2_test$statistic, 1)`, ddl $=$ `r K2_test$parameter`, p $<$ 2,2e-16. Le V de Cramér est de `r round(cramer_val, 3)`, indiquant une association modérée sur le plan pratique.
+
+### Interprétation
+
+L'héritage familial est le mode d'acquisition dominant, reflétant la persistance des régimes fonciers coutumiers au Nigeria malgré le Land Use Act de 1978. La différenciation rural/urbain est significative : en milieu urbain, les achats et locations sont proportionnellement plus fréquents, traduisant la marchandisation des terres péri-urbaines. En milieu rural, les modes coutumiers (héritage, attribution communautaire) restent prédominants.
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+## Question 23 — Relation superficie totale × nombre de parcelles
+
+### Méthodologie
+
+La relation entre la superficie totale du ménage et le nombre de parcelles exploitées est explorée par un diagramme de dispersion (scatter plot) avec courbe de lissage loess, et quantifiée par la corrélation de Spearman, non paramétrique et robuste aux valeurs extrêmes.
+
+### Résultats
+
+```{r fig-scatter-nb, fig.cap="Relation entre superficie totale du menage et nombre de parcelles (courbe loess en orange, echelle log)", fig.height=4}
+print(geom_point_SN)
+```
+
+La corrélation de Spearman entre le nombre de parcelles et la superficie totale est de **$\rho =$ `r round(corel_SN$estimate, 3)`** (p < 2,2e-16), indiquant une association positive significative mais modérée.
+
+### Interprétation
+
+La relation est positive mais non linéaire : les ménages disposant de plus de parcelles tendent à exploiter des surfaces totales plus étendues, mais la dispersion est importante. La courbe loess montre une accélération de la superficie marginale au-delà de 4-5 parcelles, suggérant que les grands exploitants ont des parcelles individuellement plus vastes. La relation modérée ($\rho \approx 0,4$) confirme qu'il n'y a pas de correspondance biunivoque entre fragmentation et taille totale.
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+## Question 24 — Disparités géographiques
+
+### Méthodologie
+
+La superficie médiane par État est calculée à partir du plan de sondage (poids `wt_wave4`) via la fonction `svyquantile` du package `survey`. **Note importante :** le plan de sondage du GHS-Panel est représentatif au niveau national et par zone géopolitique, non au niveau des États. Les résultats présentés ici sont fournis à titre **indicatif** et ne constituent pas des estimations officielles représentatives.
+
+### Résultats
+
+```{r fig-heatmap, fig.cap="Superficie mediane des exploitations par Etat (mediane ponderee, Vague 4 — indicatif uniquement)", fig.height=9, out.width="65%"}
+print(geom_heatmap)
+```
+
+### Interprétation
+
+La heatmap révèle des disparités géographiques marquées. Les États du Nord (Yobe, Kebbi, Sokoto) affichent des superficies médianes plus élevées, cohérentes avec des systèmes agricoles extensifs dans des zones de plus faible densité de population. Les États du Sud-Est et du Sud-Sud (Abia, Anambra, Akwa Ibom) présentent les médianes les plus faibles, reflet de la fragmentation foncière dans des régions à forte pression démographique.
+
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+
+# Synthèse des tests statistiques
+
+```{r tab-tests, results='asis'}
+tests <- tibble::tibble(
+  Variable = c(
+    "Superficie declaree vs GPS",
+    "Milieu de residence x tenure",
+    "Superficie totale x nb parcelles"
+  ),
+  Test = c(
+    "Spearman",
+    "Chi-deux",
+    "Spearman"
+  ),
+  Resultat = c(
+    paste0("rho = ", round(corel_spearman$estimate, 3), ", p < 2.2e-16"),
+    paste0("chi2 = ", round(K2_test$statistic, 1),
+           ", df = ", K2_test$parameter, ", p < 2.2e-16",
+           "\nV de Cramer = ", round(cramer_val, 3)),
+    paste0("rho = ", round(corel_SN$estimate, 3), ", p < 2.2e-16")
+  )
+)
+knitr::kable(tests,
+    col.names = c("Variable analysee", "Test utilise", "Resultat"),
+    caption   = "Resume des tests statistiques realises")
+```
+
+# Conclusion
+
+Ce rapport décrit la structure foncière des exploitations agricoles nigérianes à partir du module parcelles de la vague 4 du GHS-Panel. Les résultats principaux sont les suivants :
+
+- Une agriculture de **petite taille** : la superficie médiane par parcelle est inférieure à 1 ha, avec une forte hétérogénéité entre ménages.
+- Une **dominance de l'héritage familial** comme mode d'acquisition (>60%), témoignant de la persistance des régimes coutumiers malgré le Land Use Act de 1978.
+- Un **biais de sur-déclaration** systématique par rapport aux mesures GPS (corrélation de Spearman $\rho \approx 0,7$), plaidant pour le maintien des mesures GPS dans les enquêtes agricoles.
+- Une **relation positive modérée** ($\rho \approx 0,4$) entre superficie totale et nombre de parcelles, avec une non-linéarité marquée au-delà de 4–5 parcelles.
+- Des **disparités géographiques** nettes entre États du Nord (agricultures extensives) et États du Sud (forte fragmentation foncière).
+
+Ces résultats constituent une base pour des analyses ultérieures sur la productivité agricole et les déterminants de l'investissement foncier au Nigeria.
+
+---
+
+*Données : Nigeria General Household Survey Panel, Vague 4 (2018–2019), World Bank / NBS. Analyse réalisée avec R `r R.version.string`.*

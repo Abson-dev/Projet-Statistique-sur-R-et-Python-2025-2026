@@ -1,0 +1,6 @@
+
+	Pearson's Chi-squared test
+
+data:  mat_chi2
+X-squared = 498.59, df = 6, p-value < 2.2e-16
+
