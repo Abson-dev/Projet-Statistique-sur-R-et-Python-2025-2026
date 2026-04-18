@@ -1,0 +1,851 @@
+---
+title: "Rapport_TP5"
+author: "Apollos BAGBONON - Kadidja GUEBEDIANG"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 4
+    number_sections: true
+    code_folding: hide
+    fig_width: 10
+    fig_height: 6
+    fig_caption: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
+)
+# Forcer le répertoire de travail
+knitr::opts_knit$set(root.dir = "C:/Users/HP/Desktop/ENSAE Dossier/Projet statistique sous R ou Python/Analyse5")
+```
+
+# Introduction
+
+L'agriculture constitue le pilier de l'économie nigériane, employant une large part de la population active et assurant la sécurité alimentaire de millions de ménages. La présente analyse s'appuie sur les données de l'enquête General Household Survey Panel (GHSP) Wave 4 (2018/19) conduite par le Bureau National des Statistiques du Nigeria en partenariat avec la Banque Mondiale. A travers une approche statistique rigoureuse integrant les poids de sondage, ce rapport examine les cultures les plus pratiquees, la diversification agricole des menages, les taux d'utilisation des engrais selon le milieu de residence et l'Etat, ainsi que la relation entre l'utilisation d'intrants et les rendements agricoles pour les deux cultures cerealieres majeures que sont le mais et le millet.
+
+## Liste des 15 cultures les plus frequentes dans les menages
+
+Le systeme agricole nigerien tel que revele par l'enquete GHSP Wave 4 (2018/19) est largement domine par les cereales et les tubercules, avec le *mais* en tete (50.6% des menages) suivi du *manioc* (47.1%), du *sorgho* (30.1%) et de l'*igname blanche* (21.8%), ces quatre cultures constituant le socle alimentaire des menages ruraux et urbains du pays. On observe une rupture nette entre ce groupe de tete et les cultures suivantes, toutes en dessous de 22%, parmi lesquelles les legumineuses et oleagineux occupent une place non negligeable. En revanche, les cultures maraicheres restent tres marginales, ce qui suggere une orientation encore faible vers le maraichage malgre son potentiel commercial.
+
+```{r Liste_des_15_cultures_les_plus_frequentes, echo=FALSE}
+# ==============================
+# PACKAGES
+# ==============================
+packages <- c(
+  "tidyverse", "readr", "stringr", "haven", "naniar",
+  "gtsummary", "rstatix", "patchwork", "moments",
+  "gt", "here", "survey", "srvyr", "flextable", "coin"
+)
+
+installed <- packages %in% rownames(installed.packages())
+if (any(installed == FALSE)) {
+  install.packages(packages[!installed])
+}
+invisible(lapply(packages, library, character.only = TRUE))
+
+# ==============================
+# STRUCTURE DES DOSSIERS
+# ==============================
+data_raw        <- "data/raw/"
+data_processed  <- "data/processed/"
+output_figures  <- "output/figures/"
+output_tables   <- "output/tables/"
+
+dirs <- c(data_raw, data_processed, output_figures, output_tables)
+for (d in dirs) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+}
+
+# ==============================
+# IMPORTATION DES DONNEES
+# ==============================
+secta3i   <- read_dta("data/raw/NGA-GHSP-W4/secta3i_harvestw4.dta")
+secta3ii  <- read_dta("data/raw/NGA-GHSP-W4/secta3ii_harvestw4.dta")
+secta1    <- read_dta("data/raw/NGA-GHSP-W4/secta1_harvestw4.dta")
+sect11f   <- read_dta("data/raw/NGA-GHSP-W4/sect11f_plantingw4.dta")
+secta_p   <- read_dta("data/raw/NGA-GHSP-W4/secta_plantingw4.dta")
+secta_h   <- read_dta("data/raw/NGA-GHSP-W4/secta_harvestw4.dta")
+secta11c2 <- read_dta("data/raw/NGA-GHSP-W4/secta11c2_harvestw4.dta")
+sect11a1  <- read_dta("data/raw/NGA-GHSP-W4/sect11a1_plantingw4.dta")
+
+##25/
+# Joindre les poids a secta3i
+sa3i <- secta3i %>%
+  left_join(
+    secta_p %>% select(hhid, wt_wave4),
+    by = "hhid"
+  )
+
+# Filtrer les NA de poids et dedupliquer
+sa3i_distinct <- sa3i %>%
+  distinct(hhid, cropcode, .keep_all = TRUE) %>%
+  filter(!is.na(wt_wave4))
+
+# Nombre total pondere de menages
+n_menages_total_pond <- sa3i %>%
+  distinct(hhid, .keep_all = TRUE) %>%
+  filter(!is.na(wt_wave4)) %>%
+  summarise(total = sum(wt_wave4)) %>%
+  pull(total)
+
+# Top 15 cultures les plus frequentes (pondere)
+top15_pondere <- sa3i_distinct %>%
+  group_by(cropcode) %>%
+  summarise(
+    n_menages      = n(),
+    n_menages_pond = sum(wt_wave4, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(n_menages_pond)) %>%
+  slice(1:15) %>%
+  mutate(
+    frequence      = n_menages      / n_distinct(sa3i$hhid)      * 100,
+    frequence_pond = n_menages_pond / n_menages_total_pond * 100
+  )
+
+# Dictionnaire des noms de cultures
+crop_names <- c(
+  "1010" = "Cowpea/Beans", "1020" = "Cassava",   "1040" = "Cocoyam",
+  "1050" = "Cotton",       "1060" = "Groundnut",  "1070" = "Sorghum",
+  "1080" = "Maize",        "1090" = "Melon",      "1100" = "Millet",
+  "1110" = "Rice",         "1121" = "White Yam",  "1122" = "Yellow Yam",
+  "1123" = "Water Yam",    "1124" = "Three Leave Yam", "2010" = "Acha",
+  "2020" = "Bambara Nut",  "2030" = "Banana",     "2040" = "Sesame",
+  "2050" = "Carrot",       "2060" = "Cucumber",   "2070" = "Cabbage",
+  "2080" = "Garden Egg",   "2090" = "Garlic",     "2100" = "Ginger",
+  "2120" = "Okro",         "2130" = "Onion",      "2141" = "Sweet Pepper",
+  "2142" = "Small Pepper", "2150" = "Pigeon Pea", "2160" = "Pineapple",
+  "2170" = "Plantain",     "2180" = "Irish Potato","2181" = "Sweet Potato",
+  "2190" = "Pumpkin",      "2194" = "Green Vegetable","2220" = "Soya Beans",
+  "2230" = "Sugar Cane",   "2240" = "Tea",        "2250" = "Tobacco",
+  "2260" = "Tomato",       "2270" = "Walnut",     "2280" = "Wheat",
+  "2290" = "Zobo",         "3010" = "Apple",      "3020" = "Cashew",
+  "3040" = "Cocoa",        "3050" = "Coconut",    "3060" = "Coffee",
+  "3080" = "Grape Fruit",  "3090" = "Guava",      "3110" = "Kolanut",
+  "3120" = "Lemon",        "3130" = "Lime",       "3150" = "Mandarin",
+  "3160" = "Mango",        "3170" = "Orange",     "3180" = "Oil Palm",
+  "3190" = "Agbono",       "3200" = "Oil Bean",   "3210" = "Pawpaw",
+  "3220" = "Pear",         "3221" = "Avocado Pear","3230" = "Rubber",
+  "9999" = "Other"
+)
+
+top15_pondere <- top15_pondere %>%
+  mutate(
+    crop_name = crop_names[as.character(cropcode)],
+    type = case_when(
+      cropcode %in% c(1080, 1070, 1100, 1110)  ~ "Cereale",
+      cropcode %in% c(1010, 2220, 1060, 2040)  ~ "Legumineuse/Oleagineux",
+      cropcode %in% c(1020, 1121, 1040, 1123)  ~ "Tubercule/Racine",
+      cropcode %in% c(2120, 2190, 2142)        ~ "Legume/Culture maraichere"
+    )
+  )
+
+# Barplot
+ggplot(top15_pondere, aes(x = reorder(crop_name, frequence_pond),
+                           y = frequence_pond,
+                           fill = type)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_text(aes(label = paste0(round(frequence_pond, 1), "%")),
+            hjust = -0.1, size = 3.5, fontface = "bold") +
+  coord_flip() +
+  scale_fill_manual(values = c(
+    "Cereale"                 = "#E07B39",
+    "Legumineuse/Oleagineux"  = "#3A7D44",
+    "Tubercule/Racine"        = "#8B5E3C",
+    "Legume/Culture maraichere" = "#4A90D9"
+  )) +
+  labs(
+    title    = "Top 15 des cultures les plus frequentes au Nigeria",
+    subtitle = "% de menages cultivant chaque culture - GHSP Wave 4 (2018/19)",
+    x        = NULL,
+    y        = "Frequence (% des menages)",
+    fill     = "Type de culture"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    plot.subtitle      = element_text(color = "grey40", size = 10),
+    legend.position    = "bottom",
+    panel.grid.major.y = element_blank()
+  ) +
+  scale_y_continuous(limits = c(0, 62), breaks = seq(0, 60, 10))
+```
+
+## Indice de diversification culturale des menages et comparaison milieu urbain vs milieu rural
+
+### Distribution du nombre de cultures par menage
+
+La distribution du nombre de cultures par menage au Nigeria (GHSP Wave 4, 2018/19) presente une forme asymetrique a droite, avec une concentration marquee sur les faibles valeurs de diversification. La grande majorite des menages cultivent entre 1 et 4 cultures. La moyenne ponderee confirme une diversification moderee, mais la distribution revele que cette moyenne masque une forte heterogeneite : au-dela de 5 cultures, les effectifs chutent drastiquement.
+
+```{r Distribution_du_nombre_de_cultures_par_menage, echo=FALSE}
+##26/
+# Nombre de cultures differentes par menage (pondere)
+diversification_index <- sa3i %>%
+  filter(!is.na(wt_wave4)) %>%
+  distinct(hhid, cropcode, .keep_all = TRUE) %>%
+  group_by(hhid, wt_wave4) %>%
+  summarise(nb_cultures = n_distinct(cropcode), .groups = "drop")
+
+# Recuperer le secteur pour chaque menage
+sector_hhid <- sa3i %>%
+  distinct(hhid, sector) %>%
+  mutate(secteur = case_when(
+    sector == 1 ~ "Urbain",
+    sector == 2 ~ "Rural"
+  ))
+
+# Fusionner avec la table de diversification
+diversification_index <- diversification_index %>%
+  left_join(sector_hhid, by = "hhid")
+
+# Histogramme
+counts <- diversification_index %>%
+  count(nb_cultures, name = "n_menages")
+
+ggplot(counts, aes(x = nb_cultures, y = n_menages)) +
+  geom_bar(stat = "identity", fill = "orange",
+           color = "black", alpha = 0.85) +
+  geom_text(aes(label = n_menages),
+            vjust = -0.5, size = 3.5,
+            fontface = "bold", color = "black") +
+  geom_vline(xintercept = weighted.mean(diversification_index$nb_cultures,
+                                         diversification_index$wt_wave4),
+             color = "blue", linetype = "dashed", linewidth = 1) +
+  annotate("text",
+           x     = weighted.mean(diversification_index$nb_cultures,
+                                  diversification_index$wt_wave4) + 0.3,
+           y     = Inf,
+           label = paste0("Moyenne = ",
+                          round(weighted.mean(diversification_index$nb_cultures,
+                                              diversification_index$wt_wave4), 1)),
+           vjust = 2, hjust = 0, color = "blue", size = 4) +
+  scale_x_continuous(breaks = 1:max(diversification_index$nb_cultures)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title    = "Distribution du nombre de cultures par menage",
+    subtitle = "Nigeria GHSP Wave 4 (2018/19)",
+    x        = "Nombre de cultures",
+    y        = "Nombre de menages"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14),
+    plot.subtitle    = element_text(color = "grey40"),
+    panel.grid.minor = element_blank()
+  )
+```
+
+### Test de Wilcoxon
+
+Apres avoir verifie la normalite avec le test de Shapiro, le test de Wilcoxon-Mann-Whitney revele une difference significative entre milieux urbain et rural concernant la diversification culturale (*p < 0.001*) comme le montre le tableau ci-dessous.
+
+```{r Test_Wilcoxon, echo=FALSE}
+library(gtsummary)
+
+# Verifier la normalite
+Normality_test <- shapiro.test(diversification_index$nb_cultures)
+
+# Test de Wilcoxon : urbain vs rural
+wilcox_test <- wilcox.test(nb_cultures ~ secteur,
+                            data  = diversification_index,
+                            exact = FALSE)
+
+# Statistiques descriptives ponderees par secteur
+stats_pond <- diversification_index %>%
+  group_by(secteur) %>%
+  summarise(
+    moyenne    = weighted.mean(nb_cultures, wt_wave4),
+    ecart_type = sqrt(sum(wt_wave4 * (nb_cultures -
+                    weighted.mean(nb_cultures, wt_wave4))^2) / sum(wt_wave4)),
+    mediane    = median(nb_cultures),
+    min        = min(nb_cultures),
+    max        = max(nb_cultures),
+    n          = n()
+  )
+
+# Tableau gtsummary - Statistiques descriptives
+tableau_stats <- diversification_index %>%
+  select(secteur, nb_cultures) %>%
+  tbl_summary(
+    by        = secteur,
+    statistic = list(nb_cultures ~ "{mean} ({sd})"),
+    label     = list(nb_cultures ~ "Nombre de cultures"),
+    digits    = all_continuous() ~ 2
+  ) %>%
+  add_n() %>%
+  modify_header(label ~ "**Variable**") %>%
+  modify_caption("**Statistiques descriptives du nombre de cultures par milieu de residence**") %>%
+  bold_labels()
+
+# Tableau gtsummary - Test de Wilcoxon
+tableau_wilcox <- diversification_index %>%
+  select(secteur, nb_cultures) %>%
+  tbl_summary(
+    by        = secteur,
+    statistic = list(nb_cultures ~ "{median} [{p25} - {p75}]"),
+    label     = list(nb_cultures ~ "Nombre de cultures"),
+    digits    = all_continuous() ~ 2
+  ) %>%
+  add_p(
+    test       = list(nb_cultures ~ "wilcox.test"),
+    pvalue_fun = function(x) style_pvalue(x, digits = 3)
+  ) %>%
+  add_overall(last = FALSE) %>%
+  modify_header(
+    label  ~ "**Variable**",
+    stat_0 ~ "**N Total**",
+    stat_1 ~ "**Rural**  \nN = {n}",
+    stat_2 ~ "**Urbain**  \nN = {n}"
+  ) %>%
+  modify_caption("**Test de Wilcoxon : comparaison urbain vs rural**") %>%
+  bold_labels() %>%
+  modify_footnote(
+    stat_0  ~ "3410",
+    p.value ~ "Test de Wilcoxon-Mann-Whitney (non parametrique)",
+    stat_1  ~ "Mediane [Q1 - Q3]",
+    stat_2  ~ "Mediane [Q1 - Q3]"
+  ) %>%
+  modify_spanning_header(
+    c(stat_0, stat_1, stat_2) ~ "**Milieu de residence**"
+  )
+
+tableau_wilcox
+```
+
+### Violin plot
+
+Ce resultat est bien mieux mis en evidence avec le violin plot. Les menages ruraux presentent une diversification legerement plus elevee, avec une moyenne et une mediane autour de 3 cultures, et une distribution plus etalee vers les valeurs elevees. Les menages urbains, en revanche, se concentrent davantage sur 1 a 2 cultures.
+
+```{r Violin_Plot, echo=FALSE}
+# Preparer le label de p-value
+p_value <- round(wilcox_test$p.value, 4)
+p_label <- ifelse(p_value < 0.001, "p < 0.001",
+                  paste0("p = ", p_value))
+
+# Precalculer les moyennes ponderees par secteur
+moyennes_pond <- diversification_index %>%
+  group_by(secteur) %>%
+  summarise(moyenne_pond = weighted.mean(nb_cultures, wt_wave4),
+            .groups = "drop")
+
+ggplot(diversification_index, aes(x = secteur, y = nb_cultures, fill = secteur)) +
+  geom_violin(alpha = 0.7, trim = FALSE) +
+  geom_boxplot(width = 0.15, fill = "white",
+               outlier.shape = NA, alpha = 0.8) +
+  geom_point(data = moyennes_pond,
+             aes(x = secteur, y = moyenne_pond),
+             shape = 18, size = 4,
+             color = "red", inherit.aes = FALSE) +
+  annotate("text",
+           x     = 1.5,
+           y     = max(diversification_index$nb_cultures) + 0.5,
+           label = paste0("Wilcoxon\n", p_label),
+           size  = 4, fontface = "bold", color = "black") +
+  annotate("segment",
+           x = 1, xend = 2,
+           y    = max(diversification_index$nb_cultures) + 0.2,
+           yend = max(diversification_index$nb_cultures) + 0.2) +
+  scale_fill_manual(values = c("Urbain" = "#4A90D9", "Rural" = "#3A7D44")) +
+  scale_y_continuous(breaks = 1:max(diversification_index$nb_cultures)) +
+  labs(
+    title    = "Diversification culturale : Urbain vs Rural",
+    subtitle = "Nigeria GHSP Wave 4 (2018/19)",
+    x        = NULL,
+    y        = "Nombre de cultures par menage",
+    fill     = "Zone"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14),
+    plot.subtitle    = element_text(color = "grey40"),
+    legend.position  = "none",
+    panel.grid.minor = element_blank()
+  )
+```
+
+## Utilisation des engrais par type et par milieu
+
+### Barplot groupe par milieu de residence
+
+Le graphique revele un contraste saisissant dans l'utilisation des engrais entre les menages ruraux et urbains au Nigeria. En milieu rural, le recours aux engrais est nettement plus repandu, avec l'engrais chimique en tete (41.6%), suivi du NPK (31.4%), de l'organique (25.9%) et de l'uree (21.5%). En milieu urbain, les taux d'utilisation sont tres faibles pour tous les types d'engrais, oscillant entre 2.1% pour l'organique et 5.8% pour le chimique.
+
+```{r Taux_utilisation_engrais_par_type_et_par_milieu, echo=FALSE}
+##27/
+# Joindre les poids a secta11c
+secta11c <- secta11c2 %>%
+  left_join(
+    secta_p %>% select(hhid, wt_wave4),
+    by = "hhid"
+  )
+
+# Nombre total pondere de menages
+n_total_pond <- secta11c %>%
+  distinct(hhid, wt_wave4) %>%
+  filter(!is.na(wt_wave4)) %>%
+  summarise(total = sum(wt_wave4)) %>%
+  pull(total)
+
+taux_engrais <- secta11c %>%
+  filter(!is.na(wt_wave4)) %>%
+  group_by(hhid, sector, state, wt_wave4) %>%
+  summarise(
+    chimique  = as.integer(any(s11c2q10 == 1 | s11c2q1  == 1, na.rm = TRUE)),
+    npk       = as.integer(any(s11c2q36_1 == 1,               na.rm = TRUE)),
+    uree      = as.integer(any(s11c2q36_2 == 1,               na.rm = TRUE)),
+    organique = as.integer(any(s11dq36   == 1,                na.rm = TRUE)),
+    .groups = "drop"
+  )
+
+# Par milieu de residence
+taux_sector <- taux_engrais %>%
+  group_by(sector) %>%
+  summarise(
+    n_chimique  = sum(chimique  * wt_wave4),
+    n_npk       = sum(npk       * wt_wave4),
+    n_uree      = sum(uree      * wt_wave4),
+    n_organique = sum(organique * wt_wave4),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    freq_chimique  = round(n_chimique  / n_total_pond * 100, 2),
+    freq_npk       = round(n_npk       / n_total_pond * 100, 2),
+    freq_uree      = round(n_uree      / n_total_pond * 100, 2),
+    freq_organique = round(n_organique / n_total_pond * 100, 2),
+    secteur_label  = case_when(
+      sector == 1 ~ "Urbain",
+      sector == 2 ~ "Rural"
+    )
+  ) %>%
+  select(secteur_label, everything(), -sector)
+
+# Taille d'echantillon pour les IC
+n_ech <- nrow(taux_engrais)
+
+# Ajouter les IC
+taux_sector <- taux_sector %>%
+  mutate(
+    ic_chimique  = 1.96 * sqrt((freq_chimique/100)  * (1 - freq_chimique/100)  / n_ech) * 100,
+    ic_npk       = 1.96 * sqrt((freq_npk/100)       * (1 - freq_npk/100)       / n_ech) * 100,
+    ic_uree      = 1.96 * sqrt((freq_uree/100)      * (1 - freq_uree/100)      / n_ech) * 100,
+    ic_organique = 1.96 * sqrt((freq_organique/100) * (1 - freq_organique/100) / n_ech) * 100
+  )
+
+# Format long pour ggplot
+taux_long <- taux_sector %>%
+  select(secteur_label,
+         freq_chimique, freq_npk, freq_uree, freq_organique,
+         ic_chimique,   ic_npk,   ic_uree,   ic_organique) %>%
+  pivot_longer(
+    cols          = -secteur_label,
+    names_to      = c(".value", "type_engrais"),
+    names_pattern = "(.+)_(.+)"
+  ) %>%
+  mutate(type_engrais = case_when(
+    type_engrais == "chimique"  ~ "Chimique",
+    type_engrais == "npk"       ~ "NPK",
+    type_engrais == "uree"      ~ "Uree",
+    type_engrais == "organique" ~ "Organique"
+  ))
+
+# Barplot groupe avec IC
+ggplot(taux_long, aes(x = secteur_label, y = freq, fill = type_engrais)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+  geom_errorbar(
+    aes(ymin = freq - ic, ymax = freq + ic),
+    position  = position_dodge(width = 0.8),
+    width     = 0.25, color = "black", linewidth = 0.6
+  ) +
+  geom_text(
+    aes(label = paste0(round(freq, 1), "%"), y = freq + ic + 0.5),
+    position = position_dodge(width = 0.8), size = 3, fontface = "bold"
+  ) +
+  scale_fill_manual(values = c(
+    "Chimique"  = "#E07B39", "NPK" = "#3A7D44",
+    "Uree"      = "#4A90D9", "Organique" = "#8B5E3C"
+  )) +
+  scale_y_continuous(
+    limits = c(0, max(taux_long$freq + taux_long$ic) + 5),
+    breaks = seq(0, 100, 10)
+  ) +
+  labs(
+    title    = "Taux d'utilisation des engrais par milieu de residence",
+    subtitle = "Avec intervalles de confiance a 95% - Nigeria GHSP Wave 4 (2018/19)",
+    x        = NULL, y = "% de menages", fill = "Type d'engrais"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title         = element_text(face = "bold", size = 14),
+    plot.subtitle      = element_text(color = "grey40"),
+    legend.position    = "bottom",
+    panel.grid.major.x = element_blank()
+  )
+```
+
+### Test de khi-deux entre le milieu de residence et le type d'engrais utilise
+
+#### Tableau de contingence
+
+```{r Tableau_contingence, echo=FALSE}
+library(gt)
+
+tableau_contingence <- taux_sector %>%
+  select(secteur_label, n_chimique, n_npk, n_uree, n_organique) %>%
+  rename(
+    Milieu    = secteur_label,
+    Chimique  = n_chimique,
+    NPK       = n_npk,
+    Uree      = n_uree,
+    Organique = n_organique
+  ) %>%
+  mutate(Total = Chimique + NPK + Uree + Organique) %>%
+  gt::gt() %>%
+  gt::tab_header(title = "Utilisation des engrais par milieu de residence") %>%
+  gt::grand_summary_rows(
+    columns = c(Chimique, NPK, Uree, Organique, Total),
+    fns     = list(Total ~ sum(.))
+  )
+
+tableau_contingence
+```
+
+#### Resultats du test de khi2
+
+```{r Resultats_chi2, echo=FALSE}
+library(gt)
+
+# Matrice pour le chi-deux
+matrice_chi2 <- taux_sector %>%
+  select(n_chimique, n_npk, n_uree, n_organique) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  as.matrix()
+
+rownames(matrice_chi2) <- taux_sector$secteur_label
+colnames(matrice_chi2) <- c("Chimique", "NPK", "Uree", "Organique")
+
+chi2 <- chisq.test(matrice_chi2)
+
+resultats_chi2 <- data.frame(
+  Statistique = c("Chi-deux (X2)", "Degres de liberte", "P-value", "V de Cramer"),
+  Valeur      = c(
+    round(chi2$statistic, 3),
+    chi2$parameter,
+    round(chi2$p.value, 6),
+    round(sqrt(chi2$statistic /
+               (sum(matrice_chi2) *
+               (min(nrow(matrice_chi2), ncol(matrice_chi2)) - 1))), 3)
+  ),
+  Interpretation = c(
+    "", "",
+    ifelse(chi2$p.value < 0.001, "***  Tres significatif",
+    ifelse(chi2$p.value < 0.01,  "**   Significatif",
+    ifelse(chi2$p.value < 0.05,  "*    Significatif", "ns   Non significatif"))),
+    ifelse(sqrt(chi2$statistic /
+               (sum(matrice_chi2) *
+               (min(nrow(matrice_chi2), ncol(matrice_chi2)) - 1))) < 0.1,
+           "Association negligeable",
+    ifelse(sqrt(chi2$statistic /
+               (sum(matrice_chi2) *
+               (min(nrow(matrice_chi2), ncol(matrice_chi2)) - 1))) < 0.3,
+           "Association faible",
+    ifelse(sqrt(chi2$statistic /
+               (sum(matrice_chi2) *
+               (min(nrow(matrice_chi2), ncol(matrice_chi2)) - 1))) < 0.5,
+           "Association moderee", "Association forte")))
+  )
+) %>%
+  gt() %>%
+  tab_header(
+    title    = "Resultats du Test du Chi-deux",
+    subtitle = "Association entre milieu de residence et utilisation des engrais"
+  ) %>%
+  cols_label(
+    Statistique    ~ "**Statistique**",
+    Valeur         ~ "**Valeur**",
+    Interpretation ~ "**Interpretation**"
+  ) %>%
+  tab_style(
+    style     = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_style(
+    style     = cell_fill(color = "#f0f0f0"),
+    locations = cells_body(rows = c(1, 3))
+  ) %>%
+  tab_footnote(
+    footnote  = "*** p < 0.001 | ** p < 0.01 | * p < 0.05 | ns : non significatif",
+    locations = cells_body(columns = Interpretation, rows = 3)
+  ) %>%
+  tab_footnote(
+    footnote  = "V de Cramer : 0-0.1 negligeable | 0.1-0.3 faible | 0.3-0.5 moderee | >0.5 forte",
+    locations = cells_body(columns = Interpretation, rows = 4)
+  ) %>%
+  fmt_number(columns = Valeur, decimals = 3)
+
+resultats_chi2
+```
+
+## Top 12 des Etats avec un rendement a l'hectare eleve pour la culture principale
+
+La distribution des rendements agricoles pour le mais et le millet varie considerablement selon les Etats au Nigeria. Kaduna et Zamfara se distinguent comme les Etats les plus productifs, affichant les rendements medians les plus eleves, notamment pour le millet.
+
+```{r Rendement, echo=FALSE}
+##28/
+
+# Superficie calculee par gps ou estimee
+s11a1 <- sect11a1
+superficie_recalc <- s11a1 %>%
+  mutate(superficie_ha = case_when(
+    s11aq4a == 1 ~ s11aq4c / 10000,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 5 ~ s11aq4aa * 0.4047,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 6 ~ s11aq4aa,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 7 ~ s11aq4aa / 10000,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 1 & (zone == 1 | zone == 6) ~ s11aq4aa * 0.00012,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 1 & zone == 2 ~ s11aq4aa * 0.00016,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 1 & zone == 3 ~ s11aq4aa * 0.00011,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 1 & zone == 4 ~ s11aq4aa * 0.00019,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 1 & zone == 5 ~ s11aq4aa * 0.00021,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 2 & zone == 1 ~ s11aq4aa * 0.0027,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 2 & zone == 2 ~ s11aq4aa * 0.004,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 2 & zone == 3 ~ s11aq4aa * 0.00494,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 2 & (zone == 4 | zone == 5) ~ s11aq4aa * 0.0023,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 2 & zone == 6 ~ s11aq4aa * 0.00001,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 3 & zone == 1 ~ s11aq4aa * 0.00006,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 3 & zone == 2 ~ s11aq4aa * 0.00016,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 3 & (zone == 3 | zone == 4) ~ s11aq4aa * 0.00004,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 3 & zone == 5 ~ s11aq4aa * 0.00013,
+    (is.na(s11aq4a) | s11aq4a == 2) & s11aq4b == 3 & zone == 6 ~ s11aq4aa * 0.00041,
+    TRUE ~ NA_real_
+  )) %>%
+  select(hhid, plotid, superficie_ha)
+
+# Jointure avec sect11f
+sect11f_suprecalc <- sect11f %>%
+  inner_join(superficie_recalc, by = c("hhid", "plotid"))
+
+# Data frame avec superficie cultivee
+dataframe_supcultivee <- sect11f_suprecalc %>%
+  mutate(superficie_cultivee = case_when(
+    !is.na(s11fq1) ~ (superficie_ha * s11fq1) / 100,
+    TRUE           ~ NA_real_
+  )) %>%
+  select(hhid, plotid, cropcode, s11fq1, superficie_ha, superficie_cultivee)
+
+# Creation de prod_kg
+prod_kg <- secta3i %>%
+  mutate(production = sa3iq6i * sa3iq6_conv) %>%
+  select(hhid, plotid, cropcode, state, sa3iq6i, sa3iq6_conv, production) %>%
+  left_join(secta_p %>% select(hhid, wt_wave4), by = "hhid") %>%
+  left_join(dataframe_supcultivee, by = c("hhid", "plotid", "cropcode")) %>%
+  mutate(rendement = case_when(
+    !is.na(production) & !is.na(superficie_cultivee) & superficie_cultivee > 0
+    ~ production / superficie_cultivee,
+    TRUE ~ NA_real_
+  ))
+
+# Dictionnaire des noms d'Etats
+state_labels <- tibble::tibble(
+  state = c(1:37),
+  state_name = c(
+    "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa",
+    "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo",
+    "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna",
+    "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos",
+    "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo",
+    "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara",
+    "FCT Abuja"
+  )
+)
+
+# Filtrer mais et millet
+rendement_data <- prod_kg %>%
+  filter(cropcode %in% c(1080, 1100)) %>%
+  filter(!is.na(rendement) & !is.na(superficie_cultivee)) %>%
+  filter(superficie_cultivee > 0 & production > 0) %>%
+  mutate(crop_name = case_when(
+    cropcode == 1080 ~ "Mais",
+    cropcode == 1100 ~ "Millet"
+  )) %>%
+  left_join(state_labels, by = "state") %>%
+  mutate(state_name = if_else(is.na(state_name), paste0("Etat ", state), state_name))
+
+# Supprimer les outliers (IQR x 3)
+rendement_data <- rendement_data %>%
+  group_by(cropcode) %>%
+  mutate(
+    Q1        = quantile(rendement, 0.25, na.rm = TRUE),
+    Q3        = quantile(rendement, 0.75, na.rm = TRUE),
+    IQR_val   = Q3 - Q1,
+    borne_inf = Q1 - 3 * IQR_val,
+    borne_sup = Q3 + 3 * IQR_val
+  ) %>%
+  filter(rendement >= borne_inf & rendement <= borne_sup) %>%
+  select(-Q1, -Q3, -IQR_val, -borne_inf, -borne_sup) %>%
+  ungroup()
+
+# Top 12 Etats par rendement median
+top_states <- rendement_data %>%
+  group_by(state_name) %>%
+  summarise(
+    rendement_median = median(rendement, na.rm = TRUE),
+    n_menages        = n(),
+    .groups          = "drop"
+  ) %>%
+  filter(n_menages >= 5) %>%
+  arrange(desc(rendement_median)) %>%
+  slice(1:12) %>%
+  pull(state_name)
+
+rendement_top <- rendement_data %>%
+  filter(state_name %in% top_states) %>%
+  mutate(state_name = factor(state_name))
+
+# Moyennes ponderees pre-calculees
+wmean_df <- rendement_top %>%
+  group_by(state_name, crop_name) %>%
+  summarise(
+    wmean_rendement = weighted.mean(rendement, w = wt_wave4, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Boxplot par Etat
+ggplot(rendement_top,
+       aes(x    = reorder(state_name, rendement, FUN = median),
+           y    = rendement,
+           fill = crop_name)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7, width = 0.6) +
+  geom_point(
+    data     = wmean_df,
+    aes(x    = reorder(state_name, wmean_rendement),
+        y    = wmean_rendement,
+        group = crop_name),
+    shape    = 18, size = 3, color = "red",
+    position = position_dodge(width = 0.6)
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = c("Mais" = "#3B82F6", "Millet" = "#22C55E")) +
+  scale_y_continuous(
+    labels = scales::comma,
+    breaks = scales::pretty_breaks(n = 6)
+  ) +
+  labs(
+    title    = "Distribution des rendements par Etat",
+    subtitle = "Top 12 Etats - Mais et Millet - Nigeria GHSP Wave 4 (2018/19)",
+    x        = "Etat", y = "Rendement (kg/ha)", fill = "Culture",
+    caption  = "Outliers ecartes via la regle IQR x 3. Losange rouge = moyenne ponderee (wt_wave4)."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14),
+    plot.subtitle    = element_text(color = "grey40"),
+    legend.position  = "bottom",
+    panel.grid.minor = element_blank(),
+    axis.text.y      = element_text(size = 11)
+  )
+```
+
+## Relation entre l'utilisation d'engrais chimique et le rendement
+
+Les boxplots revelent une relation contrastee entre l'utilisation d'engrais chimique et le rendement agricole selon la culture consideree. Pour le **mais**, la difference est statistiquement tres significative (Wilcoxon, p < 0.001), avec une taille d'effet faible (r = 0.138). Pour le **millet**, aucune difference significative n'est observee (Wilcoxon, p = 0.655), avec une taille d'effet quasi nulle (r = 0.014).
+
+```{r Utilisation_engrais_chimique_rendements, echo=FALSE}
+##29/
+library(coin)
+
+# Joindre l'utilisation d'engrais chimique a rendement_data
+rendement_engrais <- rendement_data %>%
+  left_join(taux_engrais %>% select(hhid, chimique), by = "hhid") %>%
+  filter(!is.na(chimique)) %>%
+  mutate(
+    engrais_chimique = factor(chimique,
+                              levels = c(0, 1),
+                              labels = c("Sans engrais", "Avec engrais"))
+  )
+
+# Test de Wilcoxon par culture
+wilcox_mais <- wilcox.test(
+  rendement ~ engrais_chimique,
+  data  = rendement_engrais %>% filter(crop_name == "Mais"),
+  exact = FALSE
+)
+
+wilcox_millet <- wilcox.test(
+  rendement ~ engrais_chimique,
+  data  = rendement_engrais %>% filter(crop_name == "Millet"),
+  exact = FALSE
+)
+
+# Taille d'effet (r de Wilcoxon)
+n_mais   <- nrow(rendement_engrais %>% filter(crop_name == "Mais"))
+n_millet <- nrow(rendement_engrais %>% filter(crop_name == "Millet"))
+
+r_mais   <- qnorm(wilcox_mais$p.value   / 2) / sqrt(n_mais)
+r_millet <- qnorm(wilcox_millet$p.value / 2) / sqrt(n_millet)
+
+taille_effet <- data.frame(
+  Culture       = c("Mais", "Millet"),
+  W             = round(c(wilcox_mais$statistic, wilcox_millet$statistic), 0),
+  p_value       = round(c(wilcox_mais$p.value,   wilcox_millet$p.value), 4),
+  r_effet       = round(abs(c(r_mais, r_millet)), 3),
+  interpretation = case_when(
+    abs(c(r_mais, r_millet)) < 0.1 ~ "Effet negligeable",
+    abs(c(r_mais, r_millet)) < 0.3 ~ "Effet faible",
+    abs(c(r_mais, r_millet)) < 0.5 ~ "Effet modere",
+    TRUE                           ~ "Effet fort"
+  )
+)
+
+# Labels p-value
+p_mais_label   <- ifelse(wilcox_mais$p.value   < 0.001, "p < 0.001",
+                         paste0("p = ", round(wilcox_mais$p.value, 3)))
+p_millet_label <- ifelse(wilcox_millet$p.value < 0.001, "p < 0.001",
+                         paste0("p = ", round(wilcox_millet$p.value, 3)))
+
+# Dataframe d'annotations par facette
+annotations <- data.frame(
+  crop_name = c("Mais", "Millet"),
+  label     = c(paste0("Wilcoxon\n", p_mais_label),
+                paste0("Wilcoxon\n", p_millet_label)),
+  x         = c(1.5, 1.5),
+  y         = c(Inf, Inf)
+)
+
+# Boxplot groupe
+ggplot(rendement_engrais,
+       aes(x = engrais_chimique, y = rendement, fill = engrais_chimique)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7, width = 0.5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red") +
+  geom_text(data = annotations,
+            aes(x = x, y = y, label = label),
+            vjust = 2, size = 3.5, fontface = "bold", inherit.aes = FALSE) +
+  facet_wrap(~crop_name, scales = "free_y") +
+  scale_fill_manual(values = c("Sans engrais" = "#95a5a6", "Avec engrais" = "#E07B39")) +
+  labs(
+    title    = "Rendement selon l'utilisation d'engrais chimique",
+    subtitle = "Mais et Millet - Nigeria GHSP Wave 4 (2018/19)",
+    x        = NULL, y = "Rendement (kg/ha)", fill = "Utilisation engrais",
+    caption  = "Losange rouge = moyenne. Outliers ecartes via IQR x 3."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14),
+    plot.subtitle    = element_text(color = "grey40"),
+    legend.position  = "bottom",
+    panel.grid.minor = element_blank(),
+    strip.text       = element_text(face = "bold", size = 12)
+  )
+```
+
+# Conclusion
+
+Les resultats de cette analyse revelent un systeme agricole nigerien caracterise par une diversification moderee autour de 2 a 3 cultures par menage, domine par le mais et le manioc comme cultures de base. Les disparites entre milieux rural et urbain sont marquees a plusieurs niveaux : les menages ruraux presentent une diversification culturale significativement plus elevee et un recours aux engrais nettement plus important, avec des taux d'utilisation d'engrais chimiques atteignant 41.6% en milieu rural contre seulement 5.8% en milieu urbain. L'analyse des rendements montre que l'utilisation d'engrais chimiques ameliore significativement le rendement du mais, bien que la taille d'effet reste faible, tandis qu'aucun impact significatif n'est observe pour le millet. Ces resultats soulignent la necessite de politiques agricoles differenciees tenant compte des specificites agro-ecologiques et socioeconomiques des regions nigerianes.
