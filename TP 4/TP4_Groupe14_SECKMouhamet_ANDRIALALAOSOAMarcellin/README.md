@@ -61,6 +61,7 @@ Consulter `docs/rapport_tp4_word.Rmd` pour la présentation détaillée des rés
 Exécuter `docs/assemble_tp4.R` pour compiler le rapport final Word 
 
 ## Auteur
+Marcellin ANDRIALALAOSOA
 
 Mouhamet SECK
-Marcellin ANDRIALALAOSOA
+
