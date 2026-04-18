@@ -1,0 +1,322 @@
+---
+title: "Cultures pratiquées, intrants utilisés et rendements agricoles"
+subtitle: "DIOP Papa Boubacar - SOCE Math"
+
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: true
+    number_sections: true
+    reference_docx: references.docx
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,      # cache le code
+  message = FALSE,   # cache messages
+  warning = FALSE    # cache warnings
+)
+```
+
+# Introduction
+
+L'agriculture constitue un pilier essentiel des économies africaines, en particulier au Nigeria où elle représente une source majeure de revenus et d'emplois pour une grande partie de la population. Comprendre les pratiques agricoles, notamment les choix de cultures, l'utilisation des intrants et les niveaux de rendement, est donc crucial pour orienter les politiques publiques et améliorer la productivité du secteur.
+
+Dans ce cadre, cette étude s'appuie sur les données du *General Household Survey (GHS) Panel*, une enquête longitudinale menée au Nigeria dans le cadre du programme LSMS-ISA de la Banque mondiale. Les données utilisées correspondent à la quatrième vague (2018), et permettent d'analyser les comportements agricoles au niveau des ménages et des parcelles.
+
+L'objectif principal de ce travail est d'examiner les cultures pratiquées, d'évaluer l'utilisation des intrants agricoles, et d'analyser les rendements obtenus. Plus précisément, l'analyse porte sur :
+
+- l'identification des cultures les plus fréquentes,
+
+- la mesure de la diversification culturale des ménages,
+
+- l'estimation des rendements agricoles pour certaines cultures clés,
+
+- et l'étude de la relation entre l'utilisation des engrais et les performances agricoles.
+
+L'approche adoptée repose sur la construction d'indicateurs à partir du dictionnaire de données, en veillant à assurer la cohérence des unités de mesure et la qualité des données utilisées.
+
+Le rapport est structuré comme suit : la section suivante présente les données et la méthodologie adoptée, suivie des principaux résultats empiriques. Une discussion des résultats est ensuite proposée, avant de conclure.
+
+
+# Méthodologie
+
+## Source des données
+
+Les données utilisées proviennent du *Nigeria General Household Survey (GHS) Panel*, une enquête longitudinale réalisée dans le cadre du programme LSMS-ISA de la Banque mondiale. L'analyse porte sur la quatrième vague (2018), qui fournit des informations détaillées sur les activités agricoles des ménages.
+
+Les variables pertinentes ont été identifiées à partir du dictionnaire de données, afin de garantir la cohérence de l'analyse.
+
+## Construction des variables
+
+### Superficie des parcelles
+
+La superficie des parcelles a été construite à partir de la variable `s11aq4aa`, associée à `s11aq4b` indiquant l'unité de mesure. Les superficies ont été converties en hectares afin d'assurer la comparabilité des données. Les unités non standardisées, comme *heaps*, *ridges* et *stands*, ont été exclues.
+
+```{r}
+library(dplyr)
+library(haven)
+library(ggplot2)
+library(forcats)
+library(stringr)
+
+secta3i <- read_dta("../data/secta3i_harvestw4.dta")
+secta3ii <- read_dta("../data/secta3ii_harvestw4.dta")
+sect11a1 <- read_dta("../data/sect11a1_plantingw4.dta")
+area_plot <- sect11a1 %>%
+  mutate(
+    area_ha = case_when(
+      s11aq4b == 6 ~ s11aq4aa,
+      s11aq4b == 5 ~ s11aq4aa * 0.404686,
+      s11aq4b == 7 ~ s11aq4aa / 10000,
+      TRUE ~ NA_real_
+    )
+  )
+```
+
+### Identification des cultures
+
+Les cultures ont été identifiées à partir de la variable `cropcode` issue du module de récolte. Les données de superficie ont ensuite été associées aux cultures à l'aide de l'identifiant de parcelle (`plotid`).
+
+```{r}
+area_crop_plot <- area_plot %>%
+  select(hhid, plotid, area_ha) %>%
+  inner_join(
+    secta3i %>%
+      select(hhid, plotid, cropcode),
+    by = c("hhid", "plotid")
+  )
+```
+
+
+### Production agricole
+
+La production agricole a été mesurée à partir de la variable `sa3iiq1a`, représentant la quantité totale récoltée par culture au niveau du ménage.
+
+```{r}
+prod_data <- secta3ii %>%
+  select(hhid, cropcode, sa3iiq1a) %>%
+  filter(!is.na(sa3iiq1a), sa3iiq1a > 0) %>%
+  mutate(cropcode = as.numeric(cropcode))
+```
+
+### Rendement agricole
+
+Les superficies ont été agrégées au niveau du ménage et de la culture avant d'être appariées aux données de production. Le rendement agricole a été calculé comme le ratio entre la production (kg) et la superficie cultivée (hectares).
+
+```{r}
+area_crop <- area_crop_plot %>%
+  group_by(hhid, cropcode) %>%
+  summarise(
+    area_ha = sum(area_ha, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+yield_data <- area_crop %>%
+  inner_join(prod_data, by = c("hhid", "cropcode")) %>%
+  mutate(yield_kg_ha = sa3iiq1a / area_ha) %>%
+  filter(area_ha > 0)
+```
+
+Les valeurs aberrantes ont été identifiées à l'aide de la méthode de l'intervalle interquartile élargi (IQR × 3), afin d'exclure les observations extrêmes tout en conservant les valeurs agricoles plausibles.
+
+```{r}
+Q1 <- quantile(yield_data$yield_kg_ha, 0.25, na.rm = TRUE)
+Q3 <- quantile(yield_data$yield_kg_ha, 0.75, na.rm = TRUE)
+IQR_val <- Q3 - Q1
+
+yield_clean <- yield_data %>%
+  filter(
+    yield_kg_ha >= Q1 - 3 * IQR_val,
+    yield_kg_ha <= Q3 + 3 * IQR_val
+  )
+```
+
+## Méthodes d'analyse
+
+L'analyse repose sur des statistiques descriptives et des représentations graphiques. Les distributions sont étudiées à l'aide de diagrammes en barres et de boxplots. Des tests non paramétriques, notamment le test de Wilcoxon, sont utilisés pour comparer les distributions lorsque les hypothèses de normalité ne sont pas vérifiées.
+
+
+# Résultats
+
+## Cultures les plus fréquentes
+
+Afin d'identifier les cultures les plus pratiquées, une analyse de fréquence a été réalisée sur les cultures récoltées au cours de la vague 4. L'objectif est de mettre en évidence les cultures dominantes dans les exploitations agricoles.
+
+Les fréquences ont été calculées au niveau du couple ménage-culture afin d'éviter le double comptage des cultures présentes sur plusieurs parcelles d'un même ménage.
+
+```{r}
+library(dplyr)
+library(haven)
+library(stringr)
+library(ggplot2)
+library(forcats)
+
+freq_crop_w4 <- secta3i %>%
+  filter(!is.na(cropcode)) %>%
+  distinct(hhid, cropcode) %>%
+  mutate(
+    crop_label = as_factor(cropcode),
+    crop_label = str_remove(crop_label, "^\\d+\\.\\s*")
+  ) %>%
+  count(crop_label, sort = TRUE) %>%
+  slice_head(n = 15)
+
+freq_crop_w4 <- freq_crop_w4 %>%
+  mutate(
+    crop_type = case_when(
+      str_detect(toupper(crop_label), "MAIZE|RICE|SORGHUM|MILLET") ~ "Céréales",
+      str_detect(toupper(crop_label), "CASSAVA|YAM") ~ "Racines",
+      str_detect(toupper(crop_label), "SESAME") ~ "Oléagineux",
+      str_detect(toupper(crop_label), "BEANS|COWPEA|GROUNDNUT") ~ "Légumineuses",
+      TRUE ~ "Autres"
+    )
+  )
+
+ggplot(freq_crop_w4,
+       aes(x = n,
+           y = fct_reorder(crop_label, n),
+           fill = crop_type)) +
+  geom_col() +
+  labs(
+    title = "Les 15 cultures les plus fréquentes",
+    x = "Nombre de ménages",
+    y = "Culture",
+    fill = "Type"
+  ) +
+  theme_minimal()
+
+```
+
+Le graphique des 15 cultures les plus fréquentes en vague 4 met en évidence une forte concentration autour de quelques cultures dominantes. Le maïs apparaît comme la culture la plus fréquemment observée, suivi du manioc. Viennent ensuite le sorgho (guinea corn), l'igname blanche et le niébé/haricot.
+
+La structure de ce classement montre que les cultures dominantes appartiennent principalement aux catégories des céréales et des racines. Les légumineuses occupent également une place visible, mais restent moins fréquentes que le maïs, le manioc ou le sorgho. Les oléagineux sont peu représentés parmi les toutes premières positions, le sésame apparaissant seulement vers le bas du classement.
+
+Le graphique met aussi en évidence une hiérarchie nette entre les cultures. Les premières positions concentrent des effectifs nettement plus élevés que les cultures situées en fin de classement, comme le gombo, la citrouille, le sésame ou le petit piment. Cela suggère que le système de production reste dominé par un nombre restreint de cultures majeures, tandis que les autres cultures occupent une place plus marginale.
+
+Enfin, la présence simultanée de céréales, de racines, de légumineuses et de quelques autres cultures dans ce top 15 traduit une certaine diversité des cultures pratiquées, mais cette diversité demeure structurée autour de quelques spéculations principales.
+
+## Diversification culturale des ménages
+
+La diversification culturale est mesurée ici comme le nombre de cultures différentes cultivées par un ménage. Cet indicateur permet d'évaluer la variété des activités agricoles et de mieux comprendre les stratégies de production.
+
+Afin d'éviter le double comptage des cultures présentes sur plusieurs parcelles, le calcul est effectué au niveau du couple ménage-culture.
+
+```{r}
+diversification <- secta3i %>%
+  filter(!is.na(cropcode)) %>%
+  distinct(hhid, cropcode) %>%
+  group_by(hhid) %>%
+  summarise(
+    n_cultures = n(),
+    .groups = "drop"
+  )
+
+ggplot(diversification, aes(x = n_cultures)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution de la diversification culturale",
+    x = "Nombre de cultures",
+    y = "Nombre de ménages"
+  ) +
+  theme_minimal()
+
+```
+
+La distribution du nombre de cultures par ménage est clairement asymétrique à droite. La majorité des ménages cultivent entre 2 et 4 cultures, avec un pic autour de 3 cultures.
+
+Le nombre de ménages diminue progressivement à mesure que le nombre de cultures augmente. Les ménages cultivant plus de 5 cultures sont relativement rares, et ceux atteignant 7 ou 8 cultures sont très peu nombreux.
+
+La distribution montre donc une concentration autour de quelques cultures, avec une longue queue vers la droite indiquant l'existence de ménages plus diversifiés, mais en faible proportion.
+
+
+## Rendement agricole du maïs et du millet
+
+L'analyse des rendements agricoles porte sur deux cultures majeures : le maïs et le millet. Le rendement est défini comme le rapport entre la production totale (en kilogrammes) et la superficie cultivée (en hectares).
+
+Afin de garantir la cohérence des résultats, l'analyse est menée au niveau du ménage et de la culture. Les valeurs aberrantes ont été exclues selon la méthode de l'intervalle interquartile élargi (IQR × 3).
+
+```{r}
+
+
+yield_mm <- yield_clean %>%
+  mutate(
+    crop_label = as_factor(cropcode),
+    crop_label = str_remove(crop_label, "^\\d+\\.\\s*")
+  ) %>%
+  filter(str_detect(toupper(crop_label), "MAIZE|MILLET"))
+ggplot(yield_mm,
+       aes(x = crop_label, y = yield_kg_ha, fill = crop_label)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution des rendements par culture",
+    x = "Culture",
+    y = "Rendement (kg/ha)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+Le boxplot met en évidence des différences dans la distribution des rendements entre le maïs et le millet.
+
+Le maïs présente un rendement médian plus élevé que le millet. La dispersion des rendements est également plus importante pour le maïs, comme en témoigne une boîte plus large et une étendue plus élevée des valeurs.
+
+Pour les deux cultures, la distribution est asymétrique à droite, avec la présence de nombreuses valeurs élevées (points extrêmes). Cette asymétrie indique que certains ménages obtiennent des rendements nettement supérieurs à la majorité.
+
+Le millet présente des rendements globalement plus faibles et une dispersion plus réduite. Toutefois, on observe également quelques valeurs élevées, bien que moins nombreuses que pour le maïs.
+
+Ainsi, le maïs se distingue par des rendements généralement plus élevés mais aussi plus variables, tandis que le millet présente des rendements plus faibles et plus concentrés.
+
+### Rendement par État
+
+Afin d'analyser les disparités spatiales, les rendements du maïs et du millet sont comparés entre les différents États à l'aide de boxplots.
+
+```{r}
+yield_mm_state <- yield_clean %>%
+  mutate(
+    crop_label = as_factor(cropcode),
+    crop_label = str_remove(crop_label, "^\\d+\\.\\s*")
+  ) %>%
+  filter(str_detect(toupper(crop_label), "MAIZE|MILLET")) %>%
+  left_join(
+    secta3ii %>%
+      select(hhid, cropcode, state) %>%
+      distinct(),
+    by = c("hhid", "cropcode")
+  ) %>%
+  filter(!is.na(state))
+
+ggplot(yield_mm_state, aes(x = factor(state), y = yield_kg_ha)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution des rendements du maïs et du millet par État",
+    x = "État",
+    y = "Rendement (kg/ha)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Rendement et utilisation des engrais chimiques
+
+L'analyse de la relation entre l'utilisation des engrais chimiques et les rendements agricoles n'a pas pu être menée dans le cadre de cette étude. En effet, l'exploration du dictionnaire de données de la vague 4 du GHS Panel n'a pas permis d'identifier de variable explicite, cohérente et exploitable permettant de distinguer de manière fiable l'utilisation d'engrais chimiques (tels que le NPK ou l'urée) au niveau des ménages ou des parcelles.
+
+
+# Conclusion
+
+Ce travail avait pour objectif d'analyser les cultures pratiquées, la diversification culturale et les rendements agricoles à partir des données de la quatrième vague du *Nigeria General Household Survey (GHS) Panel*.
+
+L'analyse des cultures les plus fréquentes met en évidence une forte concentration autour de quelques cultures dominantes, notamment le maïs et le manioc, suivis du sorgho, de l'igname et des légumineuses. Cette structure traduit une hiérarchie marquée dans les systèmes de production agricole.
+
+L'étude de la diversification culturale montre que la majorité des ménages cultivent un nombre limité de cultures, généralement compris entre deux et quatre. La distribution observée est asymétrique à droite, indiquant que les ménages fortement diversifiés restent minoritaires.
+
+Concernant les rendements agricoles, les résultats mettent en évidence des différences entre les cultures. Le maïs présente des rendements médians plus élevés et une variabilité plus importante que le millet, dont les rendements apparaissent plus faibles et plus concentrés. Dans les deux cas, la distribution des rendements est caractérisée par la présence de valeurs élevées, traduisant une certaine hétérogénéité des performances.
+
+L'analyse spatiale par État suggère également l'existence de disparités dans les rendements, bien que celles-ci n'aient pas été interprétées en détail dans le cadre de ce travail.
+
+Enfin, l'étude de l'impact de l'utilisation des engrais chimiques n'a pas pu être réalisée en raison de l'absence de variables clairement exploitables dans les données disponibles, ce qui constitue une limite importante de l'analyse.
+
+Dans l'ensemble, ces résultats permettent de mieux caractériser les pratiques agricoles et les performances productives, tout en soulignant les limites liées à la structure et à la disponibilité des données.
+

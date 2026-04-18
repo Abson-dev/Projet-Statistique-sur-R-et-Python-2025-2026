@@ -1,0 +1,4 @@
+"Variable","NA_count","NA_pct","Aberrants","Seuil"
+"Superficie declaree (ha)",9895,90.3,0,"< 0 ou > 500 ha"
+"Superficie GPS (ha)",4134,37.7,NA,"--"
+"Poids wt_wave4",1,0,NA,"--"

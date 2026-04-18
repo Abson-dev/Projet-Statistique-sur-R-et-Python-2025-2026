@@ -1,0 +1,10 @@
+
+	Spearman's rank correlation rho
+
+data:  parcelles_comp$superf_declaree_ha and parcelles_comp$superf_gps_ha
+S = 5510721, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.8242493 
+

@@ -1,0 +1,139 @@
+---
+title: "Analyse des exploitations agricoles au Nigéria"
+author: 
+  - "Ousmane LO"
+  - "Cheikh Ahmadou Bamba FALL"
+date: "`r Sys.Date()`"
+format:
+  docx:
+    reference-doc: "reference.docx"
+execute: 
+  echo: false
+  warning: false
+  message: false
+geometry: margin = 2cm
+---
+
+Ce rapport présente les résultats du TP4 réalisé dans le cadre du cours de Statistique Descriptive à l'École Nationale de la Statistique et de l'Analyse Économique Pierre Ndiaye (ENSAE)
+
+Il présente une analyse des données de l'enquête agricole de la vague 4 du NGHS. L’objectif est de décrire la structure des exploitations nigériennes à partir des données de la GHS. Les dimensions étudiées sont les superficies agricoles, le régime de tenure et la localisation géographique.
+
+# Méthodologie et source de données
+
+Le projet est structuré en 4 dossiers essentiellement : **data**, **script**, **output**, et **rapport**.
+
+-   **data**
+
+contient les bases de données utilisées lors de l'analyse. La base **sect11a1_plantingw4** contient le roster des parcelles cultivés par le ménage, incluant la superficie déclarée, la superficie GPS, la localisation et les informations sur le ménage. la base **sect11b1_plantingw4** contient quant à elle les informations comme le régime de tenure, la localité (rural/urbain) etc. Enfin la base **secta_harvestw4** qui contient la variable de pondération *wt_wave4* utilisée.
+
+-   **script**
+
+contient l'ensemble du script qui permis de fournir les résultats. Il contient le fichier import.R pour les importations des différentes bases, le fichier recodage.R utilisé pour la transformation et la création de certaines variable et le fichier **analyse.R** pour l'analyse des données.
+
+La variable référant la superficie agricole en hectare est construite à partir de la variable **s11aq4.** Cette dernière représente la superficie agricole dont l'unité dépend de la zone et de l'unité de conversion utilisée. Les tableaux ci dessous donne ces facteurs de conversion. Ils sont tirés du rapport **Nigeria General Household Survey 2018/19**.
+
+```{r tab.cap= "Source : rapport NGHS"}
+library(flextable)
+load("../output/tables/table_conv.RDATA")
+table_conv
+```
+
+Les facteurs de conversion pour les unités **plots** , **Acres**, **Hectares** et **Square meters** sont indépendantes de la zone géographique contrairement aux unités **Heaps**, **Ridges** et **Stands**.
+
+```{r tab.cap= "Source : rapport NGHS"}
+library(flextable)
+load("../output/tables/table_conv_s.RDATA")
+table_conv_s
+```
+
+-   **output et rapport**
+
+Le dossier output contient l'ensemble des graphiques et tableaux obtenus à partir de l'analyse et le dossier rapport contient le rapport final de l'analyse.
+
+# Résultats principaux
+
+## Analyse de la superficie par parcelle et par ménage
+
+### Analyse de la superficie agricole totale
+
+L’analyse de la superficie totale des parcelles agricoles des ménages nigérians met en évidence une distribution très concentrée autour de petites exploitations. L'histogramme montre que la majorité des ménages disposent de superficies comprises entre **0,1 et 10 hectares**, ce qui traduit une forte prévalence des petites exploitations familiales.
+
+```{r}
+load("../output/figures/hist_superficie_menage.RDATA")
+hist_superficie_menage
+```
+
+### Analyse des superficies des parcelles.
+
+L’analyse des superficies des **parcelles agricoles** confirme ce résultat. L' histogramme de la distribution des superficies des parcelles agricole indique que  la majorité des parcelles ont une superficie **inférieure à 5 hectares**, avec une forte densité entre 0,1 et 2 hectares.
+
+```{r}
+load("../output/figures/hist_superficie_parcelle.RDATA")
+hist_superficie_parcelle
+```
+
+```{r}
+load("../output/figures/boxplot_MP.RDATA")
+boxplot_mp
+```
+
+### comparaison entre superficie déclaré et superficie GPS
+
+La comparaison entre les superficies déclarées et celles mesurées par GPS montre une corrélation élevée (rho de Spearman ≈ 0,704), ce qui confirme la cohérence générale des données. Toutefois, des écarts subsistent, ce qui peut traduire des erreurs de déclaration ou des imprécisions de mesure. L’utilisation du GPS apparaît ainsi comme un outil indispensable pour améliorer la fiabilité des enquêtes agricoles
+
+```{r}
+load("../output/figures/plot_SG.RDATA")
+plot_SG
+
+```
+
+## Analyse du régime de tenure
+
+Le régime de tenure des terres agricoles au Nigéria révèle une diversité de situations. La majorité des parcelles sont exploitées sous un régime de **propriété familiale ou héritée**, ce qui traduit une forte prévalence des structures traditionnelles. Cependant, une part non négligeable des terres est cultivée sous des formes de **location ou prêt informel**.
+
+Le résultat du test d'indépendance du Khi-deux donne un résultat très significatif avec une $p-value = 1.69 \times 10 ^{-104} \ll 0.05$ ce qui implique le régime de tenure est fortement dépendante du milieu de résidence.
+
+-   En **rural**, la tenure est majoritairement sécurisée par héritage ou propriété coutumière.
+
+-   En **urbain**, les ménages recourent davantage à la location ou au prêt, ce qui peut limiter les investissements de long terme.
+
+```{r ,fig.width= 12 , fig.height= 6}
+load("../output/figures/bar_regime_tenure.RDATA")
+bar_regime_tenure
+```
+
+## Relation entre superficie agricole totale et le nombre de parcelle du ménage
+
+L’analyse statistique montre une **corrélation positive** entre la superficie totale du ménage et le nombre de parcelles exploitées.
+
+-   Les ménages disposant de grandes superficies tendent à fragmenter leurs terres en plusieurs parcelles, probablement pour diversifier les cultures ou répartir les risques.
+
+-   À l’inverse, les petites exploitations se limitent souvent à une ou deux parcelles.
+
+Le test de corrélation de Spearman indique un coefficient $rho = 0.306$ ce qui traduit une corrélation positive entre le nombre de parcelle exploité et la superficie agricole totale du ménage.
+
+Toutefois, la corrélation est **faible à modérée**. Cela suggère que si la taille totale de l'exploitation augmente, le nombre de parcelles tend à augmenter aussi, mais de manière beaucoup moins systématique. On peut avoir de très grandes exploitations composées d'une seule immense parcelle, ou de petites exploitations très morcelées. Graphiquement, la tendance est visible avec une courbe de lissage (loess) qui montre une augmentation progressive de la superficie totale en fonction du nombre de parcelles.
+
+```{r}
+load("../output/figures/geom_point_SN.RDATA") 
+geom_point_SN
+```
+
+## Disparités géographiques
+
+La heatmap produite illustre ces contrastes : les zones en bleu foncé correspondent aux États où les exploitations sont plus vastes, tandis que les zones en bleu clair indiquent des exploitations plus petites. Ces disparités géographiques soulignent l’importance d’adapter les politiques agricoles aux contextes locaux : soutien à l’intensification dans les zones de petites exploitations, et accompagnement de la gestion durable des grandes superficies dans les régions plus extensives.
+
+```{r fig.height=9 , fig.width=8}
+load("../output/figures/heatmap.RDATA")
+geom_heatmap
+```
+
+# Tests réalisés
+
+ce tableau présente les résultats des tests réalisés dans ce TP . L'objectif ces tests est de voir
+
+```{r}
+library(flextable)
+load("../output/tables/table_test.RDATA") 
+table_test
+```

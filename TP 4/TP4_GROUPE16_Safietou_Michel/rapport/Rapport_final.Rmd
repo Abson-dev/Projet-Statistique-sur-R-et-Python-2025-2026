@@ -1,0 +1,742 @@
+---
+title: "Analyse de la Structure Foncière des Exploitations Agricoles au Nigéria"
+subtitle: "Nigeria General Household Survey (GHS) — Wave 4"
+author: "Auteurs  : Safietou DEME ET Michel TEVOEDVRE"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    reference_docx: "style.docx"
+
+always_allow_html: true
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 7,
+  fig.height = 4.5,
+  dpi     = 150
+)
+
+set.seed(123)
+
+# Permet d'utiliser des chemins relatifs depuis /report
+knitr::opts_knit$set(root.dir = "..")
+```
+
+```{r renv, include=FALSE}
+if (requireNamespace("renv", quietly = TRUE)) {
+  renv::activate()
+}
+```
+
+```{r}
+#renv::install("writexl")
+#renv::snapshot()
+```
+
+
+
+
+```{r libraries}
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(scales)
+library(patchwork)
+library(rstatix)
+library(viridis)
+library(Hmisc)
+library(survey)
+library(gtsummary)
+library(here)
+library(gt)
+library(writexl)
+
+```
+
+
+
+```{r data-preparation}
+source(here::here("scripts", "01_nettoyage.R"))
+```
+
+
+\newpage
+
+# Introduction
+
+L'analyse de la structure foncière constitue un enjeu central dans la compréhension des dynamiques agricoles, en particulier dans les pays en développement où l'accès à la terre, sa répartition et ses modes d'exploitation influencent directement la productivité, les revenus des ménages et la sécurité alimentaire. Dans ce contexte, l'étude des parcelles agricoles permet d'appréhender finement l'organisation des exploitations, notamment à travers la superficie cultivée, les régimes de tenure foncière et les caractéristiques agronomiques des terres.
+
+Ce travail s'appuie sur les données du **Nigeria General Household Survey (GHS)**, en utilisant deux bases de données : *sect11a1_plantingw4.dta* et *sect11b1_plantingw4.dta*, qui offrent une richesse d'informations sur les parcelles agricoles au niveau des ménages. L'objectif principal est de décrire et d'analyser la structure foncière des exploitations agricoles nigérianes, en mettant l'accent sur la distribution des superficies, les modes d'accès à la terre (propriété, location, héritage, etc.) ainsi que les disparités spatiales.
+
+Plus spécifiquement, ce TP vise à :
+
+- explorer les caractéristiques des parcelles à travers des analyses descriptives et statistiques ;
+- comparer les superficies déclarées et mesurées par GPS ;
+- étudier les relations entre variables clés, notamment la superficie totale et le nombre de parcelles.
+
+L'ensemble de ces analyses permettra de mieux comprendre les inégalités foncières et les mécanismes d'allocation des terres dans le secteur agricole nigérian.
+
+
+\newpage
+
+
+# Cadre méthodologique
+
+## Plan de sondage
+
+L’enquête GHS repose sur un plan d’échantillonnage probabiliste stratifié à deux degrés. Au premier degré, des zones de dénombrement (EA) sont sélectionnées comme unités primaires d’échantillonnage. Au second degré, un échantillon de ménages est tiré aléatoirement au sein de chaque EA. L’enquête présente également une dimension longitudinale (panel), avec un suivi des ménages dans le temps et un rafraîchissement partiel de l’échantillon pour maintenir la représentativité. Les analyses doivent tenir compte des poids d’échantillonnage, des grappes et des strates afin d’obtenir des estimations non biaisées et des erreurs standards correctes. Pour prendre en compte ce plan d'échantillonage, une variable qui combine la zone et le milieu de résidence a été crée. Ces deux variables sont les variables de stratification. Ceci est fait dans le but de bien exploiter le package **survey**.
+
+## Nettoyage des données
+
+Afin de répondre aux objectifs fixés, les deux bases ont été explorées et traitées successivement.
+
+### Base A : sect11a1_plantingw4.dta
+
+Cette base contient **11 076 observations** et **19 variables**. Elle renseigne principalement sur les caractéristiques des parcelles agricoles : l'État, le ménage d'appartenance, le milieu de résidence, ainsi que la superficie déclarée (avec leur unité de mesure) et la superficie mesurée par GPS.
+
+Le traitement a débuté par le **recodage de certaines variables**, afin d'identifier clairement chaque modalité lors des analyses. Les variables recodées sont notamment : l'unité de mesure de la superficie, le milieu de résidence et l'État.
+
+Une nouvelle variable a ensuite été créée pour **harmoniser toutes les superficies déclarées en hectares**. Cette conversion a été réalisée en conditionnant selon la zone géographique (État) et l'unité de mesure d'origine, conformément au tableau de conversion du rapport **Nigeria General Household Survey – Panel (NBS, 2012)**. Le tableau ci-dessous récapitule les facteurs de conversion utilisés.
+
+
+**Tableau de conversion des superficies vers l'hectare**
+
+```{r}
+table_zone <- data.frame(
+  Zone = 1:6,
+  Heaps = c(0.00012, 0.00016, 0.00011, 0.00019, 0.00021, 0.00012),
+  Ridges = c(0.0027, 0.0040, 0.00494, 0.0023, 0.0023, 0.00001),
+  Stands = c(0.00006, 0.00016, 0.00004, 0.00004, 0.00013, 0.00041)
+)
+```
+
+```{r}
+
+table_zone %>%
+  gt() %>%
+  tab_header(
+    title = "Indicateurs par zone"
+  ) %>%
+  fmt_number(
+    columns = c(Heaps, Ridges, Stands),
+    decimals = 5
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  tab_options(
+    table.width = pct(100)
+  )
+
+```
+
+*Source : Nigeria GHS-Panel, NBS, 2012.*
+
+
+Après harmonisation, le **traitement des valeurs manquantes et aberrantes** a été effectué sur la variable superficie en hectares :
+
+- 4 valeurs manquantes ont été imputées par la superficie moyenne du ménage correspondant.
+- 5 valeurs aberrantes (parcelles de plus de 500 ha) ont été plafonnées à 500 ha.
+
+### Base B : sect11b1_plantingw4.dta
+
+Cette base contient **227 variables** et **11 076 observations**. Le principal traitement porte sur les variables de régime de tenure foncière. Chaque régime est initialement une variable binaire (OUI/NON). Ces modalités ont été regroupées en une variable synthétique `tenure` prenant les valeurs :
+
+- Certificat d'occupation
+- Droit d'occupation
+- Certificat coutumier d'occupation
+- Titre de propriété
+
+Après ce nettoyage les pondérations ont été intégrés dans les deux bases et celles-ci sont enregistrées dans le dossier `data/processed/`. Une jointure des deux bases a été également faite, en retenant que les variables concernant notre analyse. Cette nouvelle base a été enrégistré aussi dans le même dossier
+
+```{r import-data}
+# Importation des données nettoyées
+base_final <- haven::read_dta(
+  here::here("data", "processed", "base_final.dta")
+)
+```
+
+```{r}
+base_final$stratum <- interaction(base_final$zone, base_final$sector)
+design <- svydesign(
+  id = ~ea,
+  strata = ~stratum,
+  weights = ~wt_wave4,
+  data = base_final,
+  nest = TRUE
+)
+```
+
+\newpage
+
+# Cadre d'analyse
+
+## Distribution des superficies en hectares
+
+La distribution des superficies agricoles représentée en échelle logarithmique permet de mieux appréhender la forte dispersion des données ainsi que la présence de valeurs extrêmes.
+
+Dans un premier temps, la distribution apparaît fortement asymétrique à droite sur l’échelle originale, ce qui traduit une concentration importante des exploitations autour de faibles superficies, accompagnée d’un nombre réduit d’exploitations de très grande taille. Après transformation logarithmique, la distribution devient plus centrée, ce qui facilite la lecture de la structure globale des données.
+
+On observe que la masse principale de la distribution est concentrée autour de valeurs intermédiaires sur l’échelle logarithmique, correspondant en réalité à des superficies faibles en hectares. Cela confirme que la majorité des exploitations agricoles étudiées sont de petite taille.
+
+Par ailleurs, la persistance d’une queue à droite, même après transformation logarithmique, indique l’existence de quelques exploitations de très grande superficie. Ces observations extrêmes traduisent une hétérogénéité importante au sein de la population étudiée.
+
+Enfin, l’usage de l’échelle logarithmique se révèle pertinent car il permet de réduire l’impact des valeurs extrêmes, de mieux visualiser la distribution globale et de faciliter la comparaison entre les petites et moyennes exploitations.
+
+
+```{r hist-superficie, fig.cap="Distribution des superficies agricoles (avec et sans transformation logarithmique)", message=FALSE}
+
+# Extraction des données pondérées depuis le design survey
+df_weighted <- base_final %>%
+  mutate(
+    .weight = weights(design),
+    log_superficie = log10(superficie_ha)
+  )
+
+# Histogramme sans log
+p1 <- ggplot(df_weighted, aes(x = superficie_ha, weight = .weight)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = 50,
+    fill = "#D95F0E",
+    color = "white",
+    linewidth = 0.2
+  ) +
+  labs(
+    title = "Sans transformation logarithmique",
+    x = "Superficie (ha)",
+    y = "Densité pondérée"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = "bold"))
+
+# Histogramme avec log
+p2 <- ggplot(df_weighted, aes(x = superficie_ha, weight = .weight)) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = 50,
+    fill = "#2C7BB6",
+    color = "white",
+    linewidth = 0.2
+  ) +
+  scale_x_log10(labels = label_number(accuracy = 0.01)) +
+  labs(
+    title = "Avec transformation logarithmique",
+    x = "Superficie (ha, log)",
+    y = "Densité pondérée"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = "bold"))
+
+# Affichage côte à côte
+histogrammes <- p1 + p2
+histogrammes
+
+```
+
+
+```{r}
+# Export
+ggsave(
+  filename = "histogrammes.png",
+  plot     = histogrammes,
+  path     = "output/figures",   # ← remplace par ton chemin existant
+  width    = 8,
+  height   = 3,
+  dpi      = 300,
+  bg       = "white"
+)
+```
+
+## Statistiques descriptives
+
+Les statistiques descriptives pondérées de la superficie agricole révèlent une distribution fortement asymétrique et très dispersée. La superficie moyenne est estimée à 0,737 hectare, ce qui suggère que la moitié des exploitations sont de petite taille. Toutefois, cette moyenne est peu représentative de la distribution centrale, en raison d’une dispersion très élevée mise en évidence par un écart-type de 8,649 hectares, indiquant une forte hétérogénéité des superficies au sein de la population étudiée. Cette variabilité est également confirmée par l’amplitude des valeurs observées, allant de 0 à 500 hectares, ce qui traduit la présence de très grandes exploitations agricoles contrastant fortement avec la majorité des petites unités de production. Ces valeurs extrêmes influencent fortement les statistiques classiques, notamment en tirant la moyenne vers le haut.
+
+```{r stats-desc}
+
+# Moyenne et écart-type pondérés via le plan de sondage
+moy <- svymean(~superficie_ha, design = design, na.rm = TRUE)
+var <- svyvar(~superficie_ha, design = design, na.rm = TRUE)
+
+stats <- data.frame(
+  Moyenne      = round(coef(moy)[["superficie_ha"]], 3),
+  `Écart-type` = round(sqrt(as.numeric(coef(var)[["superficie_ha"]])), 3),
+  Minimum      = round(min(base_final$superficie_ha, na.rm = TRUE), 3),
+  Maximum      = round(max(base_final$superficie_ha, na.rm = TRUE), 3),
+  check.names  = FALSE
+)
+
+stats %>%
+  gt() %>%
+  tab_header(
+    title = "Statistiques descriptives pondérées de la superficie (ha)"
+  ) %>%
+  fmt_number(
+    columns = everything(),
+    decimals = 3
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  tab_options(
+    table.width = pct(100)
+  )
+```
+
+## Statistiques par déciles
+
+Les déciles de la superficie agricole montrent une distribution fortement asymétrique et concentrée vers les faibles valeurs. En effet, 50 % des exploitations disposent d’une superficie inférieure ou égale à 0,301 hectare. La progression des déciles jusqu’au 90ᵉ percentile reste relativement modérée, atteignant seulement 1,235 hectare, ce qui indique que même 90 % des exploitations restent globalement de petite dimension. En revanche, le passage du 90ᵉ centile au maximum révèle une rupture très importante, avec une superficie maximale de 500 hectares, ce qui témoigne de la présence d’exploitations extrêmement grandes mais très rares. Cela traduit une distribution fortement inégalitaire, où une petite minorité concentre des superficies très élevées. Ainsi, ces résultats confirment une structure foncière dominée par de petites exploitations, avec une concentration extrême des terres au sommet de la distribution.
+
+```{r deciles}
+
+deciles <- svyquantile(
+  ~superficie_ha,
+  design = design,
+  quantiles = seq(0, 1, 0.1),
+  na.rm = TRUE
+)
+
+deciles_vals <- as.numeric(deciles$superficie_ha[, "quantile"])
+
+deciles_df <- data.frame(
+  Décile = paste0(seq(0, 100, 10), "%"),
+  `Superficie (ha)` = round(deciles_vals, 3),
+  check.names = FALSE
+)
+
+deciles_df %>%
+  gt() %>%
+  tab_header(
+    title = "Déciles de la superficie agricole (ha)"
+  ) %>%
+  fmt_number(
+    columns = "Superficie (ha)",
+    decimals = 3
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  tab_options(
+    table.width = pct(100)
+  )
+```
+
+## Boîte à moustaches des superficies
+
+Le boxplot de la distribution des superficies agricoles met en évidence une présence de valeurs extrêmes des deux côtés de la distribution. La boîte, qui représente l’intervalle interquartile, est concentrée autour de faibles valeurs, confirmant que la majorité des exploitations agricoles disposent de superficies réduites. La médiane, située à l’intérieur de la boîte, est également faible, ce qui renforce l’idée d’une prédominance des petites exploitations. Toutefois, la présence de valeurs aberrantes (outliers) à la fois du côté inférieur et du côté supérieur indique une hétérogénéité importante. Les valeurs extrêmes supérieures correspondent à quelques exploitations de très grande taille, tandis que les valeurs extrêmes inférieures reflètent des exploitations quasi nulles. Dans l’ensemble, ce boxplot confirme une distribution fortement asymétrique, caractérisée par une majorité de petites exploitations et une minorité de valeurs atypiques aux deux extrémités.
+
+```{r boxplot-superficie, fig.cap="Boîte à moustaches des superficies (échelle log)"}
+
+# Calcul des quantiles pondérés depuis le design survey
+quants <- svyquantile(
+  ~superficie_ha,
+  design = design,
+  quantiles = c(0.25, 0.50, 0.75),
+  ci = FALSE
+)
+
+q1  <- coef(quants)[1]
+med <- coef(quants)[2]
+q3  <- coef(quants)[3]
+iqr <- q3 - q1
+
+# Données brutes pour les moustaches et outliers
+df_w <- as.data.frame(design$variables) %>%
+  mutate(.weight = weights(design))
+
+whisker_lo <- min(df_w$superficie_ha[df_w$superficie_ha >= q1 - 1.5 * iqr])
+whisker_hi <- max(df_w$superficie_ha[df_w$superficie_ha <= q3 + 1.5 * iqr])
+
+outliers <- df_w %>%
+  filter(superficie_ha < whisker_lo | superficie_ha > whisker_hi)
+
+# Boxplot avec stats pondérées
+boxplot_distribution <- ggplot() +
+  # Outliers
+  geom_point(
+    data = outliers,
+    aes(x = 0, y = superficie_ha),
+    alpha = 0.3,
+    size  = 0.8,
+    color = "#8B4513"
+  ) +
+  # Boîte + médiane + moustaches via stat = "identity"
+  geom_boxplot(
+    aes(
+      x      = 0,
+      ymin   = whisker_lo,
+      lower  = q1,
+      middle = med,
+      upper  = q3,
+      ymax   = whisker_hi
+    ),
+    stat   = "identity",
+    fill   = "#F4A460",
+    color  = "#8B4513",
+    width  = 0.5
+  ) +
+  scale_y_log10(labels = label_number(accuracy = 0.01)) +
+  labs(
+    title = "Distribution des superficies agricoles (pondérée)",
+    y     = "Superficie (ha, log)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.title   = element_text(face = "bold")
+  )
+
+boxplot_distribution
+```
+
+```{r}
+# Export
+ggsave(
+  filename = "boxplot_distribution.png",
+  plot     = boxplot_distribution,
+  path     = "output/figures",   # ← remplace par ton chemin existant
+  width    = 8,
+  height   = 3,
+  dpi      = 300,
+  bg       = "white"
+)
+
+```
+
+## Comparaison de la superficie déclarée et celle mesurée par GPS
+
+Le graphique de dispersion comparant les superficies déclarées et celles mesurées par GPS, en échelle logarithmique, met en évidence plusieurs éléments importants. Globalement, une partie des observations se situe autour de la droite d’égalité parfaite (ligne rouge), ce qui indique une certaine concordance entre les superficies déclarées et celles mesurées. Toutefois, la dispersion des points autour de cette droite révèle des écarts parfois pas négligeable, traduisant des divergences entre les deux sources de mesure. On observe notamment que certains points se situent au-dessus de la diagonale, indiquant des cas où la superficie mesurée par GPS est supérieure à la superficie déclarée, tandis que d’autres se trouvent en dessous, suggérant une surestimation dans les déclarations.
+
+```{r gps-comparison, fig.cap="Superficie déclarée vs. superficie GPS"}
+# Conversion GPS : mètres carrés → hectares
+# (opération sur le dataframe source du design)
+svy_design <- update(design, superficie_gps = s11aq4c * 0.0001)
+
+# Extraction des données + poids
+df_w <- as.data.frame(svy_design$variables) %>%
+  mutate(.weight = weights(svy_design))
+
+declaree_mesuree <- ggplot(df_w, aes(x = superficie_ha, y = superficie_gps, size = .weight)) +
+  geom_point(alpha = 0.3, color = "#2C7BB6") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linewidth = 0.8) +
+  scale_x_log10(labels = label_number(accuracy = 0.01)) +
+  scale_y_log10(labels = label_number(accuracy = 0.01)) +
+  scale_size_continuous(range = c(0.5, 3), guide = "none") +
+  labs(
+    title    = "Comparaison : superficie déclarée vs mesurée par GPS",
+    subtitle = "Taille des points proportionnelle au poids d'échantillonnage",
+    x        = "Superficie déclarée (ha, log)",
+    y        = "Superficie GPS (ha, log)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = "bold"))
+
+declaree_mesuree
+```
+
+```{r}
+# Export
+ggsave(
+  filename = "declaree_mesuree.png",
+  plot     = declaree_mesuree,
+  path     = "output/figures",   # ← remplace par ton chemin existant
+  width    = 8,
+  height   = 3,
+  dpi      = 300,
+  bg       = "white"
+)
+
+```
+
+
+## Corrélation de Spearman (déclarée vs GPS)
+
+Le test de corrélation de Spearman met en évidence une relation positive et statistiquement significative entre les superficies déclarées et celles mesurées par GPS. Le coefficient de corrélation ρ = 0,702 indique une corrélation monotone forte, ce qui signifie que, globalement, les exploitations ayant des superficies déclarées plus élevées tendent également à présenter des superficies mesurées plus importantes. Autrement dit, les deux mesures évoluent dans le même sens, même si la relation n’est pas parfaitement linéaire. Par ailleurs, la p-valeur quasi nulle (p ≈ 0,00) permet de rejeter l’hypothèse nulle d’absence de corrélation, confirmant que cette relation est hautement significative sur le plan statistique. Toutefois, le fait que le coefficient soit inférieur à 1 suggère l’existence d’écarts non négligeables entre les deux mesures.
+
+
+```{r spearman-gps}
+base_final$superficie_gps <- as.numeric(base_final$s11aq4c) * 0.0001
+
+cor_test <- cor.test(
+  base_final$superficie_ha,
+  base_final$superficie_gps,
+  method = "spearman"
+)
+
+cat(sprintf(
+  "Corrélation de Spearman : ρ = %.3f  |  p-valeur = %.2e",
+  cor_test$estimate,
+  cor_test$p.value
+))
+```
+
+# Analyse du régime de tenure foncière
+
+## Distribution des régimes de tenure
+
+La distribution des régimes de tenure foncière met en évidence une structuration relativement diversifiée des modes d’accès à la terre, avec toutefois une prédominance des formes les plus sécurisées juridiquement. En effet, le titre de propriété constitue la modalité la plus répandue, représentant 33,7% des exploitations, ce qui traduit un niveau relativement élevé de formalisation des droits fonciers. Parallèlement, les formes intermédiaires telles que le certificat coutumier d’occupation (27,8%) et le droit d’occupation (20,5%) occupent une place importante, reflétant la coexistence de systèmes fonciers formels et coutumiers. Le certificat d’occupation, avec 18,0%, reste également non négligeable mais moins répandu.
+```{r tenure-table}
+# Sous-design filtré sur les parcelles avec s11b1q7 == 1
+design_tenure <- subset(design, s11b1q7 == 1)
+
+# Tableau pondéré via svytable
+tbl <- svytable(~tenure, design = design_tenure)
+
+freq_tenure <- data.frame(
+  Modalité   = names(tbl),
+  Effectif   = as.numeric(tbl),
+  stringsAsFactors = FALSE
+) %>%
+  mutate(Proportion = round(Effectif / sum(Effectif) * 100, 1))
+
+```
+
+
+
+```{r barplot-tenure, fig.cap="Répartition pondérée des régimes de tenure foncière"}
+# Calcul des proportions via svytable
+tbl_prop <- svytable(~tenure, design = design_tenure)
+df_tenure_plot <- data.frame(
+  tenure     = names(tbl_prop),
+  proportion = as.numeric(prop.table(tbl_prop))
+)
+
+regime_tenure <- ggplot(df_tenure_plot, aes(x = factor(tenure), y = proportion)) +
+  geom_bar(
+    stat  = "identity",
+    fill  = "#2E8B57",
+    color = "white",
+    linewidth = 0.3
+  ) +
+  coord_flip() +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  labs(
+    title = "Distribution pondérée du régime de tenure foncière",
+    x     = "Type de tenure",
+    y     = "Pourcentage pondéré"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = "bold"))
+
+regime_tenure
+```
+```{r}
+# Export
+ggsave(
+  filename = "regime_tenure.png",
+  plot     = regime_tenure,
+  path     = "output/figures",   # ← remplace par ton chemin existant
+  width    = 8,
+  height   = 3,
+  dpi      = 300,
+  bg       = "white"
+)
+
+```
+
+
+## Test d'indépendance du Khi-deux (tenure × zone)
+
+Le test du Khi-deux d’indépendance met en évidence une relation statistiquement significative entre la zone géographique et le régime de tenure foncière. En effet, la statistique de test est élevée (χ² = 678,51) avec 20 degrés de liberté, et la p-valeur est extrêmement faible (p ≈ 7,77 × 10⁻¹³¹), largement inférieure au seuil de 5%. 
+
+Par conséquent, l’hypothèse nulle d’indépendance est rejetée, ce qui signifie que la distribution des régimes de tenure foncière varie significativement selon les zones. Autrement dit, les modes d’accès à la terre dépendent du contexte géographique. 
+
+
+```{r khi-deux}
+table_test <- table(base_final$tenure, base_final$zone)
+chi2 <- chisq.test(table_test)
+
+cat(sprintf(
+  "Test du Khi-deux\nStatistique χ² = %.2f  |  ddl = %d  |  p-valeur = %.2e",
+  chi2$statistic,
+  chi2$parameter,
+  chi2$p.value
+))
+```
+
+
+# Relation entre superficie totale et nombre de parcelles
+
+```{r data-menage}
+## Construction de la base ménage
+data_menage <- base_final %>%
+  group_by(hhid) %>%
+  summarise(
+    nb_parcelles      = n(),
+    superficie_totale = sum(superficie_ha, na.rm = TRUE),
+    wt_wave4          = mean(wt_wave4,     na.rm = TRUE),
+    .groups = "drop"
+  )
+
+## Plan de sondage au niveau ménage (pour le nuage de points LOESS)
+design_menage <- svydesign(
+  id      = ~1,
+  weights = ~wt_wave4,
+  data    = data_menage
+)
+```
+
+## Nuage de points avec courbe LOESS
+
+Le graphique suivant met en évidence la relation entre le nombre de parcelles détenues par les ménages et leur superficie totale, cette dernière étant représentée en échelle logarithmique. Dans l’ensemble, on observe une relation positive entre ces deux variables : une augmentation du nombre de parcelles est associée à une hausse de la superficie totale exploitée.
+
+Toutefois, la courbe de lissage LOESS révèle une relation non linéaire. En effet, la pente est plus marquée pour les faibles nombres de parcelles, ce qui indique qu’un accroissement initial du nombre de parcelles s’accompagne d’une augmentation relativement importante de la superficie totale. En revanche, à mesure que le nombre de parcelles augmente, la courbe tend à s’aplatir, traduisant un effet marginal décroissant. Autrement dit, chaque parcelle supplémentaire contribue de moins en moins à l’augmentation de la superficie totale.
+
+Par ailleurs, la dispersion importante des observations pour un même nombre de parcelles suggère une forte hétérogénéité entre les ménages.
+
+
+
+```{r scatter-loess, fig.cap="Relation entre nombre de parcelles et superficie totale du ménage"}
+p_scatter_loess <- ggplot(data_menage,
+       aes(x = nb_parcelles, y = superficie_totale, weight = wt_wave4)) +
+  geom_point(alpha = 0.3, color = "#2C7BB6", size = 0.8) +
+  geom_smooth(method = "loess", se = TRUE,
+              aes(weight = wt_wave4),
+              color = "red", linewidth = 0.9) +
+  scale_y_log10(labels = label_number(accuracy = 0.01)) +
+  labs(
+    title    = "Relation entre nombre de parcelles et superficie totale (pondérée)",
+    subtitle = "Courbe LOESS en rouge — Axe Y en échelle logarithmique",
+    x        = "Nombre de parcelles",
+    y        = "Superficie totale (ha, log)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = "bold"))
+
+p_scatter_loess
+```
+
+
+
+
+
+
+```{r}
+# Export
+ggsave(
+  filename = "p_scatter_loess.png",
+  plot     = p_scatter_loess,
+  path     = "output/figures",   # ← remplace par ton chemin existant
+  width    = 8,
+  height   = 3,
+  dpi      = 300,
+  bg       = "white"
+)
+
+```
+
+
+
+## Corrélation de Spearman (nb parcelles × superficie)
+
+La corrélation de Spearman entre le nombre de parcelles et la superficie totale des exploitations est positive et modérée (ρ = 0,432). Ce résultat indique qu’en général, les exploitations disposant d’un plus grand nombre de parcelles tendent à avoir une superficie totale plus élevée. Toutefois, l’intensité de la corrélation reste limitée, ce qui signifie que le nombre de parcelles n’explique qu’imparfaitement la superficie totale. Autrement dit, certaines exploitations peuvent posséder peu de parcelles mais de grande taille, tandis que d’autres peuvent être constituées de nombreuses parcelles de petite superficie.
+
+
+```{r spearman-parcelles}
+rho <- cor(
+  data_menage$nb_parcelles,
+  data_menage$superficie_totale,
+  method = "spearman",
+  use    = "complete.obs"
+)
+
+cat(sprintf("Corrélation de Spearman : ρ = %.3f", rho))
+```
+
+
+# Disparités géographiques — Heatmap
+
+L'analyse de la superficie agricole médiane pondérée par zone géographique révèle des disparités territoriales considérables au Nigeria. Les zones septentrionales présentent systématiquement des exploitations plus étendues, avec une médiane atteignant 0,6 ha au North East, et 0,4 ha au North Central et au North West. Ces niveaux contrastent fortement avec ceux observés dans les zones méridionales, où les médianes s'établissent à 0,09 ha au South East et à 0,07 ha au South South, soit des valeurs respectivement six à huit fois inférieures à celles du Nord.
+
+
+Le South West constitue toutefois une exception notable au sein des zones méridionales, avec une médiane de 0,4 ha comparable aux niveaux septentrionaux.
+
+
+Il convient néanmoins de souligner que la médiane, en tant que mesure de tendance centrale, ne rend pas compte de la dispersion interne à chaque zone. Des inégalités de superficie potentiellement importantes au sein d'une même zone géographique pourraient ainsi être masquées par cette agrégation, ce qui invite à compléter cette analyse par des indicateurs de dispersion.
+
+
+```{r heatmap-data}
+
+# Médiane pondérée par zone uniquement
+head_data_w <- svyby(
+  ~superficie_ha,
+  by         = ~zone,
+  design     = design,
+  FUN        = svyquantile,
+  quantiles  = 0.5,
+  na.rm      = TRUE,
+  keep.names = FALSE
+) %>%
+  rename(mediane = superficie_ha)
+```
+
+```{r heatmap, fig.cap="Disparités géographiques de la superficie médiane pondérée par État et zone"}
+p_heatmap <- ggplot(head_data_w, aes(x = factor(zone), y = 1, fill = mediane)) +
+  geom_tile(color = "white", linewidth = 0.8) +
+  geom_text(aes(label = round(mediane, 2)), color = "white", fontface = "bold", size = 4) +
+  scale_fill_gradient(
+    low  = "#EBF5FB",
+    high = "#1A5276",
+    name = "Superficie\nmédiane (ha)"
+  ) +
+  labs(
+    title    = "Disparités géographiques des superficies agricoles",
+    subtitle = "Médiane pondérée par zone géographique",
+    x        = "Zone",
+    y        = NULL
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    axis.text.y   = element_blank(),
+    axis.ticks.y  = element_blank(),
+    legend.title  = element_text(size = 9),
+    panel.grid    = element_blank()
+  )
+
+p_heatmap
+
+
+```
+```{r}
+# Export
+ggsave(
+  filename = "heatmap_zone.png",
+  plot     = p_heatmap,
+  path     = "output/figures",   # ← remplace par ton chemin existant
+  width    = 8,
+  height   = 3,
+  dpi      = 300,
+  bg       = "white"
+)
+```
+
+
+\newpage
+
+# Conclusion
+
+Ce travail a permis d'analyser la structure foncière des exploitations agricoles nigérianes à partir des données du GHS Wave 4. Les principaux enseignements sont les suivants :
+
+- **Distribution asymétrique des superficies** : la majorité des ménages cultivent de petites parcelles, tandis qu'une minorité détient des exploitations très étendues.
+- **Cohérence GPS/déclaratif** : la corrélation de Spearman entre superficies déclarées et mesurées par GPS est positive et significative, ce qui atteste de la fiabilité globale des déclarations des agriculteurs.
+- **Diversité des régimes de tenure** : le titre de propriété et le certificat coutumier d'occupation dominent, reflétant la coexistence de systèmes fonciers modernes et traditionnels.
+- **Corrélation nombre de parcelles – superficie** : les ménages ayant plus de parcelles disposent logiquement d'une superficie totale plus importante.
+- **Disparités géographiques marquées** : le heatmap révèle des inégalités foncières significatives entre États, avec des superficies médianes plus élevées dans certaines régions du nord.
+
+Ces résultats invitent à approfondir l'analyse en intégrant des dimensions socio-économiques (genre du chef de ménage, accès au crédit, etc.) pour mieux saisir les déterminants des inégalités foncières au Nigéria.
