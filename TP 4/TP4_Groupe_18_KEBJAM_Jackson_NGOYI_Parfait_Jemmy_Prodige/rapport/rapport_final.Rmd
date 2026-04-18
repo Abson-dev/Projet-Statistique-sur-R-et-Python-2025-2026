@@ -1,0 +1,983 @@
+---
+title: |
+  \vspace{-1cm}
+  \textcolor{NavyBlue}{\rule{\linewidth}{2pt}}
+  \vspace{0.3cm}
+  \textbf{TP 4 -- Analyse des parcelles agricoles : superficie, tenure foncière et utilisation des terres}\\
+  \large\textit{Nigeria General Household Survey (2018)}
+  \vspace{0.2cm}
+  \textcolor{NavyBlue}{\rule{\linewidth}{0.5pt}}
+author: |
+  \textbf{Groupe 7 : KEBJAM Jackson et NGOYI Parfait Jemmy Prodige — ISE 1, 2025-2026}
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    fig_width: 6.8
+    fig_height: 3.9
+    latex_engine: xelatex
+    keep_tex: true
+geometry: "top=2.2cm, bottom=2.4cm, left=2.5cm, right=2.5cm"
+fontsize: 10pt
+lang: fr
+header-includes:
+  - \usepackage{longtable}
+  - \usepackage{booktabs}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{float}
+  - \usepackage{colortbl}
+  - \usepackage[dvipsnames, table]{xcolor}
+  - \usepackage{caption}
+  - \usepackage{subcaption}
+  - \usepackage{fancyhdr}
+  - \usepackage{graphicx}
+  - \usepackage{wrapfig}
+  - \usepackage{amsmath}
+  - \usepackage{amssymb}
+  - \usepackage{tcolorbox}
+  - \usepackage{mdframed}
+  - \usepackage{enumitem}
+  - \usepackage{makecell}
+  - \usepackage{setspace}
+  - \floatplacement{figure}{H}
+  - \floatplacement{table}{H}
+  - \captionsetup{font=small, labelfont={bf,color=NavyBlue}, skip=4pt}
+  - \captionsetup[table]{position=top}
+  - \definecolor{NavyBlue}{RGB}{0, 51, 102}
+  - \definecolor{SteelBlue}{RGB}{52, 101, 164}
+  - \definecolor{LightBlue}{RGB}{220, 234, 245}
+  - \definecolor{AccentGold}{RGB}{198, 147, 35}
+  - \definecolor{DarkGray}{RGB}{55, 55, 55}
+  - \definecolor{LightGray}{RGB}{245, 246, 248}
+  - \definecolor{SuccessGreen}{RGB}{39, 119, 71}
+  - \definecolor{AlertRed}{RGB}{176, 44, 44}
+  - \definecolor{RowOdd}{RGB}{248, 250, 253}
+  - \definecolor{RowEven}{RGB}{255, 255, 255}
+  - \definecolor{HeaderBg}{RGB}{0, 51, 102}
+  - \pagestyle{fancy}
+  - \fancyhf{}
+  - \fancyhead[L]{\small\textcolor{NavyBlue}{\textbf{Nigeria GHS Panel}} \textcolor{DarkGray}{|} \textit{\small Analyse des superficies agricoles}}
+  - \fancyhead[R]{\small\textcolor{DarkGray}{ENSAE ISE 1 | 2025--2026}}
+  - \fancyfoot[C]{\textcolor{DarkGray}{\thepage}}
+  - \fancyfoot[L]{\textcolor{DarkGray}{\scriptsize\textit{KEBJAM et PARFAIT — ISE 1, 2025-2026}}}
+  - \renewcommand{\headrulewidth}{0.8pt}
+  - \renewcommand{\headrule}{\hbox to\headwidth{\color{NavyBlue}\leaders\hrule height \headrulewidth\hfill}}
+  - \renewcommand{\footrulewidth}{0.3pt}
+  - \renewcommand{\footrule}{\hbox to\headwidth{\color{LightBlue}\leaders\hrule height \footrulewidth\hfill}}
+  - \tcbuselibrary{skins, breakable}
+  - \newtcolorbox{methodbox}[1]{colback=LightBlue!30, colframe=NavyBlue, fonttitle=\bfseries\color{white}, coltitle=white, title=#1, arc=3pt, boxrule=0.8pt, left=6pt, right=6pt, top=4pt, bottom=4pt}
+  - \newtcolorbox{resultbox}[1]{colback=SuccessGreen!8, colframe=SuccessGreen, fonttitle=\bfseries\color{white}, coltitle=white, title=#1, arc=3pt, boxrule=0.8pt, left=6pt, right=6pt, top=4pt, bottom=4pt}
+  - \newtcolorbox{alertbox}[1]{colback=AlertRed!8, colframe=AlertRed, fonttitle=\bfseries\color{white}, coltitle=white, title=#1, arc=3pt, boxrule=0.8pt, left=6pt, right=6pt, top=4pt, bottom=4pt}
+  - \setlength{\parskip}{4pt}
+  - \setlength{\parindent}{0pt}
+---
+
+```{r setup, include=FALSE}
+
+
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.pos   = "H",
+  out.width = "100%",
+  dpi       = 150
+)
+
+options(knitr.table.format = "latex")
+
+# ── Packages ────────────────────────────────────
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(scales)
+  library(patchwork)
+  library(viridis)
+  library(forcats)
+  library(knitr)
+  library(readr)
+  library(maps)
+})
+
+
+kt <- function(df,
+               caption    = NULL,
+               align      = NULL,
+               col_names  = NULL,
+               font_size  = 9,
+               escape     = FALSE,
+               footnote   = NULL) {
+
+  if (is.null(col_names)) col_names <- names(df)
+  if (is.null(align))     align     <- rep("l", ncol(df))
+
+  # Commande de taille
+  sz <- switch(as.character(round(font_size)),
+               "7"  = "\\footnotesize",
+               "8"  = "\\footnotesize",
+               "9"  = "\\small",
+               "10" = "\\normalsize",
+               "\\small")
+
+  # Colorer les noms de colonnes
+  colored_names <- paste0(
+    "\\cellcolor{NavyBlue}\\textcolor{white}{\\textbf{",
+    col_names, "}}")
+
+  # Générer le kable
+  tbl <- knitr::kable(
+    df,
+    format    = "latex",
+    booktabs  = TRUE,
+    linesep   = "",
+    escape    = escape,
+    align     = align,
+    caption   = caption,
+    col.names = colored_names
+  )
+
+  # Construire le bloc complet avec rowcolors
+  lines <- c(
+    "{",
+    sz,
+    "\\rowcolors{2}{RowOdd}{white}",
+    as.character(tbl)
+  )
+
+  if (!is.null(footnote)) {
+    lines <- c(lines,
+               "\\vspace{2pt}",
+               paste0("{\\footnotesize\\textit{Note : ", footnote, "}}"))
+  }
+
+  lines <- c(lines, "}")
+
+  cat(paste(lines, collapse = "\n"), "\n")
+}
+
+# ── Sourcer les fonctions projet ──────────────────────────────────────────────
+setwd("C:/Users/kebja/Documents/KEBJAM/ISE1_2/10_R_ET_PYTHON(2)/TP_4_Groupe_18_KEBJAM_Jackson_NGOYI_Parfait_Jemmy_Prodige")
+source("R/fonctions.R")
+
+# ── Chemins ───────────────────────────────────────────────────────────────────
+processed_path <- "data/processed"
+
+# ── Palette institutionnelle ─────────────────────────────────────────────────
+pal <- c(bleu    = "#003366", steel   = "#3465A4", vert    = "#1B6B3A",
+         rouge   = "#B02C2C", or      = "#C69323", gris    = "#55595C",
+         bleu_cl = "#DCEAF5")
+
+# ── Thème graphique ───────────────────────────────────────────────────────────
+theme_rapport <- function(base_size = 9.5) {
+  theme_minimal(base_size = base_size) +
+    theme(
+      plot.title       = element_text(face = "bold", size = base_size + 1.5,
+                                      colour = pal["bleu"], margin = margin(b = 5)),
+      plot.subtitle    = element_text(size = base_size - 0.5, colour = pal["gris"],
+                                      margin = margin(b = 7)),
+      plot.caption     = element_text(size = base_size - 2, colour = pal["gris"],
+                                      hjust = 0, margin = margin(t = 6)),
+      axis.title       = element_text(size = base_size - 1, colour = pal["gris"]),
+      axis.text        = element_text(size = base_size - 2, colour = pal["gris"]),
+      axis.ticks       = element_line(colour = "#C8D0D8", linewidth = 0.3),
+      panel.grid.major = element_line(colour = "#EAECEF", linewidth = 0.35),
+      panel.grid.minor = element_blank(),
+      panel.border     = element_blank(),
+      strip.text       = element_text(face = "bold", size = base_size - 1,
+                                      colour = pal["bleu"]),
+      strip.background = element_rect(fill = "#DCEAF5", colour = NA),
+      legend.title     = element_text(size = base_size - 2, face = "bold",
+                                      colour = pal["gris"]),
+      legend.text      = element_text(size = base_size - 3, colour = pal["gris"]),
+      legend.position  = "bottom",
+      legend.key.size  = unit(0.38, "cm"),
+      plot.background  = element_rect(fill = "white", colour = NA),
+      panel.background = element_rect(fill = "white", colour = NA),
+      plot.margin      = margin(8, 10, 6, 8)
+    )
+}
+
+# ── Chargement données ────────────────────────────────────────────────────────
+parcelles_w4 <- tryCatch(
+  readRDS(file.path(processed_path, "parcelles_agricoles_w4.rds")),
+  error = function(e) tryCatch(
+    readr::read_csv(file.path(processed_path, "secta1_w4_clean.csv"),
+                    show_col_types = FALSE),
+    error = function(e2) NULL))
+
+superficie_menage <- tryCatch(
+  readRDS(file.path(processed_path, "superficie_menage_w4.rds")),
+  error = function(e) tryCatch(
+    readr::read_csv(file.path(processed_path, "area_hhid_w4.csv"),
+                    show_col_types = FALSE),
+    error = function(e2) NULL))
+
+area_compare <- tryCatch(
+  readr::read_csv(file.path(processed_path, "area_compare_w4.csv"),
+                  show_col_types = FALSE),
+  error = function(e) NULL)
+
+panel_clean <- tryCatch(
+  readr::read_csv(file.path(processed_path, "panel_secta1_w1w4.csv"),
+                  show_col_types = FALSE),
+  error = function(e) NULL)
+
+has_parcelles <- !is.null(parcelles_w4)
+has_menage    <- !is.null(superficie_menage)
+has_compare   <- !is.null(area_compare) && nrow(area_compare) > 10
+has_panel     <- !is.null(panel_clean)  && nrow(panel_clean)  > 0
+
+# ── Renommage colonnes ────────────────────────────────────────────────────────
+if (has_parcelles) {
+  area_col <- dplyr::case_when(
+    "superficie_ha_propre" %in% names(parcelles_w4) ~ "superficie_ha_propre",
+    "area_ha_propre"       %in% names(parcelles_w4) ~ "area_ha_propre",
+    "area_ha"              %in% names(parcelles_w4) ~ "area_ha",
+    TRUE ~ NA_character_)
+  wt_col <- dplyr::case_when(
+    "poids_menage" %in% names(parcelles_w4) ~ "poids_menage",
+    "wt_wave4"     %in% names(parcelles_w4) ~ "wt_wave4",
+    TRUE ~ NA_character_)
+  hhid_col <- dplyr::case_when(
+    "identifiant_menage" %in% names(parcelles_w4) ~ "identifiant_menage",
+    "hhid"               %in% names(parcelles_w4) ~ "hhid",
+    TRUE ~ NA_character_)
+  tenure_col <- if ("mode_acquisition" %in% names(parcelles_w4)) "mode_acquisition" else NA_character_
+  zone_col   <- dplyr::case_when(
+    "zone_residence" %in% names(parcelles_w4) ~ "zone_residence",
+    "sector"         %in% names(parcelles_w4) ~ "sector",
+    TRUE ~ NA_character_)
+
+  if (!is.na(area_col))  parcelles_w4$area_ha_propre <- parcelles_w4[[area_col]]
+  if (!is.na(wt_col))    parcelles_w4$wt_wave4       <- parcelles_w4[[wt_col]]
+  if (!is.na(hhid_col))  parcelles_w4$hhid           <- parcelles_w4[[hhid_col]]
+
+  parcelles_w4 <- parcelles_w4 %>%
+    dplyr::group_by(hhid) %>%
+    dplyr::mutate(wt_parcelle = wt_wave4 / dplyr::n()) %>%
+    dplyr::ungroup()
+
+  parcelles_valid <- parcelles_w4 %>%
+    dplyr::filter(!is.na(area_ha_propre), area_ha_propre > 0, !is.na(wt_parcelle))
+}
+
+if (has_menage) {
+  men_area_col <- dplyr::case_when(
+    "superficie_totale_ha" %in% names(superficie_menage) ~ "superficie_totale_ha",
+    "total_area_ha"        %in% names(superficie_menage) ~ "total_area_ha",
+    TRUE ~ NA_character_)
+  men_wt_col <- dplyr::case_when(
+    "poids_menage" %in% names(superficie_menage) ~ "poids_menage",
+    "wt_wave4"     %in% names(superficie_menage) ~ "wt_wave4",
+    TRUE ~ NA_character_)
+  men_np_col <- dplyr::case_when(
+    "nb_parcelles" %in% names(superficie_menage) ~ "nb_parcelles",
+    "n_plots"      %in% names(superficie_menage) ~ "n_plots",
+    TRUE ~ NA_character_)
+
+  if (!is.na(men_area_col)) superficie_menage$total_area_ha <- superficie_menage[[men_area_col]]
+  if (!is.na(men_wt_col))   superficie_menage$wt_wave4      <- superficie_menage[[men_wt_col]]
+  if (!is.na(men_np_col))   superficie_menage$n_plots       <- superficie_menage[[men_np_col]]
+
+  menage_valid <- superficie_menage %>%
+    dplyr::filter(!is.na(total_area_ha), total_area_ha > 0, !is.na(wt_wave4))
+}
+
+# ── Statistiques pondérées ────────────────────────────────────────────────────
+w_stats <- function(x, w, label) {
+  idx <- !is.na(x) & !is.na(w) & w > 0 & x >= 0
+  x <- x[idx]; w <- w[idx]
+  wn  <- w / sum(w); mu <- sum(x * wn)
+  sdw <- sqrt(sum(wn * (x - mu)^2))
+  wq  <- function(p) {
+    ord <- order(x); xo <- x[ord]; wco <- cumsum(w[ord]) / sum(w)
+    approx(wco, xo, xout = p, rule = 2)$y
+  }
+  tibble::tibble(
+    Indicateur = label, N = length(x),
+    Moyenne = round(mu, 3), Mediane = round(wq(.5), 3),
+    Ec_type = round(sdw, 3), Q1 = round(wq(.25), 3), Q3 = round(wq(.75), 3),
+    Min = round(min(x), 3), Max = round(max(x), 3),
+    CV  = round(sdw / mu * 100, 1))
+}
+
+if (has_parcelles && has_menage) {
+  stats_parc <- w_stats(parcelles_valid$area_ha_propre, parcelles_valid$wt_parcelle,
+                        "Superficie / parcelle (ha)")
+  stats_men  <- w_stats(menage_valid$total_area_ha, menage_valid$wt_wave4,
+                        "Superficie totale / ménage (ha)")
+}
+
+# ── Breaks log ────────────────────────────────────────────────────────────────
+breaks_log <- log1p(c(0, 0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10, 50, 100))
+lbl_log    <- function(x) {
+  v <- expm1(x)
+  dplyr::case_when(v < 0.01 ~ sprintf("%.3f", v),
+                   v < 1    ~ sprintf("%.2f", v),
+                   TRUE     ~ sprintf("%.0f", v))
+}
+```
+
+# Introduction
+
+Le secteur agricole occupe une place centrale dans l'économie nigériane. Il emploie près de 35 % de la population active et contribue de manière significative au produit intérieur brut du pays. Comprendre les structures foncières, les modes d'exploitation et les disparités régionales est essentiel pour éclairer les politiques publiques en matière de sécurité alimentaire, de développement rural et de lutte contre la pauvreté.
+
+Cette étude s'appuie sur la vague 4 (2018-2019) du Nigeria General Household Survey (GHS) Panel, une enquête menée par la Banque mondiale en collaboration avec le Bureau national des statistiques du Nigeria. L'unité d'analyse retenue est la parcelle agricole, définie comme une portion de terre délimitée et cultivée par un ménage.
+
+Notre objectif est triple. Premièrement, nous évaluons la qualité des données déclaratives en identifiant les valeurs manquantes et aberrantes. Deuxièmement, nous réalisons une analyse statistique descriptive des superficies agricoles, en intégrant les poids de sondage pour garantir la représentativité des résultats. Troisièmement, nous explorons les déterminants de la structure foncière, notamment le régime de tenure, la fragmentation des exploitations et les disparités géographiques entre les États du Nigeria.
+
+# VALEURS MANQUANTES et ABERRANTES (Q19)
+# Présentation des données {#intro}
+
+L'analyse mobilise quatre fichiers complémentaires issus de la vague 4. Le fichier section a harvest fournit les variables de stratification et les poids de sondage nécessaires à l'inférence statistique. Le fichier section a1 harvest contient les superficies déclarées par les exploitants ainsi que les mesures GPS de référence. Les fichiers section 11 a1 planting et section 11 b1 planting renseignent respectivement les superficies exprimées en unités locales (heaps, ridges, stands) et les modes d'acquisition foncière. La jointure entre ces sources s'effectue grâce aux identifiants ménage et parcelle.
+
+## Description des sources de données
+
+```{r desc-sources-table, results='asis'}
+tibble::tibble(
+  Fichier             = c("secta\\_harvestw4", "secta1\\_harvestw4",
+                          "sect11a1\\_plantingw4", "sect11b1\\_plantingw4"),
+  Contenu             = c("Stratification, poids de sondage",
+                          "Superficie déclarée, mesure GPS",
+                          "Superficie en unités locales",
+                          "Mode d'acquisition foncière"),
+  Variables           = c("hhid, zone, state, sector, wt\\_wave4",
+                          "plotid, sa1q11, prefilled\\_gps\\_area",
+                          "s11aq4aa, s11aq4b", "s11b1q4"),
+  Jointure            = c("Base principale","by = hhid",
+                          "by = hhid + plotid","by = hhid + plotid")
+) %>%
+  kt(caption    = "Sources de données --- Nigeria GHS Wave 4",
+     align      = c("l","l","l","l"),
+     col_names  = c("Fichier","Contenu principal","Variables clés","Jointure"),
+     font_size  = 8.5,
+     escape     = FALSE)
+```
+
+## Construction de la variable superficie en hectares {#methodo-superficie}
+
+La principale difficulté méthodologique réside dans l'hétérogénéité des unités de mesure déclarées par les ménages. Trois cas de figure se présentent. Pour les unités standardisées, nous appliquons des facteurs de conversion fixes : un hectare correspond à lui-même , un acre est converti en hectares par multiplication par 0,404686 , et un mètre carré est divisé par 10 000 .
+
+Les unités locales — heaps (tassements de terre pour tubercules), ridges (billons de culture) et stands (pieds de culture) — posent un défi plus complexe car leur équivalence en hectares varie selon la zone géographique. Nous appliquons les facteurs de conversion régionaux fournis par le protocole LSMS-ISA de la Banque mondiale. Par exemple, dans la zone North West, un ridge correspond à 0,00494 hectare, tandis que dans le South West, le même ridge n'équivaut qu'à 0,00001 hectare. Ces variations reflètent les différences dans les pratiques culturales et la densité des plantations.
+
+La superficie finale est construite par l'opérateur qui retient la première valeur non manquante dans l'ordre hiérarchique suivant : unités standard, heaps, ridges, stands. Parallèlement, la mesure GPS, exprimée en mètres carrés, est convertie en hectares par division par 10 000.
+
+### Unités standard
+
+\begin{equation}
+\text{superficie\_ha} = \begin{cases}
+\text{superficie} \times 1 & \text{si unité} = \text{Hectares (code 6)} \\[4pt]
+\text{superficie} \times 0.404686 & \text{si unité} = \text{Acres (code 5)} \\[4pt]
+\dfrac{\text{superficie}}{10\,000} & \text{si unité} = \text{Mètres carrés (code 7)}
+\end{cases}
+\end{equation}
+
+### Unités locales --- facteurs de conversion régionaux
+
+```{r table-conversion, results='asis'}
+tibble::tibble(
+  Zone   = c("North Central (1)","North East (2)","North West (3)",
+             "South East (4)","South South (5)","South West (6)"),
+  Heaps  = c("0.00012","0.00016","0.00011","0.00019","0.00021","0.00012"),
+  Ridges = c("0.0027","0.0040","0.00494","0.0023","0.0023","0.00001"),
+  Stands = c("0.00006","0.00016","0.00004","0.00004","0.00013","0.00041")
+) %>%
+  kt(caption   = "Facteurs de conversion régionaux (ha/unité) --- source : LSMS-ISA, World Bank",
+     align     = c("l","r","r","r"),
+     col_names = c("Zone géographique","Heaps (ha/heap)","Ridges (ha/ridge)","Stands (ha/stand)"),
+     font_size = 9,
+     escape    = FALSE,
+     footnote  = "Heap : tubercules (igname, manioc). Ridge : billons de culture. Stand : pied de culture.")
+```
+
+### Règle de fusion et contrôle qualité
+
+Pour garantir la fiabilité de l'analyse, nous appliquons une règle d'exclusion systématique : toute parcelle dont la superficie est inférieure ou égale à zéro hectare (erreur de saisie ou unité manquante) ou supérieure à 500 hectares (valeur extrême vraisemblablement due à une erreur de conversion) est temporairement exclue de l'analyse principale. Ces observations sont néanmoins conservées dans la base brute, permettant d'en conserver la trace pour d'éventuelles analyses de sensibilité.
+
+L'examen des valeurs manquantes révèle des disparités importantes selon les variables. La variable superficie déclarée présente le taux de manquants le plus élevé, avec 1 104 observations absentes sur 12 114 parcelles, soit 9,1 % de données manquantes. Ce taux élevé s'explique probablement par des erreurs de saisie ou des non-réponses partielles lors de l'enquête. En revanche, les variables issues du module planting (superficie parcelle, superficie convertie) affichent un taux de renseignement satisfaisant de 90,5 %. Le poids de sondage, élément critique pour l'inférence, est quasi exhaustif avec 99,6 % de valeurs renseignées.
+
+S'agissant des valeurs aberrantes, nous observons qu'aucune parcelle ne présente de superficie nulle ou négative dans la base nettoyée, ce qui atteste de l'efficacité des filtres appliqués en amont. Cinq parcelles seulement dépassent le seuil de 500 hectares, représentant 0,04 % de l'échantillon, et sont exclues de l'analyse principale. Au total, 10 956 parcelles (90,4 % de l'échantillon initial) sont retenues pour l'analyse univariée. Ce taux de rétention est satisfaisant et permet de garantir la robustesse des estimations.
+
+
+# Qualité des données : valeurs manquantes et aberrantes {#tache19}
+
+```{r missing-table, eval=has_parcelles, results='asis'}
+N <- nrow(parcelles_w4)
+
+vars_check <- list(
+  "Superficie déclarée (sa1q11)"             = "superficie_declaree",
+  "Superficie parcelle (s11aq4aa)"           = "superficie_parcelle",
+  "Superficie convertie (area\\_ha)"         = ifelse("superficie_ha"        %in% names(parcelles_w4), "superficie_ha",        ifelse("area_ha"        %in% names(parcelles_w4), "area_ha",        NA_character_)),
+  "Superficie nettoyée (area\\_ha\\_propre)" = ifelse("superficie_ha_propre" %in% names(parcelles_w4), "superficie_ha_propre", ifelse("area_ha_propre" %in% names(parcelles_w4), "area_ha_propre", NA_character_)),
+  "Superficie GPS (ha)"                      = ifelse("superficie_gps_ha"    %in% names(parcelles_w4), "superficie_gps_ha",    ifelse("area_gps_ha"    %in% names(parcelles_w4), "area_gps_ha",    NA_character_)),
+  "Poids de sondage (wt\\_wave4)"            = "wt_wave4"
+)
+
+miss_rows <- purrr::keep(vars_check, ~ !is.na(.x)) %>%
+  purrr::imap_dfr(function(col, label) {
+    if (col %in% names(parcelles_w4)) {
+      n_miss <- sum(is.na(parcelles_w4[[col]]))
+      tibble::tibble(Variable      = label,
+                     N_manquants   = n_miss,
+                     Pct_manquants = round(n_miss / N * 100, 1),
+                     N_renseignes  = N - n_miss,
+                     Pct_rens      = round((N - n_miss) / N * 100, 1))
+    }
+  })
+
+miss_rows %>%
+  kt(caption    = paste0("Diagnostic des valeurs manquantes --- Nigeria GHS W4 (N = ",
+                          format(N, big.mark = " "), " parcelles)"),
+     align      = c("l","r","r","r","r"),
+     col_names  = c("Variable","N manquants","\\% manquants","N renseignés","\\% renseignés"),
+     font_size  = 9,
+     escape     = FALSE)
+```
+
+```{r outliers-table, eval=has_parcelles, results='asis'}
+area_raw_col <- ifelse("superficie_ha" %in% names(parcelles_w4), "superficie_ha",
+                       ifelse("area_ha" %in% names(parcelles_w4), "area_ha", NA_character_))
+
+if (!is.na(area_raw_col)) {
+  raw_area <- parcelles_w4[[area_raw_col]]
+  n_zero   <- sum(raw_area == 0,  na.rm = TRUE)
+  n_neg    <- sum(raw_area < 0,   na.rm = TRUE)
+  n_sup500 <- sum(raw_area > 500, na.rm = TRUE)
+  n_na     <- sum(is.na(raw_area))
+  n_valid  <- sum(!is.na(raw_area) & raw_area > 0 & raw_area <= 500)
+
+  tibble::tibble(
+    Categorie = c("Valeur nulle ($= 0$ ha)", "Valeur négative ($< 0$ ha)",
+                  "Valeur aberrante ($> 500$ ha)", "Valeur manquante (NA)",
+                  "\\textbf{Valeur valide} ($0 <$ ha $\\leq 500$)"),
+    N   = c(n_zero, n_neg, n_sup500, n_na, n_valid),
+    Pct = round(c(n_zero, n_neg, n_sup500, n_na, n_valid) / N * 100, 2),
+    Statut = c("Exclu","Exclu","Exclu","Exclu","\\textcolor{SuccessGreen}{Retenu}")
+  ) %>%
+    kt(caption    = "Distribution des valeurs aberrantes --- variable superficie en ha",
+       align      = c("l","r","r","c"),
+       col_names  = c("Catégorie","N","\\%","Statut"),
+       font_size  = 9,
+       escape     = FALSE)
+}
+```
+
+# ANALYSE UNIVARIÉE (Q20)
+
+# Analyse univariée pondérée des superficies {#tache20}
+
+Toutes les analyses sont rigoureusement pondérées par le poids de sondage  afin de restituer la représentativité nationale. 
+
+## Statistiques descriptives pondérées
+
+```{r stats-table, eval=has_parcelles && has_menage, results='asis'}
+bind_rows(stats_parc, stats_men) %>%
+  dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3))) %>%
+  kt(caption    = "Statistiques descriptives pondérées --- Superficies agricoles, Nigeria GHS W4",
+     align      = c("l", rep("r", 9)),
+     col_names  = c("Indicateur","$N$","Moy.","Méd.","Éc.-type","$Q_1$","$Q_3$","Min","Max","CV (\\%)"),
+     font_size  = 9,
+     escape     = FALSE)
+```
+
+Les résultats révèlent une structure foncière profondément inégalitaire. Au niveau parcellaire, la superficie médiane s'établit à 0,32 hectare, tandis que la moyenne atteint 0,64 hectare. Cette différence significative entre médiane et moyenne indique une asymétrie positive marquée : une majorité de petites parcelles coexiste avec une minorité de grandes exploitations qui tirent la moyenne vers le haut.
+
+## Distribution des superficies (échelle logarithmique)
+
+La transformation logarithmique $\ln(1 + x)$ qui permet d'inclure les valeurs nulles sans produire de valeurs infinies, visualise clairement cette dualité structurale. L'histogramme des superficies par parcelle montre une masse importante d'observations concentrée en dessous de 0,5 hectare, correspondant aux exploitations de subsistance. Un second mode, moins dense mais présent, s'étend au-delà de 5 hectares. La distribution par ménage amplifie ce phénomène, avec une queue de distribution encore plus étirée vers les grandes surfaces.
+
+```{r histogrammes, eval=has_parcelles && has_menage, fig.cap="Distribution pondérée des superficies agricoles. Transformation $\\ln(1 + x)$. Ligne rouge = médiane pondérée.", fig.height=5.2}
+p1 <- ggplot2::ggplot(parcelles_valid,
+                      ggplot2::aes(x = log1p(area_ha_propre), weight = wt_parcelle)) +
+  ggplot2::geom_histogram(bins = 45, fill = pal["bleu"], colour = "white", alpha = 0.88) +
+  ggplot2::geom_vline(xintercept = log1p(stats_parc$Mediane),
+                      colour = pal["rouge"], linetype = "dashed", linewidth = 0.8) +
+  ggplot2::annotate("text", x = log1p(stats_parc$Mediane) + 0.08, y = Inf,
+                    vjust = 1.8, hjust = 0, size = 2.6,
+                    label = sprintf("Med. = %.3f ha", stats_parc$Mediane),
+                    colour = pal["rouge"], fontface = "bold.italic") +
+  ggplot2::scale_x_continuous(breaks = breaks_log, labels = lbl_log,
+                               name = "Superficie / parcelle (ha)") +
+  ggplot2::scale_y_continuous(labels = scales::label_comma()) +
+  ggplot2::labs(title = "(a) Par parcelle", y = "Fréquence pondérée") +
+  theme_rapport()
+
+p2 <- ggplot2::ggplot(menage_valid,
+                      ggplot2::aes(x = log1p(total_area_ha), weight = wt_wave4)) +
+  ggplot2::geom_histogram(bins = 45, fill = pal["vert"], colour = "white", alpha = 0.88) +
+  ggplot2::geom_vline(xintercept = log1p(stats_men$Mediane),
+                      colour = pal["rouge"], linetype = "dashed", linewidth = 0.8) +
+  ggplot2::annotate("text", x = log1p(stats_men$Mediane) + 0.08, y = Inf,
+                    vjust = 1.8, hjust = 0, size = 2.6,
+                    label = sprintf("Med. = %.3f ha", stats_men$Mediane),
+                    colour = pal["rouge"], fontface = "bold.italic") +
+  ggplot2::scale_x_continuous(breaks = breaks_log, labels = lbl_log,
+                               name = "Superficie totale / ménage (ha)") +
+  ggplot2::scale_y_continuous(labels = scales::label_comma()) +
+  ggplot2::labs(title = "(b) Par ménage", y = "Fréquence pondérée") +
+  theme_rapport()
+
+(p1 / p2) +
+  patchwork::plot_annotation(
+    caption = "Source : Nigeria GHS Panel W4 \u2014 Pondéré par wt_wave4.",
+    theme   = ggplot2::theme(
+      plot.caption = ggplot2::element_text(size = 7.5, colour = pal["gris"], hjust = 0)))
+```
+
+## Boxplots
+
+Cette asymétrie s'accentue au niveau du ménage. La superficie totale médiane par ménage est de 0,88 hectare, alors que la moyenne s'élève à 1,76 hectare, soit plus du double. Le coefficient de variation, qui atteint 404 % au niveau ménage, confirme l'extrême hétérogénéité des structures foncières nigérianes. En d'autres termes, la dispersion autour de la moyenne est considérable, traduisant une concentration des terres entre les mains d'une minorité de grands exploitants.
+
+```{r boxplot, eval=has_parcelles && has_menage, fig.cap="Boxplots des superficies agricoles (rééchantillonnage pondéré, $n=4000$).", fig.height=3.5}
+set.seed(42)
+box_data <- dplyr::bind_rows(
+  parcelles_valid %>%
+    dplyr::slice_sample(n = 4000, weight_by = wt_parcelle, replace = TRUE) %>%
+    dplyr::transmute(type = "Par parcelle", val = log1p(area_ha_propre)),
+  menage_valid %>%
+    dplyr::slice_sample(n = 4000, weight_by = wt_wave4, replace = TRUE) %>%
+    dplyr::transmute(type = "Par m\u00e9nage", val = log1p(total_area_ha))
+) %>% dplyr::mutate(type = factor(type, levels = c("Par parcelle","Par m\u00e9nage")))
+
+med_pts <- dplyr::tibble(
+  type = factor(c("Par parcelle","Par m\u00e9nage"), levels = c("Par parcelle","Par m\u00e9nage")),
+  med  = c(log1p(stats_parc$Mediane), log1p(stats_men$Mediane)))
+
+ggplot2::ggplot(box_data, ggplot2::aes(x = type, y = val, fill = type)) +
+  ggplot2::geom_violin(alpha = 0.22, linewidth = 0.25, colour = "grey70") +
+  ggplot2::geom_boxplot(width = 0.32, outlier.shape = 16, outlier.alpha = 0.18,
+                        outlier.size = 0.5, notch = TRUE, notchwidth = 0.55) +
+  ggplot2::geom_point(data = med_pts, ggplot2::aes(x = type, y = med),
+                      colour = pal["rouge"], size = 3.2, shape = 18, inherit.aes = FALSE) +
+  ggplot2::scale_y_continuous(breaks = breaks_log, labels = lbl_log,
+                               name = "Superficie (ha)") +
+  ggplot2::scale_fill_manual(values = c("Par parcelle" = pal["bleu"],
+                                        "Par m\u00e9nage" = pal["vert"])) +
+  ggplot2::labs(x = NULL, caption = "Source : Nigeria GHS Panel W4.") +
+  theme_rapport() + ggplot2::theme(legend.position = "none")
+```
+
+## Déciles pondérés
+
+L'analyse par déciles apporte un éclairage complémentaire sur cette concentration. Les 10 % des ménages les plus petits (Décile 1) cultivent en moyenne 0,028 hectare et ne contribuent qu'à 0,2 % de la superficie totale pondérée. À l'opposé, les 10 % des ménages les plus grands (Décile 10) exploitent en moyenne 8,17 hectares et concentrent 10 % de la superficie totale. La borne supérieure du Décile 10 atteint 480,65 hectares, attestant de l'existence d'une agriculture commerciale de grande échelle coexistant avec une agriculture familiale de subsistance.
+
+```{r deciles, eval=has_parcelles && has_menage, results='asis'}
+decile_w <- function(data, var, wt) {
+  x <- data[[var]]; w <- data[[wt]]
+  idx <- !is.na(x) & !is.na(w) & w > 0 & x >= 0
+  x <- x[idx]; w <- w[idx]
+  wq <- function(p) {
+    ord <- order(x); xo <- x[ord]; wco <- cumsum(w[ord]) / sum(w)
+    approx(wco, xo, xout = p, rule = 2)$y
+  }
+  bornes_sup <- sapply(seq(0.1, 1, 0.1), wq)
+  bornes_inf <- c(0, bornes_sup[-10])
+  dec_idx    <- pmin(pmax(findInterval(x, c(0, bornes_sup), rightmost.closed = TRUE), 1), 10)
+  purrr::map_dfr(1:10, function(d) {
+    mask <- dec_idx == d
+    tibble::tibble(Decile      = paste0("D", d),
+                   N           = sum(mask),
+                   Borne_inf   = round(bornes_inf[d], 3),
+                   Borne_sup   = round(bornes_sup[d], 3),
+                   Moy_pond    = round(weighted.mean(x[mask], w[mask]), 3),
+                   Part        = round(sum(w[mask]) / sum(w) * 100, 1))
+  })
+}
+
+decile_w(menage_valid, "total_area_ha", "wt_wave4") %>%
+  kt(caption    = "Statistiques pondérées par décile --- superficie totale par ménage (W4)",
+     align      = c("l","r","r","r","r","r"),
+     col_names  = c("Décile","N","Borne inf. (ha)","Borne sup. (ha)","Moy. pond. (ha)","Part (\\%)"),
+     font_size  = 9,
+     escape     = FALSE)
+```
+
+
+
+# Comparaison superficie déclarée et GPS {#gps}
+
+\begin{methodbox}{Enjeu méthodologique}
+La confrontation entre la superficie déclarée oralement par les exploitants et la mesure GPS objective constitue un enjeu méthodologique central. Les déclarations orales sont susceptibles de biais cognitifs : arrondis systématiques, sous-déclaration des grandes parcelles par crainte fiscale, ou surestimation par attachement psychologique à la terre. La corrélation de Spearman est préférée au coefficient de Pearson car elle est robuste aux valeurs extrêmes et ne suppose pas la normalité des distributions.
+\end{methodbox}
+
+## Statistiques du biais de déclaration
+
+L'analyse porte sur 6 822 paires d'observations valides. La corrélation de Spearman atteint 0,7021, ce qui témoigne d'une forte concordance en rang entre les deux mesures : les exploitants perçoivent correctement l'ordre de grandeur relatif de leurs parcelles (la parcelle A est plus grande que la parcelle B).
+
+Cependant, le biais médian (GPS - déclaré) est de -0,0264 hectare, ce qui signifie que la superficie déclarée excède systématiquement la mesure GPS. En d'autres termes, les exploitants ont tendance à surestimer leurs propres parcelles. Ce résultat est cohérent avec la littérature internationale (Carletto et al., 2015), qui attribue ce biais à une combinaison de facteurs : arrondis psychologiques, méconnaissance des unités standardisées, et réticence à déclarer des petites surfaces perçues comme socialement dévalorisantes.
+
+La proportion de parcelles sous-estimées (déclaré $>$ GPS) atteint 38,7 %, tandis que 61,3 % des parcelles sont sur-estimées (déclaré $<$ GPS). Ce déséquilibre suggère que le biais n'est pas symétrique : la surestimation est plus fréquente que la sous-estimation.
+
+```{r biais-table, eval=has_compare, results='asis'}
+if ("area_declared_ha" %in% names(area_compare))
+  area_compare$superficie_ha_propre <- area_compare$area_declared_ha
+if ("area_gps_ha" %in% names(area_compare))
+  area_compare$superficie_gps_ha <- area_compare$area_gps_ha
+if (!"diff_ha" %in% names(area_compare))
+  area_compare$diff_ha <- area_compare$superficie_gps_ha - area_compare$superficie_ha_propre
+if (!"sous_estime" %in% names(area_compare))
+  area_compare$sous_estime <- area_compare$superficie_ha_propre > area_compare$superficie_gps_ha
+
+rho_val  <- cor(area_compare$superficie_ha_propre, area_compare$superficie_gps_ha,
+                method = "spearman", use = "complete.obs")
+biais_m  <- mean(area_compare$diff_ha,     na.rm = TRUE)
+biais_md <- median(area_compare$diff_ha,   na.rm = TRUE)
+pct_sous <- mean(area_compare$sous_estime, na.rm = TRUE) * 100
+
+tibble::tibble(
+  Indicateur     = c("Paires (déclaré, GPS) valides",
+                     "Corrélation de Spearman ($\\rho$)",
+                     "Biais moyen (GPS $-$ déclaré)",
+                     "Biais médian (GPS $-$ déclaré)",
+                     "Part sous-estimée (déclaré $>$ GPS)",
+                     "Part sur-estimée (déclaré $<$ GPS)"),
+  Valeur         = c(format(nrow(area_compare), big.mark = " "),
+                     sprintf("%.4f", rho_val),
+                     sprintf("%.4f ha", biais_m),
+                     sprintf("%.4f ha", biais_md),
+                     sprintf("%.1f \\%%", pct_sous),
+                     sprintf("%.1f \\%%", 100 - pct_sous)),
+  Interpretation = c("Observations appariées",
+                     ifelse(abs(rho_val) > 0.7, "Forte concordance", "Concordance modérée"),
+                     ifelse(biais_m  > 0, "Sous-déclaration en moyenne", "Sur-déclaration en moyenne"),
+                     ifelse(biais_md > 0, "Sous-déclaration médiane",    "Sur-déclaration médiane"),
+                     "Exploitants déclarant plus que le GPS",
+                     "Exploitants déclarant moins que le GPS")
+) %>%
+  kt(caption    = "Statistiques du biais de déclaration --- superficie GPS vs. déclarée (W4)",
+     align      = c("l","r","l"),
+     col_names  = c("Indicateur","Valeur","Interprétation"),
+     font_size  = 9,
+     escape     = FALSE)
+```
+
+## Scatter plot avec hexagones de densité
+
+Le scatter plot en hexagones de densité confirme visuellement ces résultats. La ligne d'égalité parfaite (biais nul) est systématiquement dépassée par le nuage de points dans la zone des petites surfaces (inférieures à 1 hectare), où la densité d'observations est maximale. La courbe LOESS, qui lisse la relation moyenne entre les deux mesures, s'écarte nettement de la ligne d'égalité pour les surfaces inférieures à 2 hectares, confirmant la surestimation systématique. Pour les grandes surfaces (supérieures à 5 hectares), l'incertitude augmente, comme en témoigne l'élargissement de l'intervalle de confiance.
+
+Implication politique : toute politique agricole basée sur les seules déclarations orales surestimera systématiquement les superficies cultivées, conduisant à une allocation inefficace des subventions et des conseils agricoles. La généralisation de la mesure GPS dans les enquêtes futures est donc impérative.
+
+```{r scatter-gps, eval=has_compare, fig.cap="Superficie déclarée vs. superficie GPS. Ligne rouge = biais nul ; courbe bleue = LOESS.", fig.height=5.2}
+gps_plot <- area_compare %>%
+  dplyr::filter(superficie_ha_propre > 0, superficie_gps_ha > 0, superficie_gps_ha <= 500)
+xlim <- quantile(log1p(gps_plot$superficie_ha_propre), c(0.002, 0.998), na.rm = TRUE)
+ylim <- quantile(log1p(gps_plot$superficie_gps_ha),    c(0.002, 0.998), na.rm = TRUE)
+
+ggplot2::ggplot(gps_plot, ggplot2::aes(x = log1p(superficie_ha_propre),
+                                        y = log1p(superficie_gps_ha))) +
+  ggplot2::geom_hex(bins = 52,
+                    ggplot2::aes(fill = ggplot2::after_stat(log(count + 1))), alpha = 0.88) +
+  ggplot2::scale_fill_viridis_c(option = "C", direction = -1, name = "log(n+1)",
+                                 guide = ggplot2::guide_colorbar(barwidth = 7, barheight = 0.5,
+                                                                  title.position = "top")) +
+  ggplot2::geom_abline(slope = 1, intercept = 0, colour = pal["rouge"],
+                       linewidth = 0.95, linetype = "dashed") +
+  ggplot2::geom_smooth(method = "loess", se = TRUE, colour = pal["steel"],
+                       fill = "#AED6F1", linewidth = 0.85, alpha = 0.35) +
+  ggplot2::annotate("label",
+                    x = xlim[1] + 0.08 * diff(xlim), y = ylim[2] - 0.03 * diff(ylim),
+                    label = sprintf("rho = %.4f\nBiais med = %.4f ha\nSous-est : %.1f %%",
+                                    rho_val, biais_md, pct_sous),
+                    hjust = 0, vjust = 1, size = 2.8, label.size = 0.25,
+                    fill = "white", colour = pal["bleu"], fontface = "italic") +
+  ggplot2::scale_x_continuous(name = "Superficie déclarée (ha)",
+                               limits = xlim, breaks = breaks_log, labels = lbl_log) +
+  ggplot2::scale_y_continuous(name = "Superficie GPS (ha)",
+                               limits = ylim, breaks = breaks_log, labels = lbl_log) +
+  ggplot2::labs(title    = "Superficie déclarée vs. mesure GPS --- Nigeria GHS W4",
+                subtitle = "Ligne rouge = biais nul  \u00b7  Courbe bleue = LOESS",
+                caption  = "Source : Nigeria GHS Panel W4.") +
+  theme_rapport() + ggplot2::theme(legend.position = "bottom")
+```
+
+**Interprétation.** La corrélation de Spearman ($\rho =$ `r if(has_compare) round(rho_val, 4)`) indique une bonne concordance en rang. Cependant, `r if(has_compare) paste0(round(pct_sous, 1), "\\%")` des parcelles présentent une **sous-déclaration**, avec un biais médian de `r if(has_compare) round(biais_md, 4)` ha (Carletto *et al.*, 2015).
+
+
+# MODE D'ACQUISITION (TENURE)(Q21)
+# Régime de tenure foncière {#tache21}
+
+L'analyse des modes d'acquisition foncière révèle la prédominance écrasante du régime d'héritage, qui concerne 63 % des parcelles en termes bruts et 58,2 % en termes pondérés. Ce résultat reflète la persistance des systèmes coutumiers de transmission foncière au Nigeria, où la terre est perçue comme un patrimoine familial inaliénable plutôt que comme une marchandise.
+
+Le second régime le plus fréquent est la propriété pleine (achat), qui représente 15,6 % des parcelles pondérées, suivie de la location (12,9 %) et du prêt (9,7 %). Les autres modes — communautaire (2,6 %), métayage (0,6 %) et échange temporaire (0,4 %) — jouent un rôle marginal. Cette structure suggère que le marché foncier formel reste peu développé, et que l'accès à la terre repose principalement sur les réseaux familiaux et communautaires.
+
+```{r tenure-prep, eval=has_parcelles && !is.na(tenure_col)}
+tenure_data <- parcelles_w4 %>%
+  dplyr::filter(!is.na(.data[[tenure_col]]), !is.na(wt_parcelle))
+
+tenure_freq <- tenure_data %>%
+  dplyr::group_by(Tenure = .data[[tenure_col]]) %>%
+  dplyr::summarise(N_brut         = dplyr::n(),
+                   Effectif_pond  = round(sum(wt_parcelle, na.rm = TRUE)),
+                   .groups = "drop") %>%
+  dplyr::mutate(Pct_brut  = round(N_brut        / sum(N_brut)        * 100, 1),
+                Pct_pond  = round(Effectif_pond / sum(Effectif_pond) * 100, 1),
+                Pct_cum   = cumsum(Pct_pond)) %>%
+  dplyr::arrange(dplyr::desc(Pct_pond))
+
+has_tenure <- nrow(tenure_freq) > 0
+```
+
+```{r tenure-table, eval=has_parcelles && !is.na(tenure_col) && has_tenure, results='asis'}
+tenure_freq %>%
+  dplyr::mutate(Tenure = as.character(Tenure)) %>%
+  kt(caption    = "Régimes de tenure foncière --- fréquences brutes et pondérées, Nigeria GHS W4",
+     align      = c("l","r","r","r","r","r"),
+     col_names  = c("Tenure","N brut","Eff. pond.","\\% brut","\\% pond.","\\% cum."),
+     font_size  = 9,
+     escape     = FALSE)
+```
+
+```{r tenure-barplot, eval=has_parcelles && !is.na(tenure_col) && has_tenure, fig.cap="Distribution pondérée des régimes de tenure foncière (Nigeria GHS W4).", fig.height=3.4}
+ggplot2::ggplot(tenure_freq,
+                ggplot2::aes(x = Pct_pond,
+                             y = forcats::fct_reorder(as.character(Tenure), Pct_pond),
+                             fill = Pct_pond)) +
+  ggplot2::geom_col(show.legend = FALSE, alpha = 0.9, width = 0.68) +
+  ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f %%", Pct_pond)),
+                     hjust = -0.08, size = 3.0, colour = pal["gris"], fontface = "bold") +
+  ggplot2::scale_fill_gradient(low = "#7FB3D3", high = pal["bleu"]) +
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.20)),
+                               labels = scales::label_percent(scale = 1)) +
+  ggplot2::labs(title = "Mode d'acquisition des parcelles agricoles",
+                x = "Part pondérée (%)", y = NULL,
+                caption = "Source : Nigeria GHS Panel W4") +
+  theme_rapport() + ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
+```
+
+## Test d'indépendance : tenure $\times$ zone de résidence
+
+Le test du $\chi^2$ pondéré, bien qu'approximé (effectifs pondérés arrondis), révèle une association significative (p$<$0,001) entre le régime de tenure et la zone de résidence (rural vs. urbain). La valeur du V de Cramér (0,2236) indique une association d'intensité faible à modérée. En pratique, cela signifie que les modes d'acquisition diffèrent entre les campagnes et les villes : l'héritage domine davantage en milieu rural, tandis que la location et l'achat sont plus fréquents dans les zones urbaines périphériques.
+
+Limite méthodologique : pour une inférence rigoureuse tenant compte du plan de sondage stratifié, il conviendrait d'utiliser le test de Rao-Scott. L'approche actuelle, basée sur des effectifs pondérés arrondis, constitue une approximation raisonnable mais non définitive.
+
+```{r chi2, eval=has_parcelles && !is.na(tenure_col) && !is.na(zone_col) && has_tenure}
+chi2_data <- parcelles_w4 %>%
+  dplyr::filter(!is.na(.data[[tenure_col]]), !is.na(.data[[zone_col]]), !is.na(wt_parcelle))
+
+mat_chi2 <- chi2_data %>%
+  dplyr::group_by(Tenure = .data[[tenure_col]], Zone = .data[[zone_col]]) %>%
+  dplyr::summarise(n_pond = sum(wt_parcelle, na.rm = TRUE), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = Zone, values_from = n_pond, values_fill = 0) %>%
+  tibble::column_to_rownames("Tenure") %>% as.matrix()
+
+chi2_ok <- nrow(mat_chi2) >= 2 && ncol(mat_chi2) >= 2
+
+if (chi2_ok) {
+  chi2_res <- suppressWarnings(chisq.test(round(mat_chi2)))
+  n_chi2   <- sum(mat_chi2)
+  k_chi2   <- min(nrow(mat_chi2), ncol(mat_chi2))
+  v_cramer <- as.numeric(sqrt(chi2_res$statistic / (n_chi2 * (k_chi2 - 1))))
+  force    <- dplyr::case_when(v_cramer < 0.10 ~ "négligeable",
+                               v_cramer < 0.30 ~ "faible",
+                               v_cramer < 0.50 ~ "modéré",
+                               TRUE            ~ "fort")
+}
+```
+
+```{r chi2-result, eval=has_parcelles && !is.na(tenure_col) && !is.na(zone_col) && has_tenure && chi2_ok, results='asis'}
+tibble::tibble(
+  Parametre = c("Statistique $X^2$", "Degrés de liberté ($df$)",
+                "$p$-value", "V de Cramér", "Interprétation de l'effet"),
+  Valeur    = c(round(chi2_res$statistic, 3), chi2_res$parameter,
+                format.pval(chi2_res$p.value, digits = 3, eps = 0.001),
+                round(v_cramer, 4), force)
+) %>%
+  kt(caption   = "Test du $\\chi^2$ pondéré approx. --- tenure $\\times$ zone (Rural/Urbain)",
+     align     = c("l","r"),
+     col_names = c("Paramètre","Valeur"),
+     font_size = 9,
+     escape    = FALSE
+     )
+```
+
+# SUPERFICIE TOTALE et NOMBRE DE PARCELLES (Q23)
+
+La fragmentation des exploitations — c'est-à-dire la division de la superficie totale d'un ménage en plusieurs parcelles géographiquement distinctes — est une caractéristique majeure de l'agriculture ouest-africaine. La corrélation de Spearman entre le nombre de parcelles et la superficie totale atteint 0,433, ce qui correspond à une association modérée positive.
+
+Cette corrélation positive confirme l'intuition intuitive : les ménages qui détiennent plus de parcelles cultivent globalement plus de surface. Cependant, l'intensité modérée de la corrélation (loin de 1) indique que le nombre de parcelles n'est pas un prédicteur parfait de la superficie totale. Autrement dit, il existe des ménages avec peu de parcelles mais de grande taille, et inversement des ménages avec de nombreuses parcelles de très petite taille.
+
+```{r spearman-table, eval=has_menage, results='asis'}
+rho_np <- cor(menage_valid$n_plots, menage_valid$total_area_ha,
+              method = "spearman", use = "complete.obs")
+
+tibble::tibble(
+  Indicateur = c("$\\rho$ de Spearman", "Interprétation", "$N$ ménages analysés"),
+  Valeur     = c(round(rho_np, 4),
+                 dplyr::case_when(abs(rho_np) > 0.7 ~ "Forte association positive",
+                                  abs(rho_np) > 0.4 ~ "Association modérée positive",
+                                  TRUE              ~ "Faible association"),
+                 nrow(menage_valid))
+) %>%
+  kt(caption    = "Corrélation de Spearman --- superficie totale $\\times$ nombre de parcelles",
+     align      = c("l","r"),
+     col_names  = c("Indicateur","Valeur"),
+     font_size  = 9,
+     escape     = FALSE)
+```
+
+La courbe LOESS pondérée, qui lisse la relation moyenne entre les deux variables, révèle une progression décroissante : chaque parcelle additionnelle contribue moins à la superficie totale au-delà de 8 à 10 parcelles. Ce phénomène s'explique par la logique de diversification agricole : les ménages ajoutent d'abord des parcelles de grande taille pour augmenter leur production vivrière, puis des parcelles secondaires de petite taille destinées à des cultures de rente (cacao, palmier à huile) ou à la diversification du risque climatique.
+
+La fragmentation peut avoir des effets ambivalents sur la productivité. D'un côté, elle permet de cultiver des sols aux caractéristiques complémentaires (terres basses humides pour le riz, terres hautes pour le maïs) et de lisser le risque de mauvaises récoltes. De l'autre côté, elle accroît les coûts de transport, de surveillance et de gestion. 
+
+```{r loess-plot, eval=has_menage, fig.cap="Superficie totale par ménage en fonction du nombre de parcelles. Courbe LOESS pondérée.", fig.height=4.5}
+if (!exists("parcelles_w4") && exists("parcelles_agricoles"))
+  parcelles_w4 <- parcelles_agricoles
+
+if (exists("parcelles_w4") && "region" %in% names(parcelles_w4)) {
+  sup_men_plot <- parcelles_w4 %>%
+    group_by(hhid) %>%
+    summarise(nb_parcelles = n(),
+              superficie_totale_ha = sum(area_ha_propre, na.rm = TRUE),
+              poids_menage = first(wt_wave4),
+              region = first(region), .groups = "drop") %>%
+    filter(!is.na(superficie_totale_ha), superficie_totale_ha >= 0,
+           !is.na(poids_menage), nb_parcelles <= 25) %>%
+    mutate(region = factor(region, levels = 1:6,
+                           labels = c("North Central","North East","North West",
+                                      "South East","South South","South West")))
+} else {
+  sup_men_plot <- menage_valid %>%
+    rename(nb_parcelles = n_plots, superficie_totale_ha = total_area_ha,
+           poids_menage = wt_wave4) %>%
+    mutate(region = factor("Nigeria"))
+}
+
+if (nrow(sup_men_plot) > 0) {
+  rho_np <- cor(sup_men_plot$nb_parcelles, sup_men_plot$superficie_totale_ha,
+                method = "spearman", use = "complete.obs")
+  interp <- dplyr::case_when(abs(rho_np) < 0.3 ~ "faible",
+                              abs(rho_np) < 0.5 ~ "modérée",
+                              abs(rho_np) < 0.7 ~ "forte",
+                              TRUE              ~ "très forte")
+  brk  <- log1p(c(0, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50))
+  lbl2 <- function(x) {
+    v <- expm1(x)
+    dplyr::case_when(v < 0.1 ~ sprintf("%.2f", v), v < 10 ~ sprintf("%.1f", v),
+                     TRUE    ~ sprintf("%.0f", v))
+  }
+  ggplot(sup_men_plot, aes(x = nb_parcelles, y = log1p(superficie_totale_ha))) +
+    geom_jitter(aes(size = poids_menage, colour = region),
+                alpha = 0.35, width = 0.15, height = 0) +
+    geom_smooth(aes(weight = poids_menage), method = "loess", se = TRUE,
+                span = 0.75, colour = "#E63946", fill = "#F4A261",
+                linewidth = 1.2, alpha = 0.25) +
+    scale_colour_viridis_d(option = "D", name = "Région") +
+    scale_size_continuous(name = "Poids", range = c(0.4, 4)) +
+    scale_x_continuous(breaks = seq(1, 25, 2), name = "Nombre de parcelles") +
+    scale_y_continuous(name = "Superficie totale (ha) [ln(1+x)]",
+                       breaks = brk, labels = lbl2) +
+    annotate("label", x = 15.5, y = log1p(0.06),
+             label = sprintf("rho = %.4f\n(n = %d, %s)", rho_np, nrow(sup_men_plot), interp),
+             hjust = 0, size = 3.0, fill = "white", colour = "#1D3557", fontface = "italic") +
+    labs(title   = "Superficie totale vs. nombre de parcelles par ménage",
+         caption = "Source : Nigeria GHS Panel Wave 4 (2018)") +
+    theme_rapport() + theme(legend.position = "right")
+}
+```
+
+# CARTE DU NIGERIA (cartographier les disparités géographiques) (Q24)
+
+La heatmap des superficies médianes par État révèle un contraste Nord-Ouest / Sud-Est systématique. L'État de Nasarawa se distingue nettement avec la superficie médiane la plus élevée du pays (1,62 ha), suivi de Katsina (0,81 ha). Un groupe d'États affiche des superficies comprises entre 0,49 et 0,81 ha : Rivers, Borno, Adamawa, le Territoire de la capitale fédérale (Abuja), Osun, Kogi, Yobe, Imo et Ogun. De très nombreux États - Zamfara, Taraba, Sokoto, Oyo, Ondo, Niger, Lagos, Jigawa, Kano, Kaduna, Ekiti, Bauchi, Delta, Kebbi et Benue — se situent précisément à 0,40 ha, ce qui semble constituer une norme culturale nationale. À l'opposé, les États du Sud-Est et quelques États du Nord-Est présentent les superficies les plus réduites : Kwara (0,30 ha), Abia (0,26 ha), Ebonyi (0,24 ha), Cross River (0,21 ha), Akwa Ibom (0,12 ha), Anambra (0,10 ha), Enugu (0,09 ha), Plateau (0,06 ha) et Gombe (0,04 ha), qui affiche la plus faible superficie médiane du pays. Ces disparités s'expliquent par la disponibilité de terres arables dans le Nord et la ceinture centrale, tandis que le Sud-Est subit une pression démographique intense, un héritage fractionnant les terres et une prédominance de cultures pérennes viables sur de petites surfaces.
+
+```{r trend-heatmap, fig.cap="Carte et classement des superficies médianes par État --- Nigeria GHS W4", fig.height=8, fig.width=7}
+if (exists("parcelles_w4") && "etat" %in% names(parcelles_w4)) {
+
+  superficie_etats <- parcelles_w4 %>%
+    filter(!is.na(area_ha_propre), area_ha_propre > 0, !is.na(etat)) %>%
+    group_by(etat) %>%
+    summarise(mediane_ha = median(area_ha_propre, na.rm = TRUE),
+              n_parcelles = n(), .groups = "drop") %>%
+    filter(n_parcelles >= 5) %>%
+    mutate(classe = cut(mediane_ha,
+                        breaks = c(0, 0.1, 0.25, 0.5, 1, 2, 5, Inf),
+                        labels = c("<0,1 ha","0,1-0,25 ha","0,25-0,5 ha",
+                                   "0,5-1 ha","1-2 ha","2-5 ha",">5 ha")))
+
+  coords_etats <- data.frame(
+    etat = c("Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa",
+             "Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti",
+             "Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina",
+             "Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun",
+             "Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"),
+    lon = c(7.5,12.5,7.8,7.1,9.8,6.3,8.7,12.5,8.5,5.8,7.8,5.6,5.2,
+            7.5,7.5,11.2,7.1,9.5,7.4,8.5,7.6,4.5,6.8,4.5,3.3,8.5,
+            6.5,3.3,5.0,4.5,3.9,9.0,6.8,5.2,11.0,11.5,6.2),
+    lat = c(5.5,9.5,4.8,6.2,10.3,4.8,7.5,11.5,5.5,5.8,6.3,6.5,7.6,
+            6.4,9.0,10.3,5.5,11.8,10.5,12.0,12.9,11.2,7.8,8.5,6.5,
+            8.5,9.5,7.0,7.0,7.5,8.0,9.5,4.8,13.0,8.5,12.0,12.2))
+
+  carte_data <- coords_etats %>% left_join(superficie_etats, by = "etat")
+  nigeria    <- map_data("world", region = "Nigeria")
+
+  # Carte avec palette verte
+  p_carte <- ggplot() +
+    geom_polygon(data = nigeria, aes(x = long, y = lat, group = group),
+                 fill = "lightgrey", colour = "black", linewidth = 0.3) +
+    geom_point(data = carte_data, aes(x = lon, y = lat, size = mediane_ha, fill = classe),
+               shape = 21, alpha = 0.85, stroke = 0.5, color = "black") +
+    geom_text(data = carte_data, aes(x = lon, y = lat, label = etat),
+              size = 2.2, vjust = -0.8, check_overlap = TRUE,
+              fontface = "bold", color = "#333333") +
+    scale_size_continuous(name = "Superficie médiane (ha)", range = c(2, 14),
+                          breaks = c(0.1, 0.25, 0.5, 1, 2, 5)) +
+    scale_fill_brewer(palette = "Greens", name = "Classe",
+                      na.value = "grey85", drop = FALSE) +  # CHANGÉ: "YlOrRd" → "Greens"
+    coord_quickmap(xlim = c(2.5, 14.5), ylim = c(4, 14)) +
+    labs(title    = "Superficie médiane des exploitations par État",
+         subtitle = "Nigeria - GHS Panel Wave 4 (2018)",
+         caption  = "Source : Nigeria GHS Panel Wave 4",
+         x = "Longitude", y = "Latitude") +
+    theme_minimal() +
+    theme(plot.title       = element_text(face = "bold", size = 13,
+                                          colour = "#003366", hjust = 0),
+          legend.position  = "right",
+          panel.background = element_rect(fill = "white", colour = NA))
+
+  print(p_carte)
+
+  # Heatmap avec palette verte
+  p_heatmap <- ggplot(superficie_etats, aes(x = 1, y = reorder(etat, mediane_ha), fill = mediane_ha)) +
+    geom_tile(color = "white", linewidth = 0.3) +
+    geom_text(aes(label = sprintf("%.2f ha", mediane_ha)),
+              size = 2.8, colour = ifelse(superficie_etats$mediane_ha > 0.5, "white", "#333333")) +
+    scale_fill_gradient2(
+      low = "#E8F5E9",    # Vert très clair (presque blanc)
+      mid = "#66BB6A",    # Vert moyen
+      high = "#1B5E20",   # Vert très foncé
+      midpoint = median(superficie_etats$mediane_ha, na.rm = TRUE),
+      name = "Superficie\nmédiane (ha)",
+      na.value = "grey85"
+    ) +
+    scale_x_continuous(expand = c(0, 0)) +
+    labs(
+      title = "Heatmap des superficies médianes par État",
+      subtitle = "Nigeria - GHS Panel Wave 4 (2018) | Couleur = superficie médiane en hectares",
+      x = NULL, y = NULL,
+      caption = "Source : Nigeria GHS Panel Wave 4"
+    ) +
+    theme_rapport() +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.y = element_text(size = 7, face = "bold"),
+      panel.grid = element_blank(),
+      legend.position = "right",
+      legend.key.height = unit(1.2, "cm"),
+      plot.margin = margin(5, 10, 5, 5)
+    )
+
+  print(p_heatmap)
+}
+
+```
+
+
+# Conclusion et recommandations {#synthese}
+
+Cette étude aboutit à cinq résultats clés. Premièrement, les superficies agricoles nigérianes présentent une asymétrie positive extrême : la majorité des ménages cultivent moins d'un hectare, tandis qu'une minorité d'exploitants concentre l'essentiel des terres. Deuxièmement, la comparaison entre déclarations orales et mesures GPS révèle une surestimation systématique par les exploitants (biais médian de -0,0264 ha), avec 38,7 % des parcelles sous-estimées. Troisièmement, le régime de tenure dominant est l'héritage (58,2 %), témoignant de la persistance des systèmes coutumiers. Quatrièmement, la fragmentation des exploitations est modérément corrélée à la superficie totale ($\rho =0,433$), avec une progression décroissante au-delà de 8 à 10 parcelles. Cinquièmement, les disparités géographiques Nord-Ouest - Sud-Est sont très marquées.
