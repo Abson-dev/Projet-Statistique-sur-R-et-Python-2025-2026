@@ -1,0 +1,951 @@
+---
+title: ""
+output:
+  officedown::rdocx_document:
+    reference_docx: style/template.docx
+    toc: false
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+
+knitr::opts_chunk$set(
+  echo = F,#empeche l'affichage des codes
+  message = FALSE,  # supprime les messages
+  warning = FALSE  # supprime les warnings
+)
+options(OutDec = ",")
+library(officedown)
+library(officer)
+library(coin)       # pour wilcox_test avec poids
+library(effectsize) # pour rank_biserial (taille d'effet)
+library(survey)
+library(srvyr)
+library(tidyr)
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(gtsummary)
+library(gt)
+library(flextable)
+theme_gtsummary_language("fr")
+```
+
+```{r cover, echo=FALSE}
+block_pour_docx("style/cover.docx")
+```
+
+\newpage
+
+# Table des matières {-}
+
+```{r toc, echo=FALSE}
+block_toc()
+```
+
+```{r}
+data_cultures_tp5 <- read_dta("../data/processed/processed_cultures_tp5_w4.dta")
+# Conversion en factor
+data_cultures_tp5 <- data_cultures_tp5 %>% 
+  mutate(across(where(is.labelled), haven::as_factor))
+
+data_parcelles_tp5 <- read_dta("../data/processed/processed_parcelles_tp5_w4.dta")
+# Conversion en factor
+data_parcelles_tp5 <- data_parcelles_tp5 %>% 
+  mutate(across(where(is.labelled), haven::as_factor))
+```
+
+```{r}
+# Design pour la base cultures
+design_cultures <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~poids_wave4,
+  data    = data_cultures_tp5,
+  nest    = TRUE
+)
+
+# Design pour la base parcelles
+design_parcelles <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~poids_wave4,
+  data    = data_parcelles_tp5,
+  nest    = TRUE
+)
+```
+# Résumé
+Cette étude analyse les cultures pratiquées, les intrants utilisés et les 
+rendements agricoles des ménages nigérians à partir des données du Nigeria 
+General Household Survey (GHS) Panel, Wave 4 (2018-2019). Les résultats 
+montrent que le maïs, le sorgho et le mil dominent le paysage cultural 
+nigérian, avec le maïs cultivé par plus de 8 millions de ménages pondérés. 
+La diversification culturale reste modérée — la médiane étant de 2 cultures 
+par ménage — et les ménages ruraux présentent une diversification 
+statistiquement plus élevée que les ménages urbains (p < 0,001). 
+L'utilisation des engrais révèle une forte fracture Nord-Sud : la zone 
+Nord Ouest affiche les taux les plus élevés (~65 %), tandis que le Sud Ouest 
+reste marginalement équipé (~2 %). Au niveau national, 50,8 % des parcelles 
+ont bénéficié d'au moins un type d'engrais. Enfin, l'utilisation d'engrais 
+chimique est associée à un doublement du rendement médian du maïs 
+(1 136 kg/ha contre 578 kg/ha sans engrais), mais son effet sur le mil 
+reste négligeable et non significatif.
+
+**Mots-clés :** agriculture nigériane, diversification culturale, engrais, 
+rendements agricoles, GHS-Panel Wave 4.
+
+\newpage
+# Introduction
+
+
+La sécurité alimentaire constitue l'un des défis majeurs auxquels sont confrontés les pays en développement, et l'agriculture nigériane, de par son poids économique et démographique, occupe une place centrale dans cette problématique. Au Nigéria, la valeur ajoutée agricole représentait 21,2 % du PIB en 2018 et 21,9 % en 2019 
+(Banque mondiale, 2024), témoignant de l'importance structurelle du secteur primaire dans l'économie nationale. Pourtant, derrière ces agrégats macroéconomiques se dissimule une réalité agricole profondément hétérogène, marquée par la diversité des cultures pratiquées, l'inégal recours aux intrants agricoles et des rendements très variables selon les régions et les cultures.
+
+Dans ce contexte, comprendre les dynamiques de production agricole au niveau des ménages s'avère indispensable pour éclairer les politiques de développement rural et de sécurité alimentaire. La nature des cultures pratiquées — céréales, légumineuses, tubercules ou cultures de rente — reflète à la fois les conditions agro-climatiques locales, les stratégies de diversification des ménages et leurs contraintes économiques. De même, l'utilisation des intrants, notamment des engrais 
+chimiques et organiques, constitue un levier déterminant de l'amélioration des rendements agricoles, dont l'accès demeure toutefois inégalement réparti sur le territoire nigérian.
+
+Le présent rapport se propose d'analyser les cultures pratiquées, les intrants utilisés et les rendements agricoles des ménages nigérians à partir des données du Nigeria General Household Survey (GHS) Panel, Wave 4 (2018-2019). Cette enquête, conduite auprès de ménages agricoles sur l'ensemble du territoire national, offre un cadre statistique rigoureux permettant des analyses représentatives à différentes échelles géographiques.
+
+Ce document s'articule autour de trois parties distinctes. Nous présenterons d'abord les données mobilisées ainsi que les traitements préliminaires effectués pour préparer l'analyse. Nous exposerons ensuite les principaux résultats portant sur la diversité culturale, l'utilisation des intrants et les rendements agricoles. Enfin, nous confronterons nos résultats aux conclusions du rapport officiel de l'enquête — le [LSMS Integrated Surveys on Agriculture — Nigeria General Household Survey-Panel, Wave 4, 2018/2019](documentation/ghs_panel_wave4_survey_report.pdf) — afin d'en évaluer la cohérence et d'identifier d'éventuels écartsd'interprétation.
+
+\newpage
+# I. Présentation des données
+
+## 1. Bases mobilisées
+Les informations nécessaires pour cette analyse des cultures pratiquées, des intrants 
+utilisés et des rendements agricoles sont issues des sections A3i, A3ii, 11C2 du 
+[Questionnaire agricole Post-Harvest](documentation/ph_w4_agriculture_quest.pdf) 
+et de la section 11A1 du [Questionnaire agricole Post-Planting](documentation/pp_w4_agriculture_quest.pdf). 
+Il s'agit respectivement des fichiers : `secta3i_harvestw4.dta`, `secta3ii_harvestw4.dta`, 
+`secta_harvestw4.dta`, `secta11c2_harvestw4.dta` et `sect11a1_plantingw4.dta`.
+Les informations récupérées dans chaque variable sont présentées dans le tableau ci-dessous :
+
+```{r}
+tableau_variables <- data.frame(
+  Fichier = c(
+    rep("secta_harvestw4.dta", 9),
+    rep("secta1_harvestw4.dta", 7),
+    rep("sect11a1_plantingw4.dta", 7),
+    rep("sect11b1_plantingw4.dta", 3)
+  ),
+  Variable = c(
+    # secta_harvestw4 (9)
+    "hhid", "state", "zone", "lga", "sector",
+    "ea", "cluster", "strata", "wt_wave4",
+    # secta1_harvestw4 (7)
+    "hhid", "plotid", "sa1q1aa", "sa1q4",
+    "prefilled_gps_area", "sa1q1d", "sa1q11",
+    # sect11a1_plantingw4 (7)
+    "hhid", "plotid", "s11aq4aa", "s11aq4b",
+    "s11aq4a", "s11aq4b1", "s11aq4c",
+    # sect11b1_plantingw4 (3)
+    "hhid", "plotid", "s11b1q4"
+  ),
+  Description = c(
+    # secta_harvestw4 (9)
+    "Identifiant du ménage",
+    "État de résidence",
+    "Zone géographique",
+    "Code Local Government Area (LGA)",
+    "Milieu de résidence (urbain/rural)",
+    "Zone de dénombrement",
+    "Grappe",
+    "Strate",
+    "Pondération (Wave 4)",
+    # secta1_harvestw4 (7)
+    "Identifiant du ménage",
+    "Identifiant de la parcelle",
+    "Parcelle listée comme cultivée en post-planting ?",
+    "Le ménage a-t-il toujours accès à la parcelle ?",
+    "Superficie GPS préremplie (m²)",
+    "Remesure GPS requise pour cette parcelle ?",
+    "Nouvelle mesure GPS de la superficie (m²)",
+    # sect11a1_plantingw4 (7)
+    "Identifiant du ménage",
+    "Identifiant de la parcelle",
+    "Superficie déclarée par le ménage",
+    "Unité de mesure de la superficie déclarée",
+    "Superficie mesurée par GPS (oui/non)",
+    "Raison de l'absence de mesure GPS",
+    "Superficie GPS (m²)",
+    # sect11b1_plantingw4 (3)
+    "Identifiant du ménage",
+    "Identifiant de la parcelle",
+    "Mode d'acquisition de la parcelle (tenure foncière)"
+  )
+)
+
+tableau_variables %>%
+  flextable() %>%
+  set_caption("Variables mobilisées pour l'étude") %>%
+  bold(part = "header") %>%
+  merge_v(j = "Fichier") %>%
+  valign(j = "Fichier", valign = "top") %>%
+  bg(j = "Fichier", bg = "#f2f2f2") %>%
+  hline(i = 9,  border = fp_border_default(color = "black", width = 1.5)) %>%
+  hline(i = 16, border = fp_border_default(color = "black", width = 1.5)) %>%
+  hline(i = 23, border = fp_border_default(color = "black", width = 1.5)) %>%
+  autofit()
+```
+Le fichier `secta_harvestw4.dta` constitue la base ménage de référence : il contient 
+5 025 lignes correspondant chacune à un ménage enquêté, et fournit les informations 
+géographiques ainsi que les poids de sondage (`wt_wave4`). Les fichiers `secta3i_harvestw4.dta` 
+et `secta11c2_harvestw4.dta` sont des bases au niveau parcelle, identifiées par la 
+clé `hhid + plotid`. Le fichier `secta3ii_harvestw4.dta` est quant à lui une base 
+au niveau ménage × culture (clé `hhid + cropcode`) : il agrège la production toutes 
+parcelles confondues pour chaque culture pratiquée par le ménage. Enfin, `sect11a1_plantingw4.dta` renseigne les 
+superficies au niveau parcelle lors de la visite Post-Planting.
+
+Deux bases finales sont construites par jointures successives. La **base cultures** 
+(`processed_cultures_tp5_w4`) est obtenue par jointure interne entre `secta_harvestw4.dta` 
+et `secta3ii_harvestw4.dta` sur la clé `hhid`, de façon à ne retenir que les ménages 
+ayant effectivement déclaré au moins une culture. La **base parcelles** 
+(`processed_parcelles_tp5_w4`) est construite par jointure interne entre 
+`secta_harvestw4.dta` et `secta3i_harvestw4.dta` sur `hhid`, puis enrichie par 
+jointures à gauche avec `secta11c2_harvestw4.dta` et `sect11a1_plantingw4.dta` 
+sur la clé `hhid + plotid`, afin de conserver toutes les parcelles-cultures issues 
+de la première jointure.
+
+## 2. Traitements effectués
+
+### 2.1. Sélection des variables et recodage
+
+À l'issue de l'importation des cinq fichiers bruts, une sélection des variables 
+utiles à l'analyse a été opérée dans chacune des bases, et les variables ont été 
+renommées afin d'en faciliter la manipulation et la lisibilité.
+
+## 2. Traitements effectués
+
+### 2.1. Sélection des variables et recodage
+
+À l'issue de l'importation des quatre fichiers bruts, une sélection des variables 
+utiles à l'analyse a été opérée dans chacune des bases. Les variables ont par 
+ailleurs été renommées afin d'en faciliter la manipulation et la lisibilité.
+```{r}
+tableau_rename <- data.frame(
+  Fichier = c(
+    rep("secta_harvestw4.dta", 2),
+    rep("secta3i_harvestw4.dta", 1),
+    rep("secta3ii_harvestw4.dta", 3),
+    rep("secta11c2_harvestw4.dta", 4),
+    rep("sect11a1_plantingw4.dta", 3)
+  ),
+  Nom_original = c(
+    "sector", "wt_wave4",
+    "cropcode",
+    "cropcode", "sa3iiq1a", "sa3iiq1_conv",
+    "s11dq1a", "s11c2q36_1", "s11c2q36_2", "s11dq36",
+    "s11aq4aa", "s11aq4b", "s11aq4c"
+  ),
+  Nom_renomme = c(
+    "milieu_residence", "poids_wave4",
+    "culture",
+    "culture", "qte_recoltee", "facteur_conv",
+    "engrais_chimique", "engrais_npk", "engrais_uree", "engrais_organique",
+    "plot_area_declared", "plot_area_unit", "plot_area_gps"
+  )
+)
+
+tableau_rename %>%
+  flextable() %>%
+  set_header_labels(
+    Fichier      = "Fichier",
+    Nom_original = "Nom original",
+    Nom_renomme  = "Nom renommé"
+  ) %>%
+  set_caption("Tableau 2 : Correspondance des variables renommées") %>%
+  bold(part = "header") %>%
+  merge_v(j = "Fichier") %>%
+  valign(j = "Fichier", valign = "top") %>%
+  bg(j = "Fichier", bg = "#f2f2f2") %>%
+  hline(i = 2,  border = fp_border_default(color = "black", width = 1.5)) %>%
+  hline(i = 3,  border = fp_border_default(color = "black", width = 1.5)) %>%
+  hline(i = 6,  border = fp_border_default(color = "black", width = 1.5)) %>%
+  hline(i = 10, border = fp_border_default(color = "black", width = 1.5)) %>%
+  autofit()
+```
+
+Un traitement particulier a été appliqué à la base `secta_harvestw4` concernant 
+les poids de sondage. L'inspection des valeurs manquantes révèle en effet des `NA` 
+sur la variable `wt_wave4`. Le croisement de ces observations avec la variable 
+`interview_result` montre que l'ensemble des ménages sans pondération correspondent 
+à des enquêtes non complétées. Ces ménages ont donc été supprimés de la base, ramenant l'effectif de `secta_harvestw4` de 5 025 à 4 976 ménages.
+
+### 2.2. Calcul de la production et de la superficie
+
+Pour la base cultures, la production en kilogrammes a été calculée en multipliant 
+la quantité récoltée en unité locale (`qte_recoltee`) par le facteur de conversion 
+fourni dans l'enquête (`facteur_conv`), donnant la variable `production_kg`. Les 
+valeurs manquantes de production ont été imputées à zéro, ce qui revient à considérer 
+une production nulle pour les cultures sans information de récolte renseignée.
+
+Pour la base parcelles, la superficie en hectares (`superficie_ha`) a été reconstituée à partir de la superficie déclarée (`plot_area_declared`) et de son unité de mesure 
+(`plot_area_unit`). Les unités standardisées (acres, hectares, mètres carrés) ont 
+été converties par des coefficients fixes. Les unités locales (buttes, billons, pieds) ont quant à elles été converties à l'aide de facteurs spécifiques à chaque zone 
+géographique, conformément aux tables de conversion de référence de l'enquête GHS-Panel.
+
+### 2.3. Catégorisation des cultures
+
+Une variable `type_culture` a été construite afin de regrouper les cultures en 
+quatre grandes catégories : **céréales** (maïs, riz, sorgho, mil, acha), 
+**légumineuses** (niébé, soja, bambara groundnut, sésame, pois d'Angole), 
+**tubercules** (manioc, cocoyam, ignames, patate douce, pomme de terre) et 
+**cultures de rente** (coton, tabac, canne à sucre). Les cultures ne relevant 
+d'aucune de ces catégories sont regroupées sous le label **Autres**.
+
+### 2.4. Traitement des valeurs manquantes et labellisation
+
+Comme pour les vagues précédentes, les ménages sans pondération ont été supprimés 
+de la base de référence `secta_harvestw4.dta`, ramenant l'effectif de 5 025 à 
+4 976 ménages. Les valeurs manquantes sur les variables d'engrais NPK et urée, 
+qui correspondent aux ménages n'utilisant pas d'engrais chimique, ont été recodées 
+en une modalité **Non concerné** (code 99) afin de les distinguer d'une véritable 
+absence de réponse. L'ensemble des variables catégorielles ont enfin été labellisées 
+en français (milieu de résidence, zone géographique, état, type de culture, modalités 
+d'utilisation des engrais). Pour les valeurs manquantes concernant la production en kg, elles ont été imputées par 0.
+Afin de faciliter l'interprétation des résultats, l'ensemble des variables 
+catégorielles ont été labellisées en français. Cela concerne notamment le milieu 
+de résidence, la zone géographique, le résultat de l'interview, les modalités 
+de mesure des parcelles, ainsi que le mode d'acquisition. Les labels de variables 
+ont également été renseignés pour l'ensemble des colonnes de la base finale.
+
+\newpage
+# II. Présentation des résultats
+
+## 25.  Analyse des cultures les plus pratiquées
+Le graphique ci-dessous permet de constater que les 3 premières cultures les plus populaires auprès des nigérians sont des céréales. Le maïs domine très largement, cultivée par plus de 8 millions de ménages nigérians. Il est suivi du sorgho et du mil. Les légumineuses sont également bien représentées, avec le niébé en quatrième position et l'arachide en huitième position, cultivés tous les deux par plus de 2,5 millions de ménages. Parmi les tubercules, le manioc se distingue comme la culture la plus fréquente de sa catégorie (sixième rang au global), suivie de l'igname blanche, du cocoyam, de l'igname d'eau et du plantain. Le gombo est la seule culture classée dans la catégorie Autres à figurer dans ce classement. Enfin, le palmier à huile, seule culture de rente du classement, apparaît en quinzième position.
+
+```{r}
+top15_cultures <- data_cultures_tp5 %>%
+  group_by(culture, type_culture) %>%
+  summarise(n = sum(poids_wave4, na.rm = TRUE)) %>%
+  ungroup() %>%
+  slice_max(n, n = 15) %>%
+  mutate(culture = reorder(culture, n))
+
+ggplot(top15_cultures) +
+  aes(x = culture, y = n, fill = type_culture) +
+  geom_col(color = "#173C69") +
+  coord_flip() +
+  scale_fill_manual(values = c(
+    "Céréale" = "#08306B",
+    "Légumineuse" = "#2171B5",
+    "Tubercule" = "#C6DBEF",
+    "Culture de rente" = "white",
+    "Autres" = "grey"
+  )) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  theme_linedraw() +
+  labs(
+    title = "Liste des 15 cultures les plus fréquentes (Vague 4)",
+    x = "Culture",
+    y = "Fréquence",
+    fill = "Type de culture"
+  ) +
+  theme(
+    plot.title = element_text(
+      color = "#173C69",
+      face = "bold",
+      hjust = 0.5
+    ),
+    axis.title = element_text(
+      color = "#173C69",
+      face = "bold"
+    ),
+    axis.text = element_text(
+      color = "#173C69"
+    ),
+    legend.title = element_text(
+      color = "#173C69",
+      face = "bold"
+    )
+  )
+```
+
+## 26.  Analyse de la diversification culturale des ménages
+
+```{r}
+# Calcul de l'indice de diversification culturale
+diversification <- data_cultures_tp5 %>%
+  group_by(hhid, milieu_residence) %>%
+  summarise(
+    nb_cultures = n_distinct(culture),
+    poids_wave4 = first(poids_wave4),
+    .groups = "drop"
+  )
+
+# Design sur la base diversification (niveau ménage)
+design_div <- svydesign(
+  ids     = ~1,
+  weights = ~poids_wave4,
+  data    = diversification
+)
+# Quartiles du nombre de cultures (base cultures)
+q <- svyquantile(~nb_cultures, design_div,
+                 quantiles = c(0.25, 0.5, 0.75),
+                 na.rm = TRUE)
+
+Q1  <- coef(q)[1]
+Med <- coef(q)[2]
+Q3  <- coef(q)[3]
+```
+
+A travers le graphique suivant, nous pouvons remarquer que la distribution du nombre de parcelles par ménage est étalée vers la droite, la majorité des ménages exploitant moins de 5 cultures différentes. En effet, 75% des ménages exploitent au plus `r Q3` cultures. Le nombre de cultures médian étant de `r Med`, cela signifie que la moitié des ménages concentrent leur production sur `r Med` cultures au plus.
+```{r} 
+# Histogramme
+ggplot(diversification) +
+  aes(x = nb_cultures, weight = poids_wave4) +
+  geom_histogram(color = "#173C69", fill = "#79A8E2", binwidth = 1) +
+    scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  theme_linedraw() +
+  theme(
+    plot.title   = element_text(color = "#173C69", face = "bold", hjust = 0.5),
+    axis.title.x = element_text(color = "#173C69", face = "bold"),
+    axis.title.y = element_text(color = "#173C69", face = "bold")
+  ) +
+  labs(
+    title = "Distribution du nombre de cultures par ménage",
+    x     = "Nombre de cultures",
+    y     = "Effectif pondéré"
+  )
+```
+```{r}
+# Stocker le test
+wilcox_test <- wilcox.test(nb_cultures ~ milieu_residence, data = diversification)
+
+# Médianes par milieu
+Med_rural  <- median(diversification$nb_cultures[diversification$milieu_residence == "Rural"])
+Med_urbain <- median(diversification$nb_cultures[diversification$milieu_residence == "Urbain"])
+```
+
+Le test de Wilcoxon-Mann-Whitney compare la distribution du nombre de cultures entre ménages urbains et ruraux. Avec une une p-valeur de `r format(wilcox_test$p.value, scientific = TRUE, digits = 3)`, 
+soit largement inférieure au seuil conventionnel de 5 %, on rejette l'hypothèse nulle d'égalité des distributions entre les deux milieux de résidence.
+Il existe donc une différence statistiquement significative du nombre de cultures pratiquées entre ménages urbains et ruraux. Les ménages ruraux pratiquent en médiane `r Med_rural` cultures contre `r Med_urbain` pour les ménages urbains,  ces derniers ayant généralement un accès plus limité aux terres agricoles et une dépendance moindre à l'agriculture de subsistance.
+
+Les boîtes à moustaches et diagrammes à violons qui suivent permettent d'appuyer le résultat précédent. Le violin plot met en regard la distribution du nombre de cultures pratiquées par 
+les ménages urbains et ruraux. Plusieurs enseignements peuvent en être tirés. Du côté urbain, le violon est plus resséré, traduisant une concentration des ménages sur un faible nombre de cultures (1 à 3) ce qui confirmé une diversification culturale limitée en milieu urbain.
+Du côté rural, le violon est plus large et étalé, indiquant une plus grande  dispersion du nombre de cultures pratiquées. Cela reflète une plus grande hétérogénéité des stratégies agricoles en milieu rural, où certains ménages adoptent une polyculture intensive.
+Ces résultats, combinés au test de Wilcoxon, confirment que 
+les ménages ruraux présentent une diversification culturale statistiquement plus élevée que les ménages urbains, même si cette différence reste d'amplitude modérée au regard des médianes respectives.
+```{r}
+# Violin plot
+ggplot(diversification) +
+  aes(x = milieu_residence, y = nb_cultures, weight = poids_wave4) +
+  geom_violin(color = "#173C69", fill = "#79A8E2") +
+  geom_boxplot(width = 0.1, color = "#173C69", fill = "white", alpha = 0.5) +
+  theme_linedraw() +
+  theme(
+    plot.title   = element_text(color = "#173C69", face = "bold", hjust = 0.5),
+    axis.title.x = element_text(color = "#173C69", face = "bold"),
+    axis.title.y = element_text(color = "#173C69", face = "bold")
+  ) +
+  labs(
+    title = "Nombre de cultures par ménage selon le milieu de résidence",
+    x     = "Milieu de résidence",
+    y     = "Nombre de cultures"
+  )
+```
+## 27.  Analyse de l'utilisation des engrais
+
+
+```{r}
+# Mise à jour du design parcelles
+design_parcelles <- update(
+  design_parcelles,
+  chim_oui = as.numeric(engrais_chimique == "Oui"),
+  orga_oui = as.numeric(engrais_organique == "Oui")
+)
+
+# Calcul par zone
+taux_chim <- svyby(~chim_oui, ~zone, design_parcelles, svymean, na.rm = TRUE, vartype = "ci") %>%
+  as.data.frame() %>%
+  mutate(type_engrais = "Chimique") %>%
+  rename(taux = chim_oui, ic_low = ci_l, ic_upp = ci_u)
+
+taux_orga <- svyby(~orga_oui, ~zone, design_parcelles, svymean, na.rm = TRUE, vartype = "ci") %>%
+  as.data.frame() %>%
+  mutate(type_engrais = "Organique") %>%
+  rename(taux = orga_oui, ic_low = ci_l, ic_upp = ci_u)
+
+taux_engrais <- bind_rows(taux_chim, taux_orga)
+
+# Fonction utilitaire
+get_taux <- function(data, zone_sel) {
+  round(data$taux[data$zone == zone_sel] * 100, 1)
+}
+
+# Engrais chimique
+chim_nord_ouest  <- get_taux(taux_chim, "Nord Ouest")
+chim_nord_est    <- get_taux(taux_chim, "Nord Est")
+chim_nord_central<- get_taux(taux_chim, "Nord Central")
+chim_sud_est     <- get_taux(taux_chim, "Sud Est")
+chim_sud_sud     <- get_taux(taux_chim, "Sud Sud")
+chim_sud_ouest   <- get_taux(taux_chim, "Sud Ouest")
+
+# Engrais organique
+orga_nord_ouest  <- get_taux(taux_orga, "Nord Ouest")
+orga_nord_est    <- get_taux(taux_orga, "Nord Est")
+orga_nord_central<- get_taux(taux_orga, "Nord Central")
+orga_sud_est     <- get_taux(taux_orga, "Sud Est")
+orga_sud_sud     <- get_taux(taux_orga, "Sud Sud")
+orga_sud_ouest   <- get_taux(taux_orga, "Sud Ouest")
+# ── Barplot groupé avec IC ────────────────────────────────────────────────────
+ggplot(taux_engrais, aes(x = zone, y = taux * 100, fill = type_engrais)) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width    = 0.7,
+    color    = "#173C69",
+    alpha    = 0.85
+  ) +
+  geom_errorbar(
+    aes(ymin = ic_low * 100, ymax = ic_upp * 100),
+    position  = position_dodge(width = 0.8),
+    width     = 0.25,
+    color     = "#173C69",
+    linewidth = 0.6
+  ) +
+  scale_fill_manual(values = c(
+    "Chimique"  = "#08306B",
+    "Organique" = "#79A8E2"
+  )) +
+  scale_y_continuous(labels = scales::label_percent(scale = 1)) +
+  theme_linedraw() +
+  labs(
+    title = "Taux d'utilisation des engrais chimique \n et organique par zone",
+    x     = "Zone",
+    y     = "Taux d'utilisation (%)",
+    fill  = "Type d'engrais"
+  ) +
+  theme(
+    plot.title   = element_text(color = "#173C69", face = "bold", hjust = 0.5),
+    axis.title   = element_text(color = "#173C69", face = "bold"),
+    axis.text    = element_text(color = "#173C69", angle = 45, hjust = 1),
+    legend.title = element_text(color = "#173C69", face = "bold")
+  )
+```
+Le graphique présente les taux d'utilisation des engrais chimiques et organiques par zone géographique.
+La zone Nord Ouest se distingue des autres, présentant les taux les plus élevés pour les deux types d'engrais (~65%). Pour toutes les régions, le taux d'utilisation de l'engrais organique est supérieur à celui de l'engrais chimique, indiquant une préférence pour les intrants chimiques.
+La zone Nord Est présente l'écart le plus marqué avec `r chim_nord_est`% pour le chimique contre `r orga_nord_est`% pour l'organique. 
+Le Nord Central affiche un profil similaire (`r chim_nord_central`% chimique contre `r orga_nord_central`% organique). À l'inverse, le Sud Est présente un taux de `r chim_sud_est`% pour le 
+chimique contre `r orga_sud_est`% pour l'organique, tandis que le Sud Sud (`r chim_sud_sud`% chimique, `r orga_sud_sud`% organique) et le Sud Ouest (`r chim_sud_ouest`% chimique, `r orga_sud_ouest`%organique) affichent des taux très faibles.
+
+```{r}
+# ── Calcul par État ───────────────────────────────────────────────────────────
+taux_chim_state <- svyby(~chim_oui, ~state, design_parcelles, 
+                          svymean, na.rm = TRUE, vartype = "ci") %>%
+  as.data.frame() %>%
+  mutate(type_engrais = "Chimique") %>%
+  rename(taux = chim_oui, ic_low = ci_l, ic_upp = ci_u)
+
+taux_orga_state <- svyby(~orga_oui, ~state, design_parcelles, 
+                          svymean, na.rm = TRUE, vartype = "ci") %>%
+  as.data.frame() %>%
+  mutate(type_engrais = "Organique") %>%
+  rename(taux = orga_oui, ic_low = ci_l, ic_upp = ci_u)
+
+taux_state <- bind_rows(taux_chim_state, taux_orga_state)
+
+# ── Engrais global ────────────────────────────────────────────────────────────
+design_parcelles <- update(
+  design_parcelles,
+  engrais_global = as.numeric(chim_oui == 1 | orga_oui == 1)
+)
+
+taux_global_state <- svyby(~engrais_global, ~state, design_parcelles, 
+                            svymean, na.rm = TRUE, vartype = "ci") %>%
+  as.data.frame() %>%
+  rename(taux = engrais_global, ic_low = ci_l, ic_upp = ci_u)
+
+# ── Classement par taux global ────────────────────────────────────────────────
+ordre_states   <- taux_global_state %>% arrange(taux) %>% pull(state)
+top5_states    <- tail(ordre_states, 5)
+bottom5_states <- head(ordre_states, 5)
+
+# ── Extraction ────────────────────────────────────────────────────────────────
+get_taux_state <- function(data, state_sel) {
+  round(data$taux[data$state == state_sel] * 100, 1)
+}
+
+# Top 5
+glob_top1 <- get_taux_state(taux_global_state, top5_states[5])
+glob_top2 <- get_taux_state(taux_global_state, top5_states[4])
+glob_top3 <- get_taux_state(taux_global_state, top5_states[3])
+glob_top4 <- get_taux_state(taux_global_state, top5_states[2])
+glob_top5 <- get_taux_state(taux_global_state, top5_states[1])
+
+chim_top1 <- get_taux_state(taux_chim_state, top5_states[5])
+chim_top2 <- get_taux_state(taux_chim_state, top5_states[4])
+chim_top3 <- get_taux_state(taux_chim_state, top5_states[3])
+chim_top4 <- get_taux_state(taux_chim_state, top5_states[2])
+chim_top5 <- get_taux_state(taux_chim_state, top5_states[1])
+
+orga_top1 <- get_taux_state(taux_orga_state, top5_states[5])
+orga_top2 <- get_taux_state(taux_orga_state, top5_states[4])
+orga_top3 <- get_taux_state(taux_orga_state, top5_states[3])
+orga_top4 <- get_taux_state(taux_orga_state, top5_states[2])
+orga_top5 <- get_taux_state(taux_orga_state, top5_states[1])
+
+# Bottom 5
+glob_bot1 <- get_taux_state(taux_global_state, bottom5_states[1])
+glob_bot2 <- get_taux_state(taux_global_state, bottom5_states[2])
+glob_bot3 <- get_taux_state(taux_global_state, bottom5_states[3])
+glob_bot4 <- get_taux_state(taux_global_state, bottom5_states[4])
+glob_bot5 <- get_taux_state(taux_global_state, bottom5_states[5])
+
+chim_bot1 <- get_taux_state(taux_chim_state, bottom5_states[1])
+chim_bot2 <- get_taux_state(taux_chim_state, bottom5_states[2])
+chim_bot3 <- get_taux_state(taux_chim_state, bottom5_states[3])
+chim_bot4 <- get_taux_state(taux_chim_state, bottom5_states[4])
+chim_bot5 <- get_taux_state(taux_chim_state, bottom5_states[5])
+
+orga_bot1 <- get_taux_state(taux_orga_state, bottom5_states[1])
+orga_bot2 <- get_taux_state(taux_orga_state, bottom5_states[2])
+orga_bot3 <- get_taux_state(taux_orga_state, bottom5_states[3])
+orga_bot4 <- get_taux_state(taux_orga_state, bottom5_states[4])
+orga_bot5 <- get_taux_state(taux_orga_state, bottom5_states[5])
+
+# Taux global national
+taux_global_national <- coef(svymean(~engrais_global, design_parcelles, na.rm = TRUE))
+taux_global_pct      <- round(taux_global_national * 100, 1)
+```
+
+Au niveau national, `r taux_global_pct`% des parcelles agricoles ont bénéficié d'au moins un type d'engrais (chimique ou organique).
+
+Parmi les 5 États où l'engrais est le plus utilisé, quatre appartiennent à la zone Nord Ouest (Kano, Zamfara, Kaduna, Katsina), ce qui confirme 
+la concentration septentrionale du recours aux intrants. Ces États affichent des taux d'engrais chimique compris entre `r chim_top5` % et `r chim_top1` %. Lagos constitue un cas atypique et particulièrement remarquable : l'État 
+affiche un taux d'utilisation d'engrais chimique avoisinant les 100%, mais un taux d'engrais organique quasi nul. On note par ailleurs que dans la plupart de ces États, le taux d'engrais chimique 
+est supérieur à celui de l'engrais organique, à l'exception de Zamfara où l'écart est plus modéré.
+
+À l'opposé, Bayelsa, Cross River et Ondo affichent des taux 
+d'utilisation proches de zéro pour les deux types d'engrais. Osun et Oyo présentent des taux légèrement plus élevés (`r chim_bot5`% 
+et `r chim_bot4`% pour le chimique). 
+
+```{r}
+# ── Test du Chi-deux : zone × engrais global ──────────────────────────────────
+design_parcelles <- update(
+  design_parcelles,
+  engrais_global_f = factor(ifelse(engrais_global == 1, "Oui", "Non"))
+)
+
+tab_chi2  <- svytable(~zone + engrais_global_f, design = design_parcelles)
+test_chi2 <- chisq.test(tab_chi2)
+test_chi2
+# Extraction des résultats
+chi2_stat <- round(test_chi2$statistic, 2)
+chi2_df   <- test_chi2$parameter
+chi2_pval <- ifelse(test_chi2$p.value < 0.001, "< 0,001",
+                    format(round(test_chi2$p.value, 3), nsmall = 3))
+```
+Le test du  Khi-deux révèle une association statistiquement significative entre la zone géographique et l'utilisation d'engrais. En effet, la p-valeur de l'ordre de `r chi2_pval` confirme
+que le recours aux intrants agricoles est lié à la localisation géographique. Résultat cohérent avec nos résultats précédents.
+
+## 28.  Analyse du rendement pour le maïs et le mil
+
+Les rendements du maïs affichent une forte hétérogénéité inter-étatique. Les États du Nord tels que Katsina, Zamfara, Kaduna et Borno
+enregistrent les rendements médians les plus élevés. À l'opposé, les États du Sud comme Bayelsa, Benue et 
+Cross River affichent des rendements médians très faibles, souvent inférieurs avec des boîtes très resserrées indiquant une faible dispersion.
+On note également que certains États comme Kano et Kaduna présentent des moustaches particulièrement longues, suggérant la coexistence au sein d'un même État d'exploitations très intensives et d'exploitations de subsistance aux rendements modestes.
+
+Le mil présente un profil géographique nettement plus concentré. Les États comme Plateau, Niger et Bauchi affichent 
+les rendements médians les plus élevés pour le mil, avec des distributions relativement larges. Les rendements médians du mil sont globalement inférieurs à ceux du maïs, à l'exception de quelques États 
+septentrionaux.
+```{r}
+# 1. Superficie par ménage × culture (depuis la base parcelles)
+superficie_culture <- data_parcelles_tp5 %>%
+  group_by(hhid, culture) %>%
+  summarise(
+    superficie_ha = sum(
+      case_when(
+        !is.na(plot_area_gps) ~ plot_area_gps / 10000,
+        !is.na(superficie_ha) ~ superficie_ha,
+        TRUE                  ~ NA_real_
+      ),
+      na.rm = TRUE
+    ),
+    .groups = "drop"
+  ) %>%
+  filter(superficie_ha > 0)
+
+# 2. Production de maïs et mil par ménage (depuis la base cultures)
+rendement_data <- data_cultures_tp5 %>%
+  filter(culture %in% c("Maïs", "Mil")) %>%
+  group_by(hhid, culture, milieu_residence, zone, state, poids_wave4) %>%
+  summarise(
+    production_kg = sum(production_kg, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  inner_join(superficie_culture, by = c("hhid", "culture")) %>%
+  mutate(
+    rendement_ha = production_kg / superficie_ha
+  ) %>%
+  filter(!is.na(rendement_ha), is.finite(rendement_ha), rendement_ha > 0)
+
+# 3. Suppression des outliers (méthode IQR × 3)
+rendement_data <- rendement_data %>%
+  group_by(culture) %>%
+  mutate(
+    Q1      = quantile(rendement_ha, 0.25, na.rm = TRUE),
+    Q3      = quantile(rendement_ha, 0.75, na.rm = TRUE),
+    IQR_val = Q3 - Q1,
+    outlier = rendement_ha < (Q1 - 3 * IQR_val) | rendement_ha > (Q3 + 3 * IQR_val)
+  ) %>%
+  filter(!outlier) %>%
+  select(-Q1, -Q3, -IQR_val, -outlier) %>%
+  ungroup()
+```
+
+```{r fig.height=5}
+# Trier les états par médiane de rendement du maïs
+ordre_states_rdt <- rendement_data %>%
+  filter(culture == "Maïs") %>%
+  group_by(state) %>%
+  summarise(med = median(rendement_ha, na.rm = TRUE)) %>%
+  arrange(med) %>%
+  pull(state)
+
+rendement_data <- rendement_data %>%
+  mutate(state = factor(state, levels = ordre_states_rdt))
+
+# Puis le ggplot
+ggplot(rendement_data, aes(x = rendement_ha, y = state, fill = culture)) +
+  geom_boxplot(
+    color         = "#173C69",
+    outlier.shape = NA
+  ) +
+  scale_fill_manual(values = c("Maïs" = "#08306B", "Mil" = "#79A8E2")) +
+  scale_x_continuous(labels = scales::label_number(big.mark = " ")) +
+  facet_wrap(~culture, scales = "free_x") +
+  theme_linedraw() +
+  labs(
+    title    = "Distribution des rendements agricoles par État (maïs et mil)",
+    subtitle = "Outliers écartés (méthode IQR × 3)",
+    x        = "Rendement (kg/ha)",
+    y        = "État",
+    fill     = "Culture",
+    caption  = "Source : GHS-Panel Nigeria, Vague 4 (2018–2019)"
+  ) +
+  theme(
+    plot.title       = element_text(color = "#173C69", face = "bold", hjust = 0.5),
+    plot.subtitle    = element_text(color = "#173C69", hjust = 0.5),
+    plot.caption     = element_text(color = "#173C69", face = "italic"),
+    axis.title       = element_text(color = "#173C69", face = "bold"),
+    axis.text        = element_text(color = "#173C69", size = 8),
+    legend.title     = element_text(color = "#173C69", face = "bold"),
+    strip.background = element_rect(fill = "#173C69"),
+    strip.text       = element_text(color = "white", face = "bold")
+  )
+```
+
+
+## 29.  Analyse de la relation entre utilisation d'engrais chimique et le rendement
+
+```{r}
+# ── Q29 : Engrais chimique × Rendement ─────────────────────────────────────
+
+# 1. Joindre le rendement avec l'info engrais chimique (niveau ménage)
+engrais_menage <- data_parcelles_tp5 %>%
+  group_by(hhid) %>%
+  summarise(
+    engrais_chimique = first(na.omit(engrais_chimique)),
+    .groups = "drop"
+  ) %>%
+  filter(engrais_chimique %in% c("Oui", "Non"))
+
+rendement_engrais <- rendement_data %>%
+  inner_join(engrais_menage, by = "hhid") %>%
+  filter(!is.na(rendement_ha), !is.na(engrais_chimique))
+```
+
+```{r}
+# Calcul des médianes par culture et utilisation d'engrais
+medianes <- rendement_engrais %>%
+  group_by(culture, engrais_chimique) %>%
+  summarise(
+    med = round(median(rendement_ha, na.rm = TRUE), 0),
+    .groups = "drop"
+  )
+
+# Extraction des médianes pour inline r
+med_mais_oui <- medianes$med[medianes$culture == "Maïs" & medianes$engrais_chimique == "Oui"]
+med_mais_non <- medianes$med[medianes$culture == "Maïs" & medianes$engrais_chimique == "Non"]
+med_mil_oui  <- medianes$med[medianes$culture == "Mil"  & medianes$engrais_chimique == "Oui"]
+med_mil_non  <- medianes$med[medianes$culture == "Mil"  & medianes$engrais_chimique == "Non"]
+
+# Gains relatifs
+gain_mais <- round((med_mais_oui - med_mais_non) / med_mais_non * 100, 1)
+gain_mil  <- round((med_mil_oui  - med_mil_non)  / med_mil_non  * 100, 1)
+```
+Pour le maïs, les ménages utilisant des engrais chimiques affichent un rendement médian de `r med_mais_oui` kg/ha, soit près du double de celui des ménages n'en utilisant pas (`r med_mais_non` kg/ha), représentant un gain relatif de `r gain_mais`%. La boîte à moustaches des utilisateurs d'engrais est également plus étalée vers le haut, traduisant une plus grande variabilité des rendements obtenus avec intrants — certains ménages atteignant jusqu'à 6 000 kg/ha.
+
+Pour le mil, l'effet de l'engrais chimique est présent mais plus modéré . Le rendement médian passe de `r med_mil_non` kg/ha sans engrais à 
+`r med_mil_oui` kg/ha avec engrais, soit un gain de `r gain_mil`%. 
+Nous pouvons dès lors soupçonner une influence de l'engrais sur le rendement agricole.
+
+```{r  fig.width=5}
+ggplot(rendement_engrais,
+       aes(x = engrais_chimique, y = rendement_ha, fill = engrais_chimique)) +
+  geom_boxplot(
+    color         = "#173C69",
+    outlier.shape = NA
+  ) +
+  scale_fill_manual(values = c(
+    "Oui" = "#08306B",
+    "Non" = "#79A8E2"
+  )) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  facet_wrap(~culture, scales = "free_y") +
+  theme_linedraw() +
+  labs(
+    title    = "Rendement agricole selon l'utilisation d'engrais chimique",
+    subtitle = "Maïs et mil — Outliers écartés (IQR × 3)",
+    x        = "Utilisation d'engrais chimique",
+    y        = "Rendement (kg/ha)",
+    fill     = "Engrais chimique",
+    caption  = "Source : GHS-Panel Nigeria, Vague 4 (2018–2019)"
+  ) +
+  theme(
+    plot.title       = element_text(color = "#173C69", face = "bold", hjust = 0.5),
+    plot.subtitle    = element_text(color = "#173C69", hjust = 0.5),
+    plot.caption     = element_text(color = "#173C69", face = "italic"),
+    axis.title       = element_text(color = "#173C69", face = "bold"),
+    axis.text        = element_text(color = "#173C69"),
+    legend.title     = element_text(color = "#173C69", face = "bold"),
+    strip.background = element_rect(fill = "#173C69"),
+    strip.text       = element_text(color = "white", face = "bold")
+  )
+```
+
+Pour le maïs, le test de Wilcoxon indique que cette différence est statistiquement significative avec une p-valeur < 0,001. Toutefois, la taille d'effet est petite (r biserial = 0,272), ce qui signifie que si l'engrais chimique améliore bien les rendements du maïs, son effet reste d'amplitude modérée à l'échelle  de la population. D'autres facteurs — qualité des semences, accès à l'irrigation, pratiques culturales — contribuent également à expliquer la variabilité des rendements.
+
+Pour le mil, la différence de rendement médian entre utilisateurs 
+(`r med_mil_oui` kg/ha) et non-utilisateurs (`r med_mil_non` kg/ha) 
+d'engrais chimique est non statistiquement significative ( 
+p-valeur = 0,154). La taille d'effet est négligeable (r biserial = 0,058), indiquant que l'utilisation d'engrais chimique n'est pas associée à une amélioration significative des rendements du mil dans cet échantillon.
+
+```{r}
+# 3. Test de Wilcoxon + taille d'effet par culture
+cultures_sel <- unique(rendement_engrais$culture)
+
+resultats_wilcox <- lapply(cultures_sel, function(cult) {
+  
+  df <- rendement_engrais %>%
+    filter(culture == cult) %>%
+    mutate(engrais_chimique = factor(engrais_chimique, levels = c("Oui", "Non")))
+  
+  # Test de Wilcoxon
+  test <- wilcox.test(
+    rendement_ha ~ engrais_chimique,
+    data    = df,
+    exact   = FALSE,
+    correct = TRUE
+  )
+  
+  # Taille d'effet : r de rang biserial = Z / sqrt(N)
+  n_total <- nrow(df)
+  Z       <- qnorm(test$p.value / 2)   # approximation Z
+  r_rb    <- abs(Z) / sqrt(n_total)
+  
+  # Interprétation conventionnelle (Cohen 1992)
+  interpretation <- case_when(
+    r_rb < 0.10 ~ "Négligeable",
+    r_rb < 0.30 ~ "Petit",
+    r_rb < 0.50 ~ "Modéré",
+    TRUE        ~ "Grand"
+  )
+  
+  # Médianes par groupe
+  medianes <- df %>%
+    group_by(engrais_chimique) %>%
+    summarise(mediane = median(rendement_ha, na.rm = TRUE), .groups = "drop")
+  
+  tibble(
+    Culture              = cult,
+    `Médiane Oui (kg/ha)` = round(medianes$mediane[medianes$engrais_chimique == "Oui"], 1),
+    `Médiane Non (kg/ha)` = round(medianes$mediane[medianes$engrais_chimique == "Non"], 1),
+    `Statistique W`      = round(test$statistic, 0),
+    `p-valeur`           = ifelse(test$p.value < 0.001, "< 0,001",
+                                  format(round(test$p.value, 3), nsmall = 3)),
+    `r biserial`         = round(r_rb, 3),
+    `Taille d'effet`     = interpretation
+  )
+})
+
+tableau_wilcox <- bind_rows(resultats_wilcox)
+
+# 4. Affichage en flextable
+tableau_wilcox %>%
+  flextable() %>%
+  set_header_labels(
+    Culture              = "Culture",
+    `Médiane Oui (kg/ha)` = "Médiane — Avec engrais",
+    `Médiane Non (kg/ha)` = "Médiane — Sans engrais",
+    `Statistique W`      = "W",
+    `p-valeur`           = "p-valeur",
+    `r biserial`         = "r biserial",
+    `Taille d'effet`     = "Taille d'effet"
+  ) %>%
+  bold(part = "header") %>%
+  color(color = "white", part = "header") %>%
+  bg(bg = "#173C69", part = "header") %>%
+  bg(bg = "#C6DBEF", i = seq(2, nrow(tableau_wilcox), 2)) %>%
+  align(align = "center", part = "all") %>%
+  fontsize(size = 10, part = "all") %>%
+  autofit() %>%
+  add_footer_lines(
+    "Lecture : r biserial < 0,10 = négligeable ; 0,10–0,30 = petit ; 0,30–0,50 = modéré ; > 0,50 = grand (Cohen, 1992)."
+  ) %>%
+  italic(part = "footer") %>%
+  color(color = "#173C69", part = "footer")
+```
+ 
+
+\newpage
+# Conclusion
+Cette analyse des cultures pratiquées, des intrants utilisés et des 
+rendements agricoles au Nigéria à partir des données GHS-Panel Wave 4 
+(2018-2019) permet de dégager plusieurs enseignements majeurs.
+
+Premièrement, le paysage cultural nigérian est dominé par les **céréales**, 
+et plus particulièrement le maïs, le sorgho et le mil, qui constituent la 
+base de l'alimentation de la majorité des ménages agricoles. La diversité 
+culturale reste globalement modérée, la plupart des ménages concentrant 
+leur production sur 2 à 3 cultures, avec une diversification plus marquée 
+en milieu rural qu'en milieu urbain.
+
+Deuxièmement, l'utilisation des intrants agricoles révèle une **fracture 
+géographique profonde** entre le Nord et le Sud du pays. Les zones 
+septentrionales — en particulier le Nord Ouest, avec des États comme Kano, 
+Zamfara, Kaduna et Katsina — affichent des taux d'utilisation des engrais 
+nettement supérieurs à la moyenne nationale de 50,8 %, tandis que les États 
+méridionaux comme Bayelsa, Cross River et Ondo présentent des taux proches 
+de zéro. Cette disparité reflète des différences agro-climatiques, 
+économiques et culturelles structurelles entre les deux grandes régions 
+du pays.
+
+Troisièmement, l'analyse des rendements confirme un **effet positif mais 
+différencié** de l'engrais chimique selon la culture. Pour le maïs, son 
+utilisation est associée à un quasi-doublement du rendement médian 
+(`r med_mais_oui` kg/ha contre `r med_mais_non` kg/ha), différence 
+statistiquement significative (p < 0,001) bien que de taille d'effet 
+modeste (r biserial = 0,272). Pour le mil en revanche, l'effet reste 
+négligeable et non significatif (p = 0,154), suggérant que d'autres 
+contraintes — notamment hydriques — priment sur la fertilisation dans 
+les zones semi-arides où cette culture est concentrée.
+
+Ces résultats invitent à **nuancer les politiques d'intensification 
+agricole** au Nigéria : si le recours aux engrais constitue un levier 
+d'amélioration des rendements pour certaines cultures comme le maïs, 
+son efficacité reste conditionnée aux contextes agro-climatiques locaux 
+et aux pratiques culturales des ménages. Des politiques différenciées 
+selon les zones géographiques et les cultures cibles apparaissent dès 
+lors plus appropriées que des approches uniformes à l'échelle nationale.
+
+# Références bibliographiques
+Banque mondiale (2024). Agriculture, forestry, and fishing, value added (% of GDP) — Nigeria.
+World Development Indicators. Consulté sur : 
+[https://data.worldbank.org/indicator/NV.AGR.TOTL.ZS?locations=NG](https://data.worldbank.org/indicator/NV.AGR.TOTL.ZS?locations=NG)
+
+FAO (2023). Nigeria at a glance. Food and Agriculture Organization of the United Nations. 
+Consulté sur : 
+[https://www.fao.org/nigeria/fao-in-nigeria/nigeria-at-a-glance/en/](https://www.fao.org/nigeria/fao-in-nigeria/nigeria-at-a-glance/en/)
