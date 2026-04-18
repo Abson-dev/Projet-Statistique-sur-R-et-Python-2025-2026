@@ -1,0 +1,141 @@
+% =========================================================
+%                  PREAMBULE - RAPPORT TP5
+% =========================================================
+
+% ── Encodage & moteur ─────────────────────────────────────
+\usepackage{fontspec}   % XeLaTeX / LuaLaTeX uniquement
+\usepackage{polyglossia}
+\setmainlanguage{french}
+
+% ── Polices ───────────────────────────────────────────────
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Consolas}
+
+% ── Couleurs ──────────────────────────────────────────────
+\usepackage{xcolor}
+
+\definecolor{bleuensae}{HTML}{1B3A4B}
+\definecolor{accentvert}{HTML}{2A9D8F}
+\definecolor{grismoyen}{HTML}{555555}
+\definecolor{grisclair}{HTML}{F5F5F5}
+
+% ── Mise en page ──────────────────────────────────────────
+\usepackage{geometry}
+\geometry{
+	a4paper,
+	left=2.5cm,
+	right=2.5cm,
+	top=2.5cm,
+	bottom=2.5cm,
+	headheight=14pt
+}
+
+% ── En-têtes et pieds ──────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{%
+	\hbox to\headwidth{\color{accentvert}\leaders\hrule height \headrulewidth\hfill}
+}
+
+\fancyhead[L]{\small\color{grismoyen}\textit{TP5 — Cultures, intrants et rendements}}
+\fancyhead[R]{\small\color{grismoyen}Groupe 18 | ENSAE 2025/2026}
+\fancyfoot[C]{\small\color{grismoyen}\thepage}
+
+% ── Titres ────────────────────────────────────────────────
+\usepackage{titlesec}
+
+\titleformat{\section}
+{\large\bfseries\color{bleuensae}}
+{\thesection}{0.5em}{}
+[\vspace{-4pt}\textcolor{accentvert}{\rule{\linewidth}{1.5pt}}]
+
+\titleformat{\subsection}
+{\normalsize\bfseries\color{bleuensae}}
+{\thesubsection}{0.5em}{}
+
+\titleformat{\subsubsection}
+{\normalsize\itshape\color{grismoyen}}
+{\thesubsubsection}{0.5em}{}
+
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titlespacing*{\subsection}{0pt}{12pt}{4pt}
+
+% ── Table des matières ────────────────────────────────────
+\usepackage{tocloft}
+
+\renewcommand{\cftsecfont}{\bfseries\color{bleuensae}}
+\renewcommand{\cftsubsecfont}{\color{grismoyen}}
+\setlength{\cftbeforesecskip}{4pt}
+
+% ── Tableaux ──────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+
+% ── Légendes (FIX IMPORTANT) ──────────────────────────────
+\usepackage{caption}
+
+\DeclareCaptionFont{bleu}{\color{bleuensae}}
+\DeclareCaptionFont{gris}{\color{grismoyen}}
+
+\captionsetup{
+	font=small,
+	labelfont={bf, bleu},
+	textfont={it, gris},
+	margin=0.5cm
+}
+
+% ── Hyperliens ────────────────────────────────────────────
+\usepackage{hyperref}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=bleuensae,
+	citecolor=accentvert,
+	urlcolor=accentvert,
+	pdftitle={TP5 - Cultures, intrants et rendements},
+	pdfauthor={Groupe 18},
+	pdfsubject={LSMS-ISA Nigeria},
+	pdfkeywords={agriculture, Nigeria, LSMS-ISA}
+}
+
+% ── Espacement ────────────────────────────────────────────
+\usepackage{setspace}
+\setstretch{1.15}
+
+\usepackage{microtype}
+\usepackage{parskip}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% ── Encadrés ──────────────────────────────────────────────
+\usepackage{mdframed}
+
+\newmdenv[
+backgroundcolor=grisclair,
+linecolor=accentvert,
+linewidth=2pt,
+leftline=true,
+rightline=false,
+topline=false,
+bottomline=false,
+innerleftmargin=10pt,
+innertopmargin=6pt,
+innerrightmargin=8pt,
+innerbottommargin=6pt,
+skipabove=8pt,
+skipbelow=8pt
+]{encadre}
+
+% ── Ligne horizontale ─────────────────────────────────────
+\newcommand{\filet}{
+	\vspace{4pt}
+	\noindent\textcolor{accentvert}{\rule{\linewidth}{0.5pt}}
+	\vspace{4pt}
+}

@@ -1,0 +1,713 @@
+---
+title: |
+  ![](logo_ensae.png){width=2cm}  
+  \vspace{0.3cm}
+  **Cultures pratiquées, intrants utilisés et rendements agricoles**  
+  *Vague 4 — Nigeria LSMS-ISA (2018-2019)*
+subtitle: "Travaux Pratiques N°5 | Groupe 18"
+author:
+  - "KEBJAM Jackson"
+  - "NGOYI Parfait Jemmy Prodige"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+lang: fr
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4.5
+    latex_engine: xelatex
+    keep_tex: false
+    includes:
+      in_header: preamble.tex
+  word_document:
+    number_sections: true
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4.5
+geometry: "left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm"
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+# ── Répertoire de travail ────────────────────────────────────────────────────
+knitr::opts_knit$set(
+  root.dir = "C:/Users/kebja/Documents/KEBJAM/ISE1_2/10_R_ET_PYTHON(2)/Groupe_18_KEBJAM_Jackson_NGOYI_Parfait_Jemmy_Prodige"
+)
+
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.align = "center",
+  dpi       = 150,
+  dev       = "png"
+)
+
+# ── Packages ─────────────────────────────────────────────────────────────────
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(rstatix)
+library(scales)
+library(patchwork)
+library(stringr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(here)
+
+ #setwd("C:/Users/kebja/Documents/KEBJAM/ISE1_2/10_R_ET_PYTHON(2)/Groupe_18_KEBJAM_Jackson_NGOYI_Parfait_Jemmy_Prodige")
+source(here("R/fonctions.R"))
+
+# ── Données ──────────────────────────────────────────────────────────────────
+secta3ii        <- readRDS(here("data/processed/secta3ii.rds"))
+secta3          <- readRDS(here("data/processed/secta3.rds"))
+secta11c2       <- readRDS(here("data/processed/secta11c2.rds"))
+secta_rendement <- readRDS(here("data/processed/secta_rendement.rds"))
+
+# Variable used_chemical (si absente)
+if (!"used_chemical" %in% names(secta11c2)) {
+  secta11c2 <- secta11c2 %>%
+    mutate(used_chemical = ifelse(used_npk == 1 | used_urea == 1, 1, 0))
+}
+
+# ── Palettes de couleurs ─────────────────────────────────────────────────────
+palette_zone <- c("Rural" = "#2A9D8F", "Urbain" = "#E76F51")
+
+palette_type <- c(
+  "céréale"          = "#2E86AB",
+  "tubercule"        = "#A23B72",
+  "légumineuse"      = "#F18F01",
+  "culture de rente" = "#3B4F2B",
+  "autres"           = "#888888"
+)
+
+# ── Thème commun ─────────────────────────────────────────────────────────────
+theme_rapport <- function(base_size = 10) {
+  theme_minimal(base_size = base_size) %+replace%
+    theme(
+      plot.title       = element_text(face  = "bold", size  = base_size + 1,
+                                      color = "#1B3A4B",
+                                      margin = margin(b = 4)),
+      plot.subtitle    = element_text(size  = base_size - 1, color = "#555555",
+                                      margin = margin(b = 6)),
+      plot.caption     = element_text(size  = 7, color = "#888888", hjust = 1),
+      axis.title       = element_text(size  = base_size - 1, color = "#333333"),
+      axis.text        = element_text(size  = base_size - 2, color = "#444444"),
+      legend.title     = element_text(size  = base_size - 1, face  = "bold"),
+      legend.text      = element_text(size  = base_size - 2),
+      legend.position  = "bottom",
+      panel.grid.minor = element_blank(),
+      plot.margin      = margin(6, 8, 6, 8)
+    )
+}
+```
+
+
+
+# Introduction
+
+Ce rapport présente une analyse approfondie des pratiques agricoles des ménages nigérians à partir de la **quatrième vague (2018-2019)** de l'enquête *Living Standards Measurement Study — Integrated Surveys on Agriculture* (LSMS-ISA). Ce dispositif, conduit par la Banque mondiale en partenariat avec le Bureau national de statistiques du Nigeria (NBS), est un programme d'enquêtes longitudinales de panel conçu pour produire des données harmonisées sur les ménages ruraux et agricoles en Afrique subsaharienne.
+
+L'objectif de ce rapport est d'examiner **cinq aspects essentiels** de l'agriculture nigériane :
+
+1. la structure culturale nationale ;
+2. la diversification culturale selon le milieu de résidence ;
+3. l'utilisation des engrais par type et par zone ;
+4. la distribution des rendements par État pour le maïs et le millet ;
+5. la relation entre l'usage d'engrais chimique et le niveau de rendement.
+
+Toutes les estimations présentées sont **pondérées par le poids ménage** (`wt_wave4`), ce qui permet de raisonner en termes de population représentative au niveau national.
+
+## Source de données : LSMS-ISA Nigeria
+
+```{r tab-sources}
+tab_sources <- data.frame(
+  Base    = c("`secta3ii`", "`secta3`", "`secta11c2`", "`secta_rendement`"),
+  Contenu = c("Cultures déclarées par ménage-parcelle",
+              "Cultures par ménage",
+              "Utilisation des intrants agricoles",
+              "Rendements calculés (kg/ha)"),
+  Usage   = c("Top 15 cultures", "Diversification",
+              "Engrais par zone", "Rendements par État")
+)
+
+kable(tab_sources,
+      booktabs = TRUE,
+      align    = c("l", "l", "l"),
+      caption  = "Bases de données mobilisées — LSMS-ISA Nigeria, Vague 4") |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size     = 9,
+    full_width    = FALSE
+  ) |>
+  column_spec(1, bold = TRUE, monospace = TRUE, width = "3cm") |>
+  column_spec(2, width = "7cm") |>
+  column_spec(3, width = "4cm")
+```
+
+\newpage
+
+# Les cultures les plus pratiquées (Tâche 25)
+
+## Méthode
+
+Le classement des cultures est fondé sur la **somme des poids ménage** de tous les ménages ayant déclaré cultiver chaque espèce. Un ménage cultivant plusieurs cultures contribue une fois au décompte de chacune d'elles. Cette approche pondérée permet d'estimer la proportion réelle de chaque culture dans l'ensemble du pays, en tenant compte de la représentativité des ménages enquêtés.
+
+```{r t25-data, include=FALSE}
+top15 <- secta3ii %>%
+  filter(!is.na(cropcode)) %>%
+  distinct(hhid, cropcode, crop_name, crop_type, wt_wave4) %>%
+  group_by(cropcode, crop_name, crop_type) %>%
+  summarise(frequence_ponderee = sum(wt_wave4, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(frequence_ponderee)) %>%
+  slice_head(n = 15) %>%
+  mutate(
+    proportion  = frequence_ponderee / sum(frequence_ponderee) * 100,
+    crop_label  = clean_crop_label(crop_name),
+    crop_label  = fct_reorder(crop_label, frequence_ponderee)
+  )
+```
+
+```{r p25, fig.cap="Top 15 des cultures les plus fréquentes — Nigeria, Vague 4 (2018-2019)", fig.height=5.5}
+ggplot(top15, aes(x = crop_label, y = frequence_ponderee, fill = crop_type)) +
+  geom_col(width = 0.75) +
+  geom_text(
+    aes(label = paste0(round(proportion, 1), "%")),
+    hjust = -0.1, size = 2.8, fontface = "bold", color = "#333333"
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = palette_type, name = "Type de culture") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.18)),
+    labels = comma_format(big.mark = "\u202f")
+  ) +
+  labs(
+    title    = "15 cultures les plus fréquentes au Nigeria",
+    subtitle = "Fréquence pondérée — poids ménage wt_wave4",
+    x        = NULL,
+    y        = "Nombre pondéré de ménages",
+    caption  = "Source : Nigeria LSMS-ISA, Vague 4 (2018-2019)"
+  ) +
+  theme_rapport() +
+  theme(panel.grid.major.y = element_blank())
+```
+
+## Interprétation
+
+Le paysage cultural nigérian est très nettement dominé par les **céréales vivrières**. Le maïs arrive en tête de ce classement, loin devant le sorgho et le millet. Cette domination reflète leur rôle central dans la sécurité alimentaire nationale et dans les habitudes alimentaires des ménages nigérians. Le maïs, en particulier, est une culture polyvalente utilisée aussi bien pour l'alimentation humaine que pour l'alimentation animale et l'industrie agroalimentaire.
+
+Les **légumineuses** (niébé, arachide) et les **tubercules** (manioc, igname) constituent la deuxième ligne du portefeuille cultural. Ces cultures jouent un rôle crucial dans la diversification de l'alimentation et dans la résilience face aux aléas climatiques. Le manioc, en particulier, est une culture de soudure importante dans les régions du sud du pays.
+
+
+
+# Diversification culturale selon le milieu (Tâche 26)
+
+## Indicateur et méthode
+
+L'indice de diversification est mesuré par le **nombre de cultures distinctes par ménage**. Pour comparer les ménages ruraux et urbains, nous utilisons un **test de Wilcoxon-Mann-Whitney** (non paramétrique, robuste à la non-normalité). La taille d'effet est mesurée par le **coefficient *r* de Rosenthal**.
+
+```{r t26-data, include=FALSE}
+diversification <- secta3 %>%
+  filter(!is.na(cropcode)) %>%
+  group_by(hhid, area_type, wt_wave4) %>%
+  summarise(nb_cultures = n_distinct(cropcode), .groups = "drop") %>%
+  filter(nb_cultures > 0) %>%
+  mutate(zone = ifelse(area_type == "urban", "Urbain", "Rural"))
+
+stats_div      <- weighted_stats(diversification, zone, nb_cultures, wt_wave4)
+wilcox_result  <- wilcox_test(diversification, nb_cultures ~ zone)
+effsize_result <- wilcox_effsize(diversification, nb_cultures ~ zone)
+
+med_rural  <- stats_div$mediane[stats_div$zone == "Rural"]
+med_urbain <- stats_div$mediane[stats_div$zone == "Urbain"]
+pval_div   <- ifelse(wilcox_result$p < 0.001, "p < 0,001",
+                     paste0("p = ", round(wilcox_result$p, 4)))
+r_div      <- round(effsize_result$effsize, 3)
+```
+
+```{r tab-div}
+stats_div %>%
+  select(zone, n, n_pondere, mediane, moyenne_ponderee, q25, q75) %>%
+  kable(
+    booktabs  = TRUE,
+    digits    = 2,
+    align     = "lrrrrrr",
+    col.names = c("Zone", "N obs.", "N pondéré", "Médiane",
+                  "Moy. pondérée", "Q1", "Q3"),
+    caption   = "Statistiques de l'indice de diversification culturale par zone"
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size     = 9,
+    full_width    = FALSE
+  ) |>
+  column_spec(1, bold = TRUE)
+```
+
+```{r p26, fig.cap="Distribution de l'indice de diversification culturale selon la zone", fig.height=3.8, fig.width=7}
+p26a <- ggplot(diversification,
+               aes(x = nb_cultures, fill = zone, weight = wt_wave4)) +
+  geom_histogram(binwidth = 1, position = "dodge",
+                 color = "white", alpha = 0.85) +
+  scale_fill_manual(values = palette_zone, name = "Zone") +
+  labs(
+    title = "Histogramme pondéré",
+    x     = "Nombre de cultures / ménage",
+    y     = "Ménages pondérés"
+  ) +
+  theme_rapport(9) +
+  theme(legend.position = "right")
+
+p26b <- ggplot(diversification,
+               aes(x = zone, y = nb_cultures, fill = zone)) +
+  geom_violin(trim = FALSE, alpha = 0.7) +
+  geom_boxplot(width = 0.12, fill = "white",
+               outlier.size = 0.8, alpha = 0.9) +
+  stat_summary(fun = median, geom = "point",
+               size = 3, color = "black", shape = 18) +
+  scale_fill_manual(values = palette_zone, guide = "none") +
+  annotate("text",
+           x     = 1.5,
+           y     = max(diversification$nb_cultures) * 0.95,
+           label = paste0("Wilcoxon\np = ",
+                          format(wilcox_result$p, digits = 3),
+                          "\nr = ", r_div),
+           size  = 3, hjust = 0.5, color = "#333333") +
+  labs(
+    title = "Comparaison Rural / Urbain",
+    x     = NULL,
+    y     = "Nombre de cultures"
+  ) +
+  theme_rapport(9) +
+  theme(legend.position = "none")
+
+(p26a | p26b) +
+  plot_annotation(
+    title      = "Indice de diversification culturale",
+    tag_levels = "A",
+    caption    = "Source : Nigeria LSMS-ISA, Vague 4"
+  )
+```
+
+## Interprétation
+
+Les résultats montrent que les ménages ruraux présentent une diversification culturale **significativement plus élevée** que les ménages urbains. Bien que les médianes soient identiques (2 cultures par ménage dans les deux groupes), les quartiles et la moyenne pondérée révèlent une dispersion plus grande en milieu rural, avec une queue de distribution plus étirée vers les ménages très diversifiés.
+
+Le test de Wilcoxon confirme cette différence ($p < 0{,}001$). Cependant, la taille d'effet ($r = `r r_div`$) est **faible**, ce qui signifie que la différence observée, bien que réelle, est modeste en ampleur pratique.
+
+
+
+# Utilisation des engrais par type et par zone (Tâche 27)
+
+## Méthode
+
+Le taux d'utilisation est défini comme la **proportion pondérée de ménages** ayant recouru à chaque type d'engrais. Les intervalles de confiance à 95 % sont calculés par la **méthode de Wilson** (plus précise que l'approximation normale pour les proportions proches de 0 ou 1). Un **test du chi-deux** évalue l'association entre la zone de résidence et l'usage d'engrais chimique.
+
+```{r t27-data, include=FALSE}
+total_menages <- secta11c2 %>%
+  filter(!is.na(area_type)) %>%
+  group_by(area_type) %>%
+  summarise(total = sum(wt_wave4, na.rm = TRUE), .groups = "drop") %>%
+  mutate(zone_ru = ifelse(area_type == "urban", "Urbain", "Rural"))
+
+calc_rate <- function(data, var_name, label) {
+  data %>%
+    filter(!is.na(area_type), {{ var_name }} == 1) %>%
+    mutate(zone_ru = ifelse(area_type == "urban", "Urbain", "Rural")) %>%
+    group_by(zone_ru) %>%
+    summarise(n_menages = sum(wt_wave4, na.rm = TRUE), .groups = "drop") %>%
+    left_join(total_menages, by = "zone_ru") %>%
+    mutate(
+      type_engrais = label,
+      taux  = n_menages / total,
+      ic_lo = (taux + qnorm(0.025)^2 / (2 * total) +
+               qnorm(0.025) * sqrt(taux * (1 - taux) / total +
+               qnorm(0.025)^2 / (4 * total^2))) /
+              (1 + qnorm(0.025)^2 / total),
+      ic_hi = (taux + qnorm(0.975)^2 / (2 * total) +
+               qnorm(0.975) * sqrt(taux * (1 - taux) / total +
+               qnorm(0.975)^2 / (4 * total^2))) /
+              (1 + qnorm(0.975)^2 / total)
+    )
+}
+
+taux_engrais <- bind_rows(
+  calc_rate(secta11c2, used_npk,      "NPK"),
+  calc_rate(secta11c2, used_urea,     "Urée"),
+  calc_rate(secta11c2, used_organic,  "Organique"),
+  calc_rate(secta11c2, used_chemical, "Chimique")
+)
+
+# ── Test chi-deux ────────────────────────────────────────────────────────────
+chi2_data <- secta11c2 %>%
+  filter(!is.na(area_type), !is.na(used_chemical),
+         !is.na(wt_wave4), wt_wave4 > 0)
+contingence_table <- xtabs(wt_wave4 ~ area_type + used_chemical, data = chi2_data)
+chi2_test  <- chisq.test(contingence_table, simulate.p.value = TRUE)
+chi2_val   <- round(chi2_test$statistic, 3)
+chi2_pval  <- round(chi2_test$p.value, 4)
+
+# ── Calcul par État ──────────────────────────────────────────────────────────
+base_etat <- secta11c2 %>%
+  filter(!is.na(area_type), !is.na(state)) %>%
+  mutate(zone_ru = ifelse(area_type == "urban", "Urbain", "Rural"))
+
+total_menages_etat <- base_etat %>%
+  group_by(zone_ru, state) %>%
+  summarise(total = sum(wt_wave4, na.rm = TRUE), .groups = "drop")
+
+calc_rate_etat <- function(data, var_name, label) {
+  data %>%
+    filter(!is.na(area_type), !is.na(state), {{ var_name }} == 1) %>%
+    mutate(zone_ru = ifelse(area_type == "urban", "Urbain", "Rural")) %>%
+    group_by(zone_ru, state) %>%
+    summarise(n_menages = sum(wt_wave4, na.rm = TRUE), .groups = "drop") %>%
+    left_join(total_menages_etat, by = c("zone_ru", "state")) %>%
+    mutate(
+      type_engrais = label,
+      taux  = n_menages / total,
+      ic_lo = (taux + qnorm(0.025)^2 / (2 * total) +
+               qnorm(0.025) * sqrt(taux * (1 - taux) / total +
+               qnorm(0.025)^2 / (4 * total^2))) /
+              (1 + qnorm(0.025)^2 / total),
+      ic_hi = (taux + qnorm(0.975)^2 / (2 * total) +
+               qnorm(0.975) * sqrt(taux * (1 - taux) / total +
+               qnorm(0.975)^2 / (4 * total^2))) /
+              (1 + qnorm(0.975)^2 / total)
+    )
+}
+
+taux_engrais_etat <- calc_rate_etat(base_etat, used_chemical, "Chimique") %>%
+  mutate(state_name = haven::as_factor(state))
+```
+
+```{r p27, fig.cap="Taux d'utilisation des engrais par type et par zone — IC 95\\% (Wilson)", fig.height=4}
+ggplot(taux_engrais, aes(x = type_engrais, y = taux, fill = zone_ru)) +
+  geom_col(position = position_dodge(0.8), width = 0.7, alpha = 0.9) +
+  geom_errorbar(
+    aes(ymin = ic_lo, ymax = ic_hi),
+    position  = position_dodge(0.8),
+    width     = 0.25, linewidth = 0.5
+  ) +
+  geom_text(
+    aes(label = paste0(round(taux * 100, 1), "%")),
+    position = position_dodge(0.8),
+    vjust    = -0.8, size = 3.2, fontface = "bold"
+  ) +
+  scale_y_continuous(
+    labels = percent_format(accuracy = 1),
+    expand = expansion(mult = c(0, 0.22))
+  ) +
+  scale_fill_manual(
+    values = c("Urbain" = "#2E86AB", "Rural" = "#A23B72"),
+    name   = "Zone"
+  ) +
+  labs(
+    title    = "Taux d'utilisation des engrais par type et par zone",
+    subtitle = "IC 95 % (méthode de Wilson) | Pondéré par wt_wave4",
+    x        = "Type d'engrais",
+    y        = "Taux d'utilisation (% ménages)",
+    caption  = "Source : Nigeria LSMS-ISA, Vague 4 (2018-2019)"
+  ) +
+  theme_rapport() +
+  theme(panel.grid.major.x = element_blank())
+```
+
+```{r p27-etat, fig.cap="Taux d'utilisation des engrais chimiques par État — IC 95\\% (Wilson)", fig.height=7}
+taux_engrais_etat %>%
+  mutate(state_name = fct_reorder(state_name, taux)) %>%
+  ggplot(aes(x = state_name, y = taux, fill = zone_ru)) +
+  geom_col(position = position_dodge(0.8), width = 0.7, alpha = 0.9) +
+  geom_errorbar(
+    aes(ymin = ic_lo, ymax = ic_hi),
+    position = position_dodge(0.8), width = 0.25
+  ) +
+  geom_text(
+    aes(label = paste0(round(taux * 100, 1), "%")),
+    position = position_dodge(0.8),
+    hjust    = -0.2, size = 2.2
+  ) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = percent_format(accuracy = 1),
+    expand = expansion(mult = c(0, 0.18))
+  ) +
+  scale_fill_manual(
+    values = c("Urbain" = "#2E86AB", "Rural" = "#A23B72"),
+    name   = "Zone"
+  ) +
+  labs(
+    title    = "Taux d'utilisation des engrais chimiques par État",
+    subtitle = "Définition : engrais chimique = NPK ou Urée",
+    x        = NULL,
+    y        = "Taux d'utilisation (% ménages)",
+    caption  = "Source : Nigeria LSMS-ISA, Vague 4 (2018-2019)"
+  ) +
+  theme_rapport(9) +
+  theme(axis.text.y = element_text(size = 7.5))
+```
+
+## Interprétation
+
+L'engrais chimique (NPK ou urée) présente des taux d'utilisation différenciés selon la zone de résidence. Le test du chi-deux confirme une **association significative** ($\chi^2 = `r chi2_val`$, $p = `r chi2_pval`$).
+
+Les **engrais organiques** présentent un profil inversé : plus fréquents chez les ménages ruraux, qui disposent d'un accès facilité aux résidus de cultures, au fumier animal et aux composts produits sur l'exploitation.
+
+La carte par État révèle une **forte hétérogénéité géographique**. Certains États du Nord affichent des taux très élevés, vraisemblablement liés aux programmes publics de subvention des intrants agricoles. À l'inverse, certains États du Sud-Est et du Sud-Sud restent très en dessous de la moyenne nationale.
+
+
+
+# Rendements par État : maïs et millet (Tâche 28)
+
+## Traitement des données
+
+Les rendements sont exprimés en **kg/ha** et calculés à partir des déclarations des ménages. Les observations situées au-delà de IQR × 3 sont exclues. Les boîtes à moustaches sont triées par médiane croissante.
+
+```{r t28-data, include=FALSE}
+rendements_clean <- secta_rendement %>%
+  filter(outlier == FALSE, !is.na(state)) %>%
+  mutate(
+    state_name = state_labels[as.character(state)],
+    state_name = factor(state_name,
+                        levels = state_labels[as.character(sort(unique(state)))])
+  )
+
+mais_data <- rendements_clean %>%
+  filter(culture == "mais") %>%
+  mutate(state_name = fct_reorder(state_name, rendement_kg_ha, median, .na_rm = TRUE))
+
+millet_data <- rendements_clean %>%
+  filter(culture == "millet") %>%
+  mutate(state_name = fct_reorder(state_name, rendement_kg_ha, median, .na_rm = TRUE))
+
+stats_mais <- weighted_stats(
+  rendements_clean %>% filter(culture == "mais"),
+  state_name, rendement_kg_ha, wt_wave4
+) %>% arrange(desc(mediane))
+
+stats_millet <- weighted_stats(
+  rendements_clean %>% filter(culture == "millet"),
+  state_name, rendement_kg_ha, wt_wave4
+) %>% arrange(desc(mediane))
+```
+
+## Rendements du maïs
+
+Les États de la ceinture centrale (Benue, Plateau, Nasarawa, Kogi, Niger) affichent les médianes les plus élevées, grâce à une pluviométrie suffisante et des sols fertiles. À l'opposé, les États du Nord-Est (Borno, Yobe, Adamawa) enregistrent des rendements nettement plus faibles.
+
+```{r p28-mais, fig.cap="Distribution pondérée des rendements de maïs par État (kg/ha)", fig.height=6.5}
+ggplot(mais_data,
+       aes(x = state_name, y = rendement_kg_ha, weight = wt_wave4)) +
+  geom_boxplot(fill = "#2E86AB", outlier.size = 0.4,
+               alpha = 0.85, linewidth = 0.4) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = comma_format(),
+    expand = expansion(mult = c(0, 0.05))
+  ) +
+  labs(
+    title    = "Rendements du maïs par État — Nigeria 2018-2019",
+    subtitle = "Outliers exclus (IQR × 3) | Pondéré par wt_wave4",
+    x        = NULL,
+    y        = "Rendement (kg/ha)",
+    caption  = "Source : Nigeria LSMS-ISA, Vague 4"
+  ) +
+  theme_rapport(9) +
+  theme(
+    axis.text.y        = element_text(size = 7.5),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+```{r tab-mais-top5}
+stats_mais %>%
+  head(5) %>%
+  select(state_name, n, n_pondere, mediane, moyenne_ponderee, q25, q75) %>%
+  kable(
+    booktabs  = TRUE,
+    digits    = 1,
+    align     = "lrrrrrr",
+    col.names = c("État", "N obs.", "N pondéré", "Médiane (kg/ha)",
+                  "Moy. pond. (kg/ha)", "Q1", "Q3"),
+    caption   = "5 États avec les rendements médians de maïs les plus élevés"
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size     = 10,
+    full_width    = FALSE
+  ) |>
+  column_spec(1, bold = TRUE)
+```
+
+## Rendements du millet
+
+La dispersion inter-États du millet est **plus modérée** que celle du maïs. Cette différence s'explique par l'adaptation spécifique du millet aux zones sahéliennes et sub-sahéliennes — il est tolérant à la sécheresse et aux sols pauvres.
+
+```{r p28-millet, fig.cap="Distribution pondérée des rendements de millet par État (kg/ha)", fig.height=6}
+ggplot(millet_data,
+       aes(x = state_name, y = rendement_kg_ha, weight = wt_wave4)) +
+  geom_boxplot(fill = "#A23B72", outlier.size = 0.4,
+               alpha = 0.85, linewidth = 0.4) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = comma_format(),
+    expand = expansion(mult = c(0, 0.05))
+  ) +
+  labs(
+    title    = "Rendements du millet par État — Nigeria 2018-2019",
+    subtitle = "Outliers exclus (IQR × 3) | Pondéré par wt_wave4",
+    x        = NULL,
+    y        = "Rendement (kg/ha)",
+    caption  = "Source : Nigeria LSMS-ISA, Vague 4"
+  ) +
+  theme_rapport(9) +
+  theme(
+    axis.text.y        = element_text(size = 7.5),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+```{r tab-millet-top5}
+stats_millet %>%
+  head(5) %>%
+  select(state_name, n, n_pondere, mediane, moyenne_ponderee, q25, q75) %>%
+  kable(
+    booktabs  = TRUE,
+    digits    = 0,
+    align     = "lrrrrrr",
+    col.names = c("État", "N obs.", "N pondéré", "Médiane (kg/ha)",
+                  "Moy. pond. (kg/ha)", "Q1", "Q3"),
+    caption   = "5 États avec les rendements médians de millet les plus élevés"
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size     = 9,
+    full_width    = FALSE
+  ) |>
+  column_spec(1, bold = TRUE)
+```
+
+
+
+# Engrais chimiques et rendement agricole (Tâche 29)
+
+## Méthode
+
+La comparaison des rendements entre les parcelles avec et sans engrais chimique est conduite au **niveau parcelle**. Un **test de Wilcoxon-Mann-Whitney** est préféré au test de Student compte tenu de la forte asymétrie des distributions. La taille d'effet est mesurée par le coefficient *r* de Rosenthal.
+
+```{r t29-data, include=FALSE}
+rendements_engrais <- secta_rendement %>%
+  filter(outlier == FALSE, !is.na(used_chemical)) %>%
+  mutate(
+    engrais_label = ifelse(used_chemical == 1,
+                           "Avec engrais chimique",
+                           "Sans engrais chimique")
+  )
+
+wilcox_rdt <- wilcox_test(rendements_engrais, rendement_kg_ha ~ engrais_label)
+effect_rdt <- wilcox_effsize(rendements_engrais, rendement_kg_ha ~ engrais_label)
+
+stats_engrais_pond <- weighted_stats(
+  rendements_engrais, engrais_label, rendement_kg_ha, wt_wave4
+)
+
+pval_engrais   <- ifelse(wilcox_rdt$p < 0.001, "p < 0{,}001",
+                         paste0("p = ", round(wilcox_rdt$p, 4)))
+r_engrais      <- round(effect_rdt$effsize, 3)
+qualif_engrais <- ifelse(abs(r_engrais) < 0.1, "négligeable",
+                  ifelse(abs(r_engrais) < 0.3, "faible",
+                  ifelse(abs(r_engrais) < 0.5, "modérée", "forte")))
+
+med_avec <- stats_engrais_pond$mediane[
+  stats_engrais_pond$engrais_label == "Avec engrais chimique"]
+med_sans <- stats_engrais_pond$mediane[
+  stats_engrais_pond$engrais_label == "Sans engrais chimique"]
+gain_med <- round(med_avec - med_sans, 0)
+
+y_annotation <- quantile(rendements_engrais$rendement_kg_ha, 0.95, na.rm = TRUE)
+```
+
+```{r tab-engrais-rdt}
+stats_engrais_pond %>%
+  select(engrais_label, n, n_pondere, mediane, moyenne_ponderee, q25, q75) %>%
+  kable(
+    booktabs  = TRUE,
+    digits    = 0,
+    align     = "lrrrrrr",
+    col.names = c("Groupe", "N obs.", "N pondéré", "Médiane (kg/ha)",
+                  "Moy. pond. (kg/ha)", "Q1", "Q3"),
+    caption   = "Statistiques pondérées des rendements selon l'usage d'engrais chimique"
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size     = 9,
+    full_width    = FALSE
+  ) |>
+  column_spec(1, bold = TRUE)
+```
+
+```{r p29, fig.cap="Rendement (kg/ha) selon l'utilisation d'engrais chimique — échelle log10", fig.height=4}
+ggplot(
+  rendements_engrais,
+  aes(x = engrais_label, y = rendement_kg_ha,
+      fill = engrais_label, weight = wt_wave4)
+) +
+  geom_boxplot(outlier.size = 0.5, alpha = 0.85) +
+  scale_fill_manual(
+    values = c(
+      "Avec engrais chimique" = "#2E86AB",
+      "Sans engrais chimique" = "#E8A87C"
+    ),
+    guide = "none"
+  ) +
+  scale_y_log10(labels = comma_format()) +
+  annotate("text",
+           x     = 1.5,
+           y     = y_annotation,
+           label = paste0("Wilcoxon\n", pval_engrais,
+                          "\nr = ", r_engrais,
+                          "\n(", qualif_engrais, ")"),
+           size  = 3.5, hjust = 0.5, color = "#333333") +
+  labs(
+    title    = "Rendement agricole selon l'usage d'engrais chimique",
+    subtitle = paste0("Gain médian : +", gain_med, " kg/ha"),
+    x        = NULL,
+    y        = "Rendement kg/ha (échelle log\u2081\u2080)",
+    caption  = "Source : LSMS-ISA Nigeria 2018-2019"
+  ) +
+  theme_rapport()
+```
+
+## Interprétation
+
+Les ménages recourant aux engrais chimiques obtiennent des rendements pondérés **significativement plus élevés** ($p < 0{,}001$). Le gain médian associé à l'usage d'engrais chimique est estimé à `r gain_med` kg/ha.
+
+Cet écart se maintient sur l'ensemble de la distribution : Q1 et Q3 sont également plus élevés pour le groupe avec engrais, ce qui indique que l'effet bénéfique ne se limite pas aux extrêmes.
+
+Néanmoins, la taille d'effet ($r = `r r_engrais`$, **`r qualif_engrais`**) signifie que l'usage d'engrais chimique n'explique qu'une faible partie de la variabilité des rendements. D'autres facteurs — qualité des sols, accès à l'irrigation, semences améliorées — jouent un rôle déterminant.
+
+\newpage
+
+# Conclusion
+
+Cette analyse des données LSMS-ISA, vague 4 (2018-2019), produit **quatre constats structurants** sur l'agriculture nigériane.
+
+**1. Un portefeuille cultural dominé par les céréales vivrières.**
+Le maïs, le sorgho et le millet concentrent plus de 43 % des fréquences culturales pondérées. Cette prédominance reflète les habitudes alimentaires, les conditions agroclimatiques et la priorité accordée à l'autoconsommation.
+
+**2. Une diversification culturale plus prononcée en milieu rural.**
+Les ménages ruraux cultivent davantage d'espèces que les ménages urbains. Cette stratégie de polyculture constitue une assurance naturelle contre les aléas climatiques et les défaillances de marchés.
+
+**3. Un accès aux intrants encore inégal, avec de fortes disparités régionales.**
+Les taux d'utilisation des engrais varient considérablement entre États et entre zones urbaines et rurales. La sous-utilisation des engrais organiques est une contrainte pour la durabilité agronomique à long terme.
+
+**4. Un lien positif entre engrais et rendement, à inscrire dans une approche intégrée.**
+L'utilisation d'engrais chimiques est associée à des rendements significativement plus élevés. Toutefois, la taille d'effet modérée rappelle que l'amélioration durable des rendements exige une approche intégrée : semences améliorées, gestion de l'eau, conseil agronomique et accès aux marchés.
+
+---
+
+
