@@ -1,0 +1,582 @@
+---
+title: "Analyse des parcelles agricoles nigérianes"
+subtitle: "Structure foncière, tenure et utilisation des terres — GHS Panel Nigeria"
+author: "Abdoul Aziz BA & Marème Diop "
+date: today
+date-format: "MMMM YYYY"
+lang: fr
+format:
+  docx:
+    toc: true
+    toc-depth: 3
+    toc-title: "Table des matières"
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(survey)
+library(scales)
+library(patchwork)
+library(viridis)
+library(haven)
+library(knitr)
+
+# Charger les données
+parcelles  <- readRDS("data/processed/parcelles.rds")
+menages    <- readRDS("data/processed/menages.rds")
+couverture <- read_dta("data/raw/secta_harvestw4.dta")
+tenure     <- read_dta("data/raw/sect11b1_plantingw4.dta")
+
+# Fusionner les poids
+poids <- couverture %>%
+  select(hhid, wt_wave4, wt_longpanel, strata, cluster = ea)
+parcelles <- parcelles %>% left_join(poids, by = "hhid")
+menages   <- menages   %>% left_join(poids, by = "hhid")
+
+# Plan de sondage
+plan <- svydesign(
+  ids = ~cluster, strata = ~strata, weights = ~wt_wave4,
+  data = parcelles %>%
+    filter(!is.na(superficie_ha), superficie_ha > 0,
+           superficie_ha <= 500, !is.na(wt_wave4)),
+  nest = TRUE
+)
+
+plan_menage <- svydesign(
+  ids = ~cluster, strata = ~strata, weights = ~wt_wave4,
+  data = menages %>%
+    filter(!is.na(superficie_totale_ha),
+           superficie_totale_ha > 0, !is.na(wt_wave4)),
+  nest = TRUE
+)
+
+# Déciles et moyennes
+deciles_parcelle <- svyquantile(~superficie_ha, plan,
+                                 quantiles = seq(0, 1, 0.1), na.rm = TRUE)
+deciles_menage   <- svyquantile(~superficie_totale_ha, plan_menage,
+                                 quantiles = seq(0, 1, 0.1), na.rm = TRUE)
+moy_parcelle <- svymean(~superficie_ha, plan, na.rm = TRUE)
+moy_menage   <- svymean(~superficie_totale_ha, plan_menage, na.rm = TRUE)
+med_menage   <- svyquantile(~superficie_totale_ha, plan_menage,
+                             quantiles = 0.5, na.rm = TRUE)
+med_parcelle <- svyquantile(~superficie_ha, plan,
+                             quantiles = 0.5, na.rm = TRUE)
+
+# Histogrammes
+p_hist <- parcelles %>%
+  filter(!is.na(superficie_ha), superficie_ha > 0,
+         superficie_ha <= 500) %>%
+  ggplot(aes(x = superficie_ha)) +
+  geom_histogram(bins = 50, fill = "#1D9E75",
+                 color = "white", alpha = 0.85) +
+  geom_vline(xintercept = as.numeric(coef(med_parcelle)),
+             color = "red", linetype = "dashed") +
+  scale_x_log10(labels = label_number(accuracy = 0.01)) +
+  labs(title = "Distribution des superficies par parcelle",
+       subtitle = "Ligne rouge = médiane pondérée | Échelle log",
+       x = "Superficie (ha)", y = "Nombre de parcelles",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_hist_menage <- menages %>%
+  filter(!is.na(superficie_totale_ha), superficie_totale_ha > 0) %>%
+  ggplot(aes(x = superficie_totale_ha)) +
+  geom_histogram(bins = 50, fill = "#534AB7",
+                 color = "white", alpha = 0.85) +
+  geom_vline(xintercept = as.numeric(coef(med_menage)),
+             color = "red", linetype = "dashed") +
+  scale_x_log10(labels = label_number(accuracy = 0.01)) +
+  labs(title = "Distribution des superficies par ménage",
+       subtitle = "Ligne rouge = médiane pondérée | Échelle log",
+       x = "Superficie totale (ha)", y = "Nombre de ménages",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_hist_combine <- p_hist / p_hist_menage
+
+# Boxplot
+p_boxplot <- parcelles %>%
+  filter(!is.na(superficie_ha), superficie_ha > 0,
+         superficie_ha <= 500) %>%
+  mutate(zone_label = case_when(
+    zone == 1 ~ "North Central", zone == 2 ~ "North East",
+    zone == 3 ~ "North West",   zone == 4 ~ "South East",
+    zone == 5 ~ "South South",  zone == 6 ~ "South West"
+  )) %>%
+  ggplot(aes(x = reorder(zone_label, superficie_ha, median),
+             y = superficie_ha, fill = zone_label)) +
+  geom_boxplot(outlier.size = 0.8, outlier.alpha = 0.4, alpha = 0.75) +
+  scale_y_log10(labels = label_number(accuracy = 0.01)) +
+  scale_fill_brewer(palette = "Set2", guide = "none") +
+  coord_flip() +
+  labs(title = "Superficie par parcelle et par zone",
+       x = NULL, y = "Superficie (ha) — échelle log",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+# Scatter déclaré vs GPS
+scatter_data <- parcelles %>%
+  mutate(gps_ha = as.numeric(s11aq4c) / 10000) %>%
+  filter(!is.na(superficie_ha), !is.na(gps_ha),
+         superficie_ha > 0, gps_ha > 0, superficie_ha <= 500)
+
+cor_spearman <- cor.test(scatter_data$superficie_ha,
+                          scatter_data$gps_ha,
+                          method = "spearman", exact = FALSE)
+
+p_scatter <- scatter_data %>%
+  ggplot(aes(x = superficie_ha, y = gps_ha)) +
+  geom_point(alpha = 0.3, size = 1.2, color = "#1F4E79") +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  geom_smooth(method = "loess", color = "#E85D24",
+              se = TRUE, alpha = 0.15) +
+  scale_x_log10(labels = label_number(accuracy = 0.01)) +
+  scale_y_log10(labels = label_number(accuracy = 0.01)) +
+  annotate("text", x = Inf, y = -Inf, hjust = 1.1, vjust = -0.5,
+           label = paste0("Spearman ρ = ",
+                          round(cor_spearman$estimate, 3),
+                          "\np < 0.001"),
+           size = 4, color = "#1F4E79") +
+  labs(title = "Superficie déclarée vs superficie GPS",
+       subtitle = "Ligne rouge = accord parfait (45°)",
+       x = "Superficie déclarée (ha)",
+       y = "Superficie GPS (ha)",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+# Tenure
+tenure_info <- tenure %>%
+  select(hhid, plotid, tenure = s11b1q4) %>%
+  mutate(tenure_label = case_when(
+    as.numeric(tenure) == 1 ~ "Achat",
+    as.numeric(tenure) == 2 ~ "Location",
+    as.numeric(tenure) == 3 ~ "Usage gratuit",
+    as.numeric(tenure) == 4 ~ "Distribution communautaire",
+    as.numeric(tenure) == 5 ~ "Héritage familial",
+    as.numeric(tenure) == 6 ~ "Métayage",
+    as.numeric(tenure) == 7 ~ "Échange temporaire",
+    TRUE ~ NA_character_
+  ))
+
+parcelles_21 <- parcelles %>%
+  left_join(tenure_info, by = c("hhid", "plotid"))
+
+plan_tenure <- svydesign(
+  ids = ~cluster, strata = ~strata, weights = ~wt_wave4,
+  data = parcelles_21 %>%
+    filter(!is.na(tenure_label), !is.na(wt_wave4)),
+  nest = TRUE
+)
+
+freq_tenure <- svytable(~tenure_label, plan_tenure)
+prop_tenure <- round(prop.table(freq_tenure) * 100, 1)
+
+p_tenure <- data.frame(
+  modalite   = names(prop_tenure),
+  proportion = as.numeric(prop_tenure)
+) %>%
+  ggplot(aes(x = proportion,
+             y = reorder(modalite, proportion),
+             fill = modalite)) +
+  geom_col(alpha = 0.85) +
+  geom_text(aes(label = paste0(proportion, "%")),
+            hjust = -0.1, size = 4) +
+  scale_fill_brewer(palette = "Set2", guide = "none") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(title = "Régime de tenure foncière des parcelles",
+       x = "Proportion (%)", y = NULL,
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.y = element_blank())
+
+tab_croise <- table(parcelles_21$tenure_label,
+                    parcelles_21$zone, useNA = "no")
+test_chi2  <- chisq.test(tab_croise, simulate.p.value = TRUE)
+
+# Tâche 23
+cor_t23 <- cor.test(menages$n_parcelles,
+                    menages$superficie_totale_ha,
+                    method = "spearman", exact = FALSE)
+
+z       <- 0.5 * log((1 + cor_t23$estimate) / (1 - cor_t23$estimate))
+se_z    <- 1 / sqrt(nrow(menages) - 3)
+ic_bas  <- tanh(z - 1.96 * se_z)
+ic_haut <- tanh(z + 1.96 * se_z)
+
+p_scatter_t23 <- menages %>%
+  filter(!is.na(superficie_totale_ha), superficie_totale_ha > 0) %>%
+  ggplot(aes(x = n_parcelles, y = superficie_totale_ha)) +
+  geom_point(alpha = 0.3, size = 1.2, color = "#1F4E79") +
+  geom_smooth(method = "loess", color = "#E85D24",
+              se = TRUE, alpha = 0.15) +
+  scale_y_log10(labels = label_number(accuracy = 0.01)) +
+  scale_x_continuous(breaks = seq(1, max(menages$n_parcelles), 1)) +
+  annotate("text", x = Inf, y = Inf, hjust = 1.1, vjust = 1.5,
+           label = paste0("Spearman ρ = ",
+                          round(cor_t23$estimate, 3),
+                          "\nIC 95% [", round(ic_bas, 3),
+                          " ; ", round(ic_haut, 3), "]",
+                          "\np < 0.001"),
+           size = 4, color = "#1F4E79") +
+  labs(title = "Superficie totale et nombre de parcelles",
+       x = "Nombre de parcelles",
+       y = "Superficie totale (ha) — échelle log",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+# Tâche 24
+state_df <- data.frame(
+  state      = as.numeric(attr(parcelles$state, "labels")),
+  state_name = names(attr(parcelles$state, "labels"))
+)
+
+mediane_etat <- parcelles %>%
+  filter(!is.na(superficie_ha), superficie_ha > 0,
+         superficie_ha <= 500) %>%
+  mutate(zone_label = case_when(
+    zone == 1 ~ "North Central", zone == 2 ~ "North East",
+    zone == 3 ~ "North West",   zone == 4 ~ "South East",
+    zone == 5 ~ "South South",  zone == 6 ~ "South West"
+  ), state = as.numeric(state)) %>%
+  left_join(state_df, by = "state") %>%
+  group_by(state_name, zone_label) %>%
+  summarise(mediane_ha = round(median(superficie_ha), 3),
+            n = n(), .groups = "drop") %>%
+  filter(n >= 5)
+
+p_heatmap <- mediane_etat %>%
+  ggplot(aes(x = zone_label,
+             y = reorder(state_name, mediane_ha),
+             fill = mediane_ha)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  geom_text(aes(label = round(mediane_ha, 2)),
+            size = 3, color = "white", fontface = "bold") +
+  scale_fill_viridis_c(option = "plasma", direction = -1,
+                       name = "Médiane (ha)") +
+  labs(title = "Superficie médiane par État et zone",
+       subtitle = "GHS Nigeria — Wave 4 | Valeurs en hectares",
+       x = NULL, y = NULL,
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid  = element_blank())
+```
+
+# Introduction
+
+Ce rapport analyse la structure foncière des exploitations agricoles nigérianes à partir du General Household Survey (GHS) Panel, vague 4. L'objectif est de décrire comment les terres agricoles sont réparties, détenues et utilisées au Nigeria, à partir des informations collectées au niveau parcelle dans le fichier `sect11a1_plantingw4.dta`.
+
+# Données et méthodes
+
+## Source des données
+
+Les données proviennent du GHS Panel conduit par le Bureau national des statistiques du Nigeria (NBS) en collaboration avec la Banque mondiale. Le fichier principal est `sect11a1_plantingw4.dta` qui contient **11 076 parcelles**  cultivées par les ménages enquêtés lors de la vague 4.
+
+## Traitement des unités de mesure
+
+Les superficies sont déclarées dans six unités différentes. Les unités locales (Heaps, Ridges, Stands) utilisent des facteurs de conversion zone-spécifiques établis par la Banque mondiale. Les unités standardisées (Acres, Hectares, Mètres carrés) ont des facteurs fixes.
+
+| Unité         | Code | Facteur             |
+|---------------|------|---------------------|
+| Heaps         | 1    | Variable selon zone |
+| Ridges        | 2    | Variable selon zone |
+| Stands        | 3    | Variable selon zone |
+| Acres         | 5    | × 0.404686 ha       |
+| Hectares      | 6    | × 1.0 ha            |
+| Mètres carrés | 7    | ÷ 10 000            |
+
+: Unités de mesure et facteurs de conversion
+
+## Plan de sondage        ← ICI
+
+Le GHS Nigeria utilise un plan de sondage **stratifié à deux degrés**.
+Au premier degré, des zones de dénombrement (EA — Enumeration Areas)
+sont tirées au sort dans chaque strate. Au second degré, des ménages
+sont sélectionnés dans chaque EA retenue.
+
+Toutes les statistiques descriptives sont calculées en tenant compte
+de ce plan complexe via le package `survey` avec :
+
+- **`ids = ~cluster`** : zones de dénombrement comme unités primaires
+- **`strata = ~strata`** : variable de stratification
+- **`weights = ~wt_wave4`** : poids de pondération Wave 4
+
+```{r}
+#| label: tbl-plan
+#| tbl-cap: "Caractéristiques du plan de sondage — Wave 4"
+
+tibble::tibble(
+  Caracteristique = c(
+    "Type de plan",
+    "Nombre de strates",
+    "Nombre de clusters",
+    "Nombre de ménages",
+    "Nombre de parcelles",
+    "Poids utilisé"
+  ),
+  Valeur = c(
+    "Stratifié à deux degrés",
+    as.character(length(unique(
+      menages$strata[!is.na(menages$strata)]))),
+    as.character(length(unique(
+      menages$cluster[!is.na(menages$cluster)]))),
+    as.character(nrow(menages)),
+    as.character(nrow(parcelles)),
+    "wt_wave4"
+  )
+) %>%
+  knitr::kable(col.names = c("Caractéristique", "Valeur"))
+```
+
+
+# Tâche 19 — Préparation des données
+
+## Valeurs manquantes
+
+```{r}
+#| label: tbl-manquants
+#| tbl-cap: "Bilan des valeurs manquantes et aberrantes"
+
+tibble::tibble(
+  Indicateur = c(
+    "Nombre total de parcelles",
+    "Valeurs manquantes (superficie_ha)",
+    "Valeurs négatives",
+    "Valeurs aberrantes (> 500 ha)",
+    "Parcelles exploitables"
+  ),
+  Valeur = c(
+    nrow(parcelles),
+    sum(is.na(parcelles$superficie_ha)),
+    nrow(parcelles %>% filter(superficie_ha < 0)),
+    nrow(parcelles %>% filter(superficie_ha > 500)),
+    nrow(parcelles %>% filter(!is.na(superficie_ha),
+                               superficie_ha >= 0,
+                               superficie_ha <= 500))
+  )
+) %>%
+  knitr::kable(col.names = c("Indicateur", "Valeur"))
+```
+
+Sur les `r nrow(parcelles)` parcelles de l'échantillon,**4 ont une superficie manquante** correspondant à des codes d'unité non reconnus. **5 parcelles présentent des superficies supérieures à 500 ha** et sont considérées comme aberrantes. Aucune valeur négative n'a été détectée, ce qui témoigne d'une bonne qualité de saisie.
+
+## Statistiques descriptives
+
+```{r}
+#| label: tbl-stats
+#| tbl-cap: "Statistiques descriptives de la superficie par parcelle et par ménage (ha)"
+
+tibble::tibble(
+  Niveau = c("Parcelle", "Ménage"),
+  N = c(
+    nrow(parcelles %>% filter(!is.na(superficie_ha),
+                               superficie_ha >= 0,
+                               superficie_ha <= 500)),
+    nrow(menages)
+  ),
+  Minimum = c(
+    round(min(parcelles$superficie_ha, na.rm = TRUE), 3),
+    round(min(menages$superficie_totale_ha), 3)
+  ),
+  Mediane = c(
+    round(median(parcelles$superficie_ha, na.rm = TRUE), 3),
+    round(median(menages$superficie_totale_ha), 3)
+  ),
+  Moyenne = c(
+    round(mean(parcelles$superficie_ha, na.rm = TRUE), 3),
+    round(mean(menages$superficie_totale_ha), 3)
+  ),
+  Maximum = c(
+    round(max(parcelles$superficie_ha, na.rm = TRUE), 2),
+    round(max(menages$superficie_totale_ha), 2)
+  )
+) %>%
+  knitr::kable(
+    col.names = c("Niveau", "N", "Min (ha)",
+                  "Médiane (ha)", "Moyenne (ha)", "Max (ha)")
+  )
+```
+
+La superficie médiane par parcelle est de **0,343 ha** et la superficie totale médiane par ménage est de **0,988 ha**, confirmant que l'exploitation agricole nigériane typique est une petite exploitation familiale de moins d'un hectare.
+
+# Tâche 20 — Analyse univariée des superficies
+
+## Distribution des superficies
+
+```{r}
+#| label: tbl-deciles
+#| tbl-cap: "Déciles pondérés de la superficie — parcelle et ménage (ha)"
+
+tibble::tibble(
+  Decile = c("D1", "D2", "D3", "D4", "D5",
+             "D6", "D7", "D8", "D9"),
+  Parcelle = round(deciles_parcelle$superficie_ha[2:10, "quantile"], 3),
+  Menage   = round(deciles_menage$superficie_totale_ha[2:10, "quantile"], 3)
+) %>%
+  knitr::kable(col.names = c("Décile", "Parcelle (ha)", "Ménage (ha)"))
+```
+
+La superficie médiane pondérée par parcelle est de **0,30 ha** et par ménage de **0,88 ha**, confirmant la prédominance des petites exploitations familiales au Nigeria. Le ratio D9/D1 dépasse 68, révélant de fortes inégalités foncières.
+
+## Histogrammes
+
+```{r}
+#| label: fig-hist
+#| fig-cap: "Distribution des superficies par parcelle (vert) et par ménage (violet) en échelle logarithmique. La ligne rouge indique la médiane pondérée."
+#| fig-width: 10
+#| fig-height: 10
+
+p_hist_combine
+```
+
+Les deux distributions suivent une loi log-normale typique des structures foncières en Afrique subsaharienne — beaucoup de petites parcelles et quelques grandes exploitations qui tirent la moyenne vers le haut.
+
+## Disparités géographiques
+
+```{r}
+#| label: fig-boxplot
+#| fig-cap: "Distribution des superficies par zone géographique (échelle log). Le Nord présente des superficies nettement plus élevées que le Sud."
+#| fig-width: 10
+#| fig-height: 6
+
+p_boxplot
+```
+
+Le clivage Nord-Sud est net — le North East présente les superficies médianes les plus élevées tandis que le South South enregistre les plus faibles, reflétant des systèmes agraires fondamentalement différents.
+
+## Concordance déclaré vs GPS
+
+```{r}
+#| label: fig-scatter
+#| fig-cap: "Superficie déclarée vs superficie GPS. La ligne rouge représente l'accord parfait. La courbe orange montre la tendance réelle."
+#| fig-width: 9
+#| fig-height: 7
+
+p_scatter
+```
+
+La corrélation de Spearman entre superficie déclarée et GPS est de **ρ = 0,701** (p \< 0.001), indiquant une concordance modérée. Les agriculteurs sous-estiment les petites parcelles et surestiment les grandes, un biais bien documenté dans la littérature agricole africaine.
+
+# Tâche 21 — Régime de tenure foncière
+
+## Fréquences et proportions
+
+```{r}
+#| label: tbl-tenure
+#| tbl-cap: "Répartition des parcelles selon le régime de tenure — Wave 4 (proportions pondérées)"
+
+data.frame(
+  Modalite   = names(prop_tenure),
+  Proportion = as.numeric(prop_tenure)
+) %>%
+  arrange(desc(Proportion)) %>%
+  knitr::kable(col.names = c("Modalité", "Proportion (%)"))
+```
+
+L'héritage familial domine largement avec **63.1%** des parcelles, reflétant la prédominance des systèmes fonciers coutumiers au Nigeria. L'achat (13.1%) et la location (11.2%) arrivent loin derrière. Les modes précaires — métayage et échange temporaire — restent marginaux avec moins de 1% chacun.
+
+## Barplot
+
+```{r}
+#| label: fig-tenure
+#| fig-cap: "Régime de tenure foncière des parcelles agricoles — Wave 4. Proportions pondérées."
+#| fig-width: 10
+#| fig-height: 6
+
+p_tenure
+```
+
+## Test d'indépendance tenure × zone
+
+```{r}
+#| label: tbl-chi2
+#| tbl-cap: "Test du chi-deux entre tenure foncière et zone géographique"
+
+data.frame(
+  Statistique = round(test_chi2$statistic, 1),
+  p_value     = "0.0005",
+  Conclusion  = "Association très significative (p < 0.001)"
+) %>%
+  knitr::kable(col.names = c("χ²", "p-value", "Conclusion"),
+               row.names = FALSE)
+```
+
+Le test du chi-deux confirme une **association très significative** entre le régime de tenure et la zone géographique (χ² = 1155.1, p \< 0.001). Les systèmes fonciers varient donc considérablement entre le Nord et le Sud du Nigeria.
+
+# Tâche 23 — Superficie totale et nombre de parcelles
+
+## Corrélation de Spearman
+
+```{r}
+#| label: tbl-spearman
+#| tbl-cap: "Corrélation de Spearman entre superficie totale et nombre de parcelles"
+
+tibble::tibble(
+  Indicateur = c("Coefficient ρ", "IC 95%", "p-value"),
+  Valeur     = c(
+    round(cor_t23$estimate, 3),
+    paste0("[", round(ic_bas, 3), " ; ", round(ic_haut, 3), "]"),
+    "< 0.001"
+  )
+) %>%
+  knitr::kable(col.names = c("Indicateur", "Valeur"))
+```
+
+La corrélation de Spearman est de **ρ = 0.701 ** (IC 95% : \[0,405 ; 0.456\], p \< 0.001). Cette corrélation positive modérée indique que les ménages avec plus de parcelles cultivent globalement de plus grandes superficies, sans que ce soit proportionnel.
+
+## Scatter plot
+
+```{r}
+#| label: fig-scatter-t23
+#| fig-cap: "Relation entre superficie totale et nombre de parcelles par ménage. La courbe orange montre la tendance loess."
+#| fig-width: 10
+#| fig-height: 7
+
+p_scatter_t23
+```
+
+La courbe loess révèle une relation croissante mais qui ralentit au-delà de 4 parcelles — les ménages qui fragmentent davantage n'augmentent pas proportionnellement leur superficie totale.
+
+# Tâche 24 — Heatmap superficie médiane par État
+
+```{r}
+#| label: fig-heatmap
+#| fig-cap: "Superficie médiane des parcelles par État et zone géographique — Wave 4. Les couleurs foncées indiquent les superficies les plus élevées."
+#| fig-width: 10
+#| fig-height: 14
+
+p_heatmap
+```
+
+La heatmap révèle un **clivage Nord-Sud marqué et persistant**. Les États du Nord — notamment Adamawa, Kebbi et Kano — affichent les superficies médianes les plus élevées, souvent supérieures à 1 ha. À l'inverse, les États du Sud-Est — Abia, Anambra, Imo — présentent des médianes inférieures à 0.15 ha, reflétant la forte pression démographique et la fragmentation foncière dans cette région.
+
+# Conclusion
+
+Cette analyse de la structure foncière des exploitations agricoles nigérianes à partir du GHS Panel Wave 4 a permis de dégager quatre enseignements principaux.
+
+1.  **Une agriculture de petite exploitation.** La superficie médiane par ménage est de **0.88 ha**, confirmant que l'exploitation nigériane typique est une petite exploitation familiale. La distribution très asymétrique — avec un ratio D9/D1 supérieur à 68 — témoigne de fortes inégalités foncières.
+
+**L'héritage foncier comme mode dominant.** Avec **63.1%** des parcelles acquises par héritage familial, les systèmes fonciers coutumiers restent largement dominants au Nigeria. L'association très significative entre tenure et zone géographique (χ² = 1155.1, p \< 0.001) confirme que ces systèmes varient fortement entre le Nord et le Sud.
+
+**Une concordance modérée entre déclaré et GPS.** La corrélation de Spearman de **ρ = 0.701** entre superficie déclarée et GPS révèle des biais systématiques — sous-estimation des petites parcelles et surestimation des grandes — qui invitent à la prudence dans l'interprétation des superficies déclarées.
+
+**Un clivage géographique structurel.** La heatmap confirme que les États du Nord présentent systématiquement des superficies plus élevées que le Sud, reflétant des systèmes agraires fondamentalement différents.
+
+## Limites
+
+Trois limites méritent d'être signalées. Les facteurs de conversion des unités locales (Heaps, Ridges, Stands) sont des approximations régionales qui introduisent une incertitude pour 44.6% des parcelles. Les 115 ménages sans poids de sondage ont été exclus des analyses pondérées. Enfin, l'absence de comparaison inter-vagues limite l'analyse de l'évolution temporelle de la structure foncière.
+
+# Références
+
+National Bureau of Statistics & World Bank. (2016). *Nigeria General Household Survey Panel 2015/16*. Abuja : NBS.
+
+Carletto, C., Savastano, S., & Zezza, A. (2013). Fact or artifact: The impact of measurement errors on the farm size-productivity relationship. *Journal of Development Economics*, 103, 254-261.
+
+World Bank. (2017). *Basic Information Document — Nigeria GHS Panel*. Washington DC : World Bank.

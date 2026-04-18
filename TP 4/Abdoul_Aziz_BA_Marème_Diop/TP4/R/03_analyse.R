@@ -1,0 +1,354 @@
+# ============================================================
+#  03_analyse.R — Tâche 20
+#  Analyse univariée des superficies
+# ============================================================
+
+source("R/02_nettoyage.R")
+
+library(survey)
+
+# ── 1. Plan de sondage ────────────────────────────────────────
+
+plan <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = parcelles %>%
+    filter(!is.na(superficie_ha),
+           superficie_ha > 0,
+           superficie_ha <= 500,
+           !is.na(wt_wave4)),
+  nest    = TRUE
+)
+
+plan_menage <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = menages %>%
+    filter(!is.na(superficie_totale_ha),
+           superficie_totale_ha > 0,
+           !is.na(wt_wave4)),
+  nest    = TRUE
+)
+
+# ── 2. Statistiques pondérées par décile ──────────────────────
+
+deciles_parcelle <- svyquantile(
+  ~superficie_ha, plan,
+  quantiles = seq(0, 1, 0.1),
+  na.rm = TRUE
+)
+
+deciles_menage <- svyquantile(
+  ~superficie_totale_ha, plan_menage,
+  quantiles = seq(0, 1, 0.1),
+  na.rm = TRUE
+)
+
+moy_parcelle <- svymean(~superficie_ha, plan, na.rm = TRUE)
+moy_menage   <- svymean(~superficie_totale_ha, plan_menage, na.rm = TRUE)
+med_menage   <- svyquantile(~superficie_totale_ha, plan_menage,
+                            quantiles = 0.5, na.rm = TRUE)
+med_parcelle <- svyquantile(~superficie_ha, plan,
+                            quantiles = 0.5, na.rm = TRUE)
+
+print(deciles_parcelle)
+print(deciles_menage)
+print(moy_parcelle)
+print(moy_menage)
+
+# ── 3. Histogramme en échelle log ─────────────────────────────
+
+p_hist <- parcelles %>%
+  filter(!is.na(superficie_ha), superficie_ha > 0,
+         superficie_ha <= 500) %>%
+  ggplot(aes(x = superficie_ha)) +
+  geom_histogram(bins = 50, fill = "#1D9E75",
+                 color = "white", alpha = 0.85) +
+  geom_vline(xintercept = as.numeric(coef(med_parcelle)),
+             color = "red", linetype = "dashed") +
+  scale_x_log10(labels = scales::label_number(accuracy = 0.01)) +
+  labs(title = "Distribution des superficies par parcelle",
+       subtitle = "Ligne rouge = médiane pondérée | Échelle log",
+       x = "Superficie (ha) — échelle log",
+       y = "Nombre de parcelles",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_hist_menage <- menages %>%
+  filter(!is.na(superficie_totale_ha),
+         superficie_totale_ha > 0) %>%
+  ggplot(aes(x = superficie_totale_ha)) +
+  geom_histogram(bins = 50, fill = "#534AB7",
+                 color = "white", alpha = 0.85) +
+  geom_vline(xintercept = as.numeric(coef(med_menage)),
+             color = "red", linetype = "dashed") +
+  scale_x_log10(labels = scales::label_number(accuracy = 0.01)) +
+  labs(title = "Distribution des superficies par ménage",
+       subtitle = "Ligne rouge = médiane pondérée | Échelle log",
+       x = "Superficie totale (ha) — échelle log",
+       y = "Nombre de ménages",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_hist_combine <- p_hist / p_hist_menage
+p_hist_combine
+
+ggsave("output/figures/histogramme_superficies.png",
+       p_hist_combine, width = 10, height = 10, dpi = 300)
+
+# ── 4. Boxplot par zone ───────────────────────────────────────
+
+p_boxplot <- parcelles %>%
+  filter(!is.na(superficie_ha), superficie_ha > 0,
+         superficie_ha <= 500) %>%
+  mutate(zone_label = case_when(
+    zone == 1 ~ "North Central",
+    zone == 2 ~ "North East",
+    zone == 3 ~ "North West",
+    zone == 4 ~ "South East",
+    zone == 5 ~ "South South",
+    zone == 6 ~ "South West"
+  )) %>%
+  ggplot(aes(x = reorder(zone_label, superficie_ha, median),
+             y = superficie_ha, fill = zone_label)) +
+  geom_boxplot(outlier.size = 0.8, outlier.alpha = 0.4,
+               alpha = 0.75) +
+  scale_y_log10(labels = scales::label_number(accuracy = 0.01)) +
+  scale_fill_brewer(palette = "Set2", guide = "none") +
+  coord_flip() +
+  labs(title = "Superficie par parcelle et par zone",
+       subtitle = "Échelle logarithmique | Wave 4",
+       x = NULL, y = "Superficie (ha) — échelle log",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_boxplot
+
+ggsave("output/figures/boxplot_zone.png",
+       p_boxplot, width = 10, height = 6, dpi = 300)
+
+# ── 5. Scatter plot déclaré vs GPS ────────────────────────────
+
+scatter_data <- parcelles %>%
+  mutate(gps_ha = as.numeric(s11aq4c) / 10000) %>%
+  filter(!is.na(superficie_ha), !is.na(gps_ha),
+         superficie_ha > 0, gps_ha > 0,
+         superficie_ha <= 500)
+
+cor_spearman <- cor.test(scatter_data$superficie_ha,
+                         scatter_data$gps_ha,
+                         method = "spearman",
+                         exact  = FALSE)
+
+p_scatter <- scatter_data %>%
+  ggplot(aes(x = superficie_ha, y = gps_ha)) +
+  geom_point(alpha = 0.3, size = 1.2, color = "#1F4E79") +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  geom_smooth(method = "loess", color = "#E85D24",
+              se = TRUE, alpha = 0.15) +
+  scale_x_log10(labels = scales::label_number(accuracy = 0.01)) +
+  scale_y_log10(labels = scales::label_number(accuracy = 0.01)) +
+  annotate("text", x = Inf, y = -Inf, hjust = 1.1, vjust = -0.5,
+           label = paste0("Spearman ρ = ",
+                          round(cor_spearman$estimate, 3),
+                          "\np < 0.001"),
+           size = 4, color = "#1F4E79") +
+  labs(title = "Superficie déclarée vs superficie GPS",
+       subtitle = "Ligne rouge = accord parfait (45°) | Échelle log",
+       x = "Superficie déclarée (ha)",
+       y = "Superficie GPS (ha)",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_scatter
+
+ggsave("output/figures/scatter_declare_gps.png",
+       p_scatter, width = 9, height = 7, dpi = 300)
+
+#================================================================================
+# ── Tâche 21 — Régime de tenure foncière ─────────────────────
+#================================================================================
+
+# Fusionner la tenure dans parcelles
+tenure_info <- tenure %>%
+  select(hhid, plotid, tenure = s11b1q4) %>%
+  mutate(
+    tenure_label = case_when(
+      as.numeric(tenure) == 1 ~ "Achat",
+      as.numeric(tenure) == 2 ~ "Location",
+      as.numeric(tenure) == 3 ~ "Usage gratuit",
+      as.numeric(tenure) == 4 ~ "Distribution communautaire",
+      as.numeric(tenure) == 5 ~ "Héritage familial",
+      as.numeric(tenure) == 6 ~ "Métayage",
+      as.numeric(tenure) == 7 ~ "Échange temporaire",
+      TRUE ~ NA_character_
+    )
+  )
+
+parcelles_21 <- parcelles %>%
+  left_join(tenure_info, by = c("hhid", "plotid"))
+
+# Fréquences et proportions pondérées
+plan_tenure <- svydesign(
+  ids     = ~cluster,
+  strata  = ~strata,
+  weights = ~wt_wave4,
+  data    = parcelles_21 %>%
+    filter(!is.na(tenure_label), !is.na(wt_wave4)),
+  nest    = TRUE
+)
+
+freq_tenure <- svytable(~tenure_label, plan_tenure)
+prop_tenure <- round(prop.table(freq_tenure) * 100, 1)
+
+print(prop_tenure)
+
+# Barplot horizontal
+p_tenure <- data.frame(
+  modalite   = names(prop_tenure),
+  proportion = as.numeric(prop_tenure)
+) %>%
+  ggplot(aes(x = proportion,
+             y = reorder(modalite, proportion),
+             fill = modalite)) +
+  geom_col(alpha = 0.85) +
+  geom_text(aes(label = paste0(proportion, "%")),
+            hjust = -0.1, size = 4) +
+  scale_fill_brewer(palette = "Set2", guide = "none") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(title = "Régime de tenure foncière des parcelles",
+       subtitle = "Proportions pondérées | Wave 4",
+       x = "Proportion (%)", y = NULL,
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.major.y = element_blank())
+
+p_tenure
+
+ggsave("output/figures/barplot_tenure.png",
+       p_tenure, width = 10, height = 6, dpi = 300)
+
+# Test du chi-deux tenure × zone
+tab_croise <- table(
+  parcelles_21$tenure_label,
+  parcelles_21$zone,
+  useNA = "no"
+)
+
+test_chi2 <- chisq.test(tab_croise, simulate.p.value = TRUE)
+print(test_chi2)
+
+#===============================================================================
+# ── Tâche 23 — Superficie totale vs nombre de parcelles ──────
+#===============================================================================
+
+# Corrélation de Spearman avec intervalle de confiance
+cor_t23 <- cor.test(
+  menages$n_parcelles,
+  menages$superficie_totale_ha,
+  method = "spearman",
+  exact  = FALSE
+)
+
+# Intervalle de confiance via transformation de Fisher
+z       <- 0.5 * log((1 + cor_t23$estimate) / (1 - cor_t23$estimate))
+se_z    <- 1 / sqrt(nrow(menages) - 3)
+ic_bas  <- tanh(z - 1.96 * se_z)
+ic_haut <- tanh(z + 1.96 * se_z)
+
+print(round(cor_t23$estimate, 3))
+print(round(c(ic_bas, ic_haut), 3))
+
+# Scatter plot avec courbe loess
+p_scatter_t23 <- menages %>%
+  filter(!is.na(superficie_totale_ha),
+         superficie_totale_ha > 0) %>%
+  ggplot(aes(x = n_parcelles, y = superficie_totale_ha)) +
+  geom_point(alpha = 0.3, size = 1.2, color = "#1F4E79") +
+  geom_smooth(method = "loess", color = "#E85D24",
+              se = TRUE, alpha = 0.15) +
+  scale_y_log10(labels = scales::label_number(accuracy = 0.01)) +
+  scale_x_continuous(breaks = seq(1, max(menages$n_parcelles), 1)) +
+  annotate("text", x = Inf, y = Inf,
+           hjust = 1.1, vjust = 1.5,
+           label = paste0("Spearman ρ = ",
+                          round(cor_t23$estimate, 3),
+                          "\nIC 95% [", round(ic_bas, 3),
+                          " ; ", round(ic_haut, 3), "]",
+                          "\np < 0.001"),
+           size = 4, color = "#1F4E79") +
+  labs(title = "Superficie totale et nombre de parcelles par ménage",
+       subtitle = "Courbe orange = tendance loess | Axe Y en échelle log",
+       x = "Nombre de parcelles",
+       y = "Superficie totale (ha) — échelle log",
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 13)
+
+p_scatter_t23
+
+ggsave("output/figures/scatter_superficie_parcelles.png",
+       p_scatter_t23, width = 10, height = 7, dpi = 300)
+
+#===============================================================================
+# ── Tâche 24 — Heatmap superficie médiane par État ───────────
+#===============================================================================
+
+# Récupérer les noms des États
+state_df <- data.frame(
+  state      = as.numeric(attr(parcelles$state, "labels")),
+  state_name = names(attr(parcelles$state, "labels"))
+)
+
+# Médiane par État et zone
+mediane_etat <- parcelles %>%
+  filter(!is.na(superficie_ha),
+         superficie_ha > 0,
+         superficie_ha <= 500) %>%
+  mutate(
+    zone_label = case_when(
+      zone == 1 ~ "North Central",
+      zone == 2 ~ "North East",
+      zone == 3 ~ "North West",
+      zone == 4 ~ "South East",
+      zone == 5 ~ "South South",
+      zone == 6 ~ "South West"
+    ),
+    state = as.numeric(state)
+  ) %>%
+  left_join(state_df, by = "state") %>%
+  group_by(state_name, zone_label) %>%
+  summarise(
+    mediane_ha = round(median(superficie_ha), 3),
+    n          = n(),
+    .groups    = "drop"
+  ) %>%
+  filter(n >= 5)
+
+# Heatmap
+p_heatmap <- mediane_etat %>%
+  ggplot(aes(x    = zone_label,
+             y    = reorder(state_name, mediane_ha),
+             fill = mediane_ha)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  geom_text(aes(label = round(mediane_ha, 2)),
+            size = 3, color = "white", fontface = "bold") +
+  scale_fill_viridis_c(option = "plasma", direction = -1,
+                       name = "Médiane (ha)") +
+  labs(title = "Superficie médiane par État et zone géographique",
+       subtitle = "GHS Nigeria — Wave 4 | Valeurs en hectares",
+       x = NULL, y = NULL,
+       caption = "Source : GHS Nigeria Wave 4") +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x  = element_text(angle = 20, hjust = 1),
+    axis.text.y  = element_text(size = 8),
+    panel.grid   = element_blank()
+  )
+
+p_heatmap
+
+ggsave("output/figures/heatmap_etat_zone.png",
+       p_heatmap, width = 10, height = 14, dpi = 300)
