@@ -1,0 +1,526 @@
+---
+title: "Analyse des cultures, intrants et rendements agricoles"
+subtitle: |
+  Thème 5 — Projet Statistique sous R et Python | ENSAE ISE 1, 2025-2026
+  
+  GHS-Panel Nigeria — Vague 4 (2018/2019)
+author: |
+  **Groupe 2** — David Landry AGNANGMA SANAM, Hamadou DICKO
+  
+  École Nationale de la Statistique et de l'Analyse Économique Pierre NDIAYE
+  
+  Encadrant : M. Aboubacar HEMA
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: false
+    number_sections: true
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4.5
+    reference_docx: "reference_style2.docx"
+header-includes:
+  - \usepackage[justification=justified]{caption}
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{float}
+  - \usepackage{geometry}
+  - \geometry{left=2.2cm,right=2.2cm,top=2.5cm,bottom=2.5cm}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyhead[L]{\small TP5 — Agriculture Nigeria}
+  - \fancyhead[R]{\small Groupe 2 — AGNANGMA \& DICKO}
+  - \fancyfoot[C]{\thepage}
+  - \renewcommand{\headrulewidth}{0.4pt}
+  - \setlength{\parindent}{0pt}
+  - \setlength{\parskip}{6pt}
+  - \usepackage{ragged2e}
+  - \justifying
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.align = "center",
+  fig.width  = 7,
+  fig.height = 4.5,
+  fig.pos    = "H",
+  dpi        = 150,
+  out.width  = "95%"
+)
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+library(scales)
+library(rstatix)
+library(patchwork)
+library(knitr)
+library(kableExtra)
+library(survey)
+library(srvyr)
+library(purrr)
+```
+
+```{r chargement, include=FALSE}
+ref_poids           <- readRDS("../data/processed/ref_poids.rds")
+tbl_cultures        <- readRDS("../data/processed/tbl_cultures.rds")
+tbl_diversification <- readRDS("../data/processed/tbl_diversification.rds")
+tbl_intrants_menage <- readRDS("../data/processed/tbl_intrants_menage.rds")
+tbl_production      <- readRDS("../data/processed/tbl_production.rds")
+tbl_parcelle_surface<- readRDS("../data/processed/tbl_parcelle_surface.rds")
+effectif_pondere    <- readRDS("../data/processed/effectif_pondere.rds")
+res_q26             <- readRDS("../data/processed/resultats_q26.rds")
+res_q27             <- readRDS("../data/processed/resultats_q27.rds")
+res_q28             <- readRDS("../data/processed/resultats_q28.rds")
+res_q29             <- readRDS("../data/processed/resultats_q29.rds")
+
+couleurs_famille <- c(
+  "Céréale"          = "#1A5276",
+  "Légumineuse"      = "#1E8449",
+  "Tubercule"        = "#D35400",
+  "Culture de rente" = "#8E44AD",
+  "Légume"           = "#117A65",
+  "Autre"            = "#7F8C8D"
+)
+couleurs_milieu  <- c("Urbain" = "#C0392B", "Rural" = "#1A5276")
+couleurs_engrais <- c("Avec engrais inorg." = "#1A5276",
+                      "Sans engrais inorg." = "#E67E22")
+couleurs_intrant <- c(
+  "Engrais inorganique" = "#1A5276",
+  "dont NPK"            = "#2E86C1",
+  "dont Urée"           = "#85C1E9",
+  "Engrais organique"   = "#1E8449",
+  "Pesticide"           = "#8E44AD",
+  "Herbicide"           = "#D35400"
+)
+
+theme_projet <- theme_light(base_size = 10) +
+  theme(
+    plot.title       = element_text(face="bold", colour="#2C3E50", size=11,
+                                    margin=margin(b=4)),
+    plot.subtitle    = element_text(colour="#5D6D7E", size=8.5,
+                                    margin=margin(b=8)),
+    plot.caption     = element_text(colour="grey45", size=7, hjust=1,
+                                    margin=margin(t=8)),
+    panel.grid.minor = element_blank(),
+    legend.position  = "bottom",
+    legend.text      = element_text(size=8),
+    legend.key.size  = unit(0.35, "cm"),
+    plot.margin      = margin(8, 10, 6, 6)
+  )
+
+# Préparation des variables inline
+freq_cultures <- tbl_cultures %>%
+  filter(!is.na(wt_wave4)) %>%
+  group_by(cropcode, nom_culture, famille) %>%
+  summarise(freq_pond = sum(wt_wave4), .groups = "drop")
+
+classement_15 <- freq_cultures %>%
+  arrange(desc(freq_pond)) %>%
+  slice_head(n = 15) %>%
+  mutate(
+    proportion = freq_pond / effectif_pondere * 100,
+    nom_culture = reorder(nom_culture, proportion),
+    famille = factor(famille, levels = c("Céréale","Légumineuse","Tubercule",
+                                          "Culture de rente","Légume","Autre"))
+  )
+
+culture_premiere <- as.character(classement_15$nom_culture[which.max(classement_15$proportion)])
+pct_premiere     <- round(max(classement_15$proportion), 1)
+nb_cereales      <- sum(classement_15$famille == "Céréale")
+
+taux_adoption  <- res_q27$tab_taux
+resume_rdt     <- res_q28$stats
+resume_engrais <- res_q29$stats
+
+r_diversif <- round(res_q26$r, 3)
+p_diversif <- format(res_q26$wilcox$p.value, digits = 2, scientific = TRUE)
+
+moy_urbain <- round(res_q26$stats$moyenne[res_q26$stats$type_milieu == "Urbain"], 2)
+moy_rural  <- round(res_q26$stats$moyenne[res_q26$stats$type_milieu == "Rural"],  2)
+
+pct_engrais   <- taux_adoption %>%
+  filter(as.character(intrant) == "Engrais inorganique") %>% pull(pct) %>% round(1)
+pct_herbicide <- taux_adoption %>%
+  filter(as.character(intrant) == "Herbicide") %>% pull(pct) %>% round(1)
+
+med_mais_avec <- resume_engrais %>%
+  filter(culture=="Maïs", groupe_engrais=="Avec engrais inorg.") %>% pull(med)
+med_mais_sans <- resume_engrais %>%
+  filter(culture=="Maïs", groupe_engrais=="Sans engrais inorg.") %>% pull(med)
+p_mais_val   <- format(res_q29$wilcox_mais$p.value,   digits=2, scientific=TRUE)
+r_mais_val   <- round(res_q29$r_mais,   3)
+r_millet_val <- round(res_q29$r_millet, 3)
+p_millet_val <- format(res_q29$wilcox_millet$p.value, digits=2, scientific=TRUE)
+
+# Stats superficie
+n_parcelles_surface <- nrow(tbl_parcelle_surface)
+n_gps <- sum(tbl_parcelle_surface$source_superficie == "GPS")
+med_surface <- round(median(tbl_parcelle_surface$superficie_ha), 3)
+```
+
+\newpage
+
+# Introduction
+
+Le présent rapport propose une analyse de la **production agricole nigériane** à partir des données de la quatrième vague du General Household Survey Panel (GHS-Panel, 2018/2019). Seule la vague 4 (**Wave 4**) est exploitée dans l'ensemble de l'étude.
+
+L'analyse s'articule autour de cinq points : (i) l'identification des cultures dominantes, (ii) la mesure de la diversification culturale, (iii) le diagnostic de l'adoption des intrants, (iv) la comparaison du **rendement** céréalier par État en **kg/ha**, et (v) l'évaluation de l'effet de l'engrais inorganique sur le rendement. Les calculs prennent systématiquement en compte les **pondérations `wt_wave4`**.
+
+# Cadre méthodologique
+
+## Jeux de données exploités
+
+```{r tab_sources}
+df_src <- data.frame(
+  Fichier = c(
+    "secta3i\\_harvestw4",
+    "secta1\\_harvestw4",
+    "secta11c2\\_harvestw4",
+    "secta\\_harvestw4"
+  ),
+  Description = c(
+    "Récoltes par parcelle : code culture, volumes produits, coefficient de conversion",
+    "Superficies des parcelles : mesure GPS (m²) et auto-déclarée (m²)",
+    "Utilisation d'intrants : engrais chimique (NPK, Urée), organique, pesticide, herbicide",
+    "Poids d'échantillonnage wt\\_wave4, découpage géographique, milieu"
+  ),
+  Vague = c("W4", "W4", "W4", "W4")
+)
+
+kable(df_src, format = "latex", booktabs = TRUE,
+      col.names = c("Fichier .dta", "Description", "Vague"),
+      caption = "Fichiers de données mobilisés — GHS Panel Wave 4.",
+      escape = FALSE) %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                font_size = 9) %>%
+  column_spec(1, width = "3.5cm") %>%
+  column_spec(2, width = "9cm") %>%
+  column_spec(3, width = "1.5cm")
+```
+
+## Calcul du rendement en kg/ha (Q28 et Q29)
+
+Le rendement est exprimé en **kg/ha** grâce aux superficies issues du fichier `secta1_harvestw4.dta`. La superficie retenue pour chaque parcelle suit une stratégie hiérarchique : la **mesure GPS** (`prefilled_gps_area`, en m²) est utilisée en priorité ; en l'absence de mesure GPS, l'**auto-déclaration** (`sa1q11`, en m²) est retenue. Les superficies sont converties en hectares ($\div$ 10 000).
+
+Sur les `r format(nrow(tbl_production), big.mark=" ")` parcelles de maïs/millet identifiées, **`r format(sum(!is.na(tbl_production$rendement_kg_ha)), big.mark=" ")`** disposent d'une superficie (dont `r format(n_gps, big.mark=" ")` par GPS). La superficie médiane des parcelles est de **`r med_surface` ha**.
+
+
+# Cultures dominantes en 2018 (Q25)
+
+```{r fig_top15, fig.cap="Les 15 cultures les plus pratiquées — GHS Wave 4, 2018.", fig.height=5.5, out.width="92%"}
+ggplot(classement_15, aes(x=proportion, y=nom_culture, fill=famille)) +
+  geom_col(width=0.72, color="white", linewidth=0.3) +
+  geom_text(aes(label=paste0(round(proportion,1),"%")),
+            hjust=-0.1, size=2.8, fontface="bold", color="#2C3E50") +
+  scale_fill_manual(values=couleurs_famille, name="Famille") +
+  scale_x_continuous(expand=expansion(mult=c(0,0.20)),
+                     labels=function(x) paste0(x,"%")) +
+  labs(title="Les 15 cultures les plus pratiquées — Wave 4 (2018)",
+       subtitle=paste0("Part des ménages agricoles | Effectif pondéré = ",
+                       format(round(effectif_pondere), big.mark=" ")),
+       x="Part des ménages agricoles (%)", y=NULL,
+       caption="Source : GHS-W4, calculs des auteurs") +
+  theme_projet + theme(panel.grid.major.y=element_blank())
+```
+
+```{r tab_top15}
+tab_class <- classement_15 %>% as.data.frame() %>%
+  arrange(desc(proportion)) %>%
+  transmute(Culture=as.character(nom_culture), Famille=as.character(famille),
+            `\\% ménages`=round(proportion,1))
+
+kable(tab_class, format = "latex", booktabs = TRUE,
+      caption = "Classement des 15 premières cultures — GHS Wave 4, 2018.",
+      escape = FALSE) %>%
+  kable_styling(latex_options = c("hold_position"),
+                font_size = 9, full_width = FALSE)
+```
+
+Le **`r culture_premiere`** arrive en première position, cultivé par **`r pct_premiere`\%** des exploitations agricoles. La prédominance des **céréales** (`r nb_cereales` espèces dans le top 15) traduit leur importance dans le régime alimentaire et l'économie rurale nigériane. Les tubercules (manioc, igname) occupent la deuxième place, particulièrement dans les zones Sud.
+
+# Diversification des exploitations (Q26)
+
+```{r calcul_div, include=FALSE}
+plan_div <- tbl_diversification %>%
+  filter(!is.na(wt_wave4), !is.na(type_milieu)) %>%
+  as_survey_design(ids=hhid, weights=wt_wave4, nest=TRUE)
+
+stats_div <- plan_div %>%
+  group_by(type_milieu) %>%
+  summarise(moy=survey_mean(nb_cultures, vartype="ci"),
+            med=survey_quantile(nb_cultures, quantiles=0.5, vartype=NULL),
+            .groups="drop") %>% as.data.frame()
+
+moy_milieu <- tbl_diversification %>%
+  filter(!is.na(type_milieu), !is.na(wt_wave4)) %>%
+  group_by(type_milieu) %>%
+  summarise(moy = weighted.mean(nb_cultures, wt_wave4, na.rm = TRUE),
+            .groups = "drop")
+```
+
+```{r fig_diversif, fig.cap="Diversification culturale : comparaison urbain-rural — GHS Wave 4, 2018.", fig.width=10, fig.height=4.5, out.width="98%"}
+ga <- ggplot(tbl_diversification, aes(x=nb_cultures, weight=wt_wave4)) +
+  geom_histogram(binwidth=1, fill="#1A5276", color="white", alpha=0.85) +
+  scale_x_continuous(breaks=1:max(tbl_diversification$nb_cultures, na.rm=TRUE)) +
+  scale_y_continuous(labels=comma) +
+  labs(title="Répartition du nombre de cultures",
+       subtitle="Wave 4 (2018)", x="Nombre de cultures", y="Effectifs pondérés") +
+  theme_projet
+
+gb <- ggplot(tbl_diversification %>% filter(!is.na(type_milieu)),
+             aes(x=type_milieu, y=nb_cultures, fill=type_milieu)) +
+  geom_violin(aes(weight=wt_wave4), alpha=0.65, trim=FALSE) +
+  geom_boxplot(aes(weight=wt_wave4), width=0.14, fill="white",
+               outlier.size=0.6, outlier.alpha=0.3) +
+  geom_point(data=moy_milieu, aes(x=type_milieu, y=moy),
+             shape=18, size=3.5, color="#E74C3C", inherit.aes=FALSE) +
+  annotate("text", x=2.4,
+           y=max(tbl_diversification$nb_cultures, na.rm=TRUE)*0.88,
+           label=paste0("Wilcoxon p = ", p_diversif, "\nr = ", r_diversif),
+           size=2.8, color="grey25", fontface="italic", hjust=1) +
+  scale_fill_manual(values=couleurs_milieu, guide="none") +
+  scale_y_continuous(breaks=seq(0, max(tbl_diversification$nb_cultures, na.rm=TRUE), by=2)) +
+  labs(title="Comparaison Urbain / Rural",
+       subtitle="Losange rouge = moyenne pondérée",
+       x=NULL, y="Nombre de cultures") +
+  theme_projet + theme(panel.grid.major.x=element_blank())
+
+ga + gb + plot_layout(widths = c(1.1, 1))
+```
+
+```{r tab_diversif}
+df_div <- stats_div %>%
+  transmute(Milieu=type_milieu, `Moyenne pond.`=round(moy,2),
+            `IC inf. 95\\%`=round(moy_low,2), `IC sup. 95\\%`=round(moy_upp,2),
+            `Médiane pond.`=round(med_q50,1))
+
+kable(df_div, format = "latex", booktabs = TRUE,
+      caption = "Indicateurs de diversification culturale par milieu — GHS-W4.",
+      escape = FALSE) %>%
+  kable_styling(latex_options = c("hold_position"),
+                font_size = 9, full_width = FALSE)
+```
+
+En moyenne, les ménages ruraux cultivent **`r moy_rural` espèces** différentes contre **`r moy_urbain`** pour les ménages urbains. Le test de Wilcoxon-Mann-Whitney met en évidence une différence significative (p = `r p_diversif`, r = `r r_diversif`).
+
+
+# Diagnostic de l'adoption des intrants (Q27)
+
+```{r fig_intrants, fig.cap="Taux d'utilisation des intrants agricoles — GHS Wave 4, 2018.", fig.height=4.5}
+df_plot <- taux_adoption %>% as.data.frame() %>%
+  mutate(intrant=factor(as.character(intrant),
+                        levels=rev(c("Engrais inorganique","dont NPK","dont Urée",
+                                     "Engrais organique","Pesticide","Herbicide"))))
+
+ggplot(df_plot, aes(x=pct, y=intrant, fill=intrant,
+                     xmin=ic_inf, xmax=ic_sup)) +
+  geom_col(width=0.65, alpha=0.88) +
+  geom_errorbarh(height=0.25, color="grey30", linewidth=0.6) +
+  geom_text(aes(label=paste0(round(pct,1),"%")),
+            hjust=-0.15, size=2.8, fontface="bold", color="#2C3E50") +
+  scale_fill_manual(values=couleurs_intrant, guide="none") +
+  scale_x_continuous(expand=expansion(mult=c(0,0.22)),
+                     labels=function(x) paste0(x,"%")) +
+  labs(title="Utilisation des intrants agricoles — Wave 4 (2018)",
+       subtitle="Part des ménages utilisateurs | IC à 95%",
+       x="Part des ménages (%)", y=NULL,
+       caption="Source : GHS-W4, calculs des auteurs") +
+  theme_projet + theme(panel.grid.major.y=element_blank())
+```
+
+```{r tab_intrants}
+df_int <- taux_adoption %>% as.data.frame() %>%
+  transmute(Intrant=as.character(intrant), `Taux (\\%)`=round(pct,1),
+            `IC inf.`=round(ic_inf,1), `IC sup.`=round(ic_sup,1)) %>%
+  arrange(desc(`Taux (\\%)`))
+
+kable(df_int, format = "latex", booktabs = TRUE,
+      caption = "Taux pondérés d'utilisation des intrants — GHS Wave 4, 2018.",
+      escape = FALSE) %>%
+  kable_styling(latex_options = c("hold_position"),
+                font_size = 9, full_width = FALSE)
+```
+
+```{r fig_engrais_zone, fig.cap="Adoption de l'engrais inorganique selon la zone et le milieu — GHS Wave 4, 2018.", fig.height=4.5}
+chi_test <- res_q27$chi_eng
+
+zone_eng <- tbl_intrants_menage %>%
+  filter(!is.na(nom_zone), !is.na(type_milieu), !is.na(wt_wave4)) %>%
+  group_by(nom_zone, type_milieu) %>%
+  summarise(total=n(), taux=sum(engrais_inorg,na.rm=TRUE)/n(),
+            ic_bas=pmax(0, taux-1.96*sqrt(taux*(1-taux)/total)),
+            ic_haut=pmin(1, taux+1.96*sqrt(taux*(1-taux)/total)),
+            .groups="drop")
+
+ggplot(zone_eng, aes(x=nom_zone, y=taux*100, fill=type_milieu,
+                      ymin=ic_bas*100, ymax=ic_haut*100)) +
+  geom_col(position=position_dodge(0.8), width=0.72, alpha=0.88) +
+  geom_errorbar(position=position_dodge(0.8), width=0.2,
+                color="grey30", linewidth=0.6) +
+  scale_fill_manual(values=couleurs_milieu, name="Milieu") +
+  scale_y_continuous(labels=function(x) paste0(x,"%"),
+                     expand=expansion(mult=c(0,0.15))) +
+  scale_x_discrete(labels=function(x) gsub(" ", "\n", x)) +
+  labs(title="Engrais inorganique par zone et milieu (W4, 2018)",
+       subtitle=paste0("Chi-deux milieu x adoption : X2 = ",
+                       round(chi_test$statistic,2), ", p < 0,001 | IC 95%"),
+       x=NULL, y="Taux d'adoption (%)",
+       caption="Source : GHS-W4, calculs des auteurs") +
+  theme_projet + theme(axis.text.x=element_text(size=7.5, lineheight=0.9))
+```
+
+L'engrais inorganique est utilisé par **`r pct_engrais`\%** des ménages. L'herbicide, avec **`r pct_herbicide`\%**, est l'intrant le plus courant. Le test du chi-deux confirme un **lien significatif** entre le type de milieu et l'adoption ($\chi^2$ = `r round(chi_test$statistic, 2)`, p < 0,001).
+
+
+# Rendement du maïs et du millet par État (Q28)
+
+```{r nettoyage_rdt, include=FALSE}
+rdt_propre <- tbl_production %>%
+  filter(!is.na(rendement_kg_ha), !is.na(nom_etat)) %>%
+  group_by(culture) %>%
+  mutate(q1_r=quantile(rendement_kg_ha,.25,na.rm=TRUE),
+         q3_r=quantile(rendement_kg_ha,.75,na.rm=TRUE),
+         iqr_r=q3_r-q1_r,
+         extr=rendement_kg_ha<(q1_r-3*iqr_r)|rendement_kg_ha>(q3_r+3*iqr_r)) %>%
+  filter(!extr) %>% ungroup()
+
+kw <- res_q28$kw_mais
+
+etats_ok <- rdt_propre %>% filter(culture=="Maïs") %>%
+  count(nom_etat) %>% filter(n>=5) %>% pull(nom_etat)
+
+rdt_fig <- rdt_propre %>%
+  filter(culture %in% c("Maïs","Millet"), nom_etat %in% etats_ok) %>%
+  mutate(nom_etat=fct_reorder(nom_etat, rendement_kg_ha, .fun=median))
+```
+
+```{r tab_stats_rdt}
+df_rp <- resume_rdt %>%
+  rename(Culture=culture, N=n, `Moyenne (kg/ha)`=moy,
+         `Médiane (kg/ha)`=med, `Éc. type`=ecart_t, Q1=q1, Q3=q3)
+
+kable(df_rp, format = "latex", booktabs = TRUE,
+      caption = "Statistiques de rendement (kg/ha) — GHS Wave 4. Valeurs extrêmes retirées.") %>%
+  kable_styling(latex_options = c("hold_position"),
+                font_size = 9, full_width = FALSE)
+```
+
+```{r fig_rdt_etat, fig.cap="Rendement du maïs et du millet par État (kg/ha) — GHS Wave 4, 2018.", fig.height=10, fig.width=7.5, out.width="90%"}
+ggplot(rdt_fig, aes(x=nom_etat, y=rendement_kg_ha, fill=culture)) +
+  geom_boxplot(alpha=0.75, outlier.size=0.4, outlier.alpha=0.2,
+               width=0.6, position=position_dodge(0.8)) +
+  stat_summary(fun=mean, geom="point", shape=18, size=1.8,
+               color="#E74C3C", position=position_dodge(0.8),
+               show.legend=FALSE) +
+  scale_fill_manual(values=c("Maïs"="#1A5276","Millet"="#E67E22"), name="Culture") +
+  scale_y_continuous(labels=comma, expand=expansion(mult=c(0,0.08))) +
+  coord_flip() +
+  labs(title="Rendement par État — Wave 4 (2018)",
+       subtitle=paste0("kg/ha | Losange = moyenne\n",
+                       "Kruskal-Wallis maïs : H=", round(kw$statistic,1),
+                       ", p<0,001"),
+       x=NULL, y="Rendement (kg/ha)",
+       caption="Source : GHS-W4, calculs des auteurs") +
+  theme_projet + theme(axis.text.y=element_text(size=7),
+                        legend.position="top")
+```
+
+L'hétérogénéité inter-États est **très significative** (Kruskal-Wallis : H = `r round(kw$statistic, 1)`, p < 0,001). Les États des zones Centre et Sud-Ouest affichent des rendements supérieurs, portés par des conditions climatiques favorables et un accès facilité aux intrants.
+
+
+# Effet de l'engrais inorganique sur le rendement (Q29)
+
+```{r nettoyage_eng, include=FALSE}
+eng_propre <- tbl_production %>%
+  filter(!is.na(rendement_kg_ha), !is.na(engrais_inorg)) %>%
+  group_by(culture) %>%
+  mutate(q1_r=quantile(rendement_kg_ha,.25,na.rm=TRUE),
+         q3_r=quantile(rendement_kg_ha,.75,na.rm=TRUE),
+         iqr_r=q3_r-q1_r,
+         extr=rendement_kg_ha<(q1_r-3*iqr_r)|rendement_kg_ha>(q3_r+3*iqr_r)) %>%
+  filter(!extr) %>% ungroup() %>%
+  mutate(grp=ifelse(engrais_inorg,"Avec engrais inorg.","Sans engrais inorg."))
+```
+
+```{r fig_rdt_engrais, fig.cap="Rendement (kg/ha) selon l'utilisation d'engrais inorganique — GHS Wave 4, 2018.", fig.height=4.5}
+note_m <- paste0("Maïs : p=", p_mais_val, " | r=", r_mais_val)
+note_l <- paste0("Millet : p=", p_millet_val, " | r=", r_millet_val)
+
+ggplot(eng_propre, aes(x=grp, y=rendement_kg_ha, fill=grp)) +
+  geom_violin(alpha=0.6, trim=FALSE) +
+  geom_boxplot(width=0.18, fill="white", outlier.size=0.5, outlier.alpha=0.2) +
+  stat_summary(fun=mean, geom="point", shape=18, size=3.5, color="#E74C3C") +
+  facet_wrap(~culture, scales="free_y") +
+  scale_fill_manual(values=couleurs_engrais, guide="none") +
+  scale_y_continuous(labels=comma) +
+  labs(title="Impact de l'engrais inorganique sur le rendement — Wave 4 (2018)",
+       subtitle="kg/ha | Losange rouge = moyenne",
+       x=NULL, y="Rendement (kg/ha)",
+       caption=paste0("Source : GHS-W4 | calculs des auteurs\n",
+                      note_m, "  |  ", note_l)) +
+  theme_projet + theme(strip.text=element_text(face="bold", size=9))
+```
+
+```{r tab_rdt_engrais}
+df_re <- resume_engrais %>%
+  rename(Culture=culture, Groupe=groupe_engrais,
+         N=n, `Médiane (kg/ha)`=med, `Moyenne (kg/ha)`=moy, Q1=q1, Q3=q3)
+
+kable(df_re, format = "latex", booktabs = TRUE,
+      caption = "Rendement selon l'engrais inorganique — GHS W4.") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"),
+                font_size = 9)
+```
+
+```{r tab_tests}
+df_tw <- data.frame(
+  Culture=c("Maïs","Millet"),
+  `Stat. W`=c(round(res_q29$wilcox_mais$statistic,0),
+              round(res_q29$wilcox_millet$statistic,0)),
+  `p-valeur`=c(p_mais_val, p_millet_val),
+  `r de Rosenthal`=c(r_mais_val, r_millet_val),
+  `Taille d'effet`=c(
+    ifelse(r_mais_val<0.1,"Négligeable",ifelse(r_mais_val<0.3,"Petite",
+           ifelse(r_mais_val<0.5,"Moyenne","Grande"))),
+    ifelse(r_millet_val<0.1,"Négligeable",ifelse(r_millet_val<0.3,"Petite",
+           ifelse(r_millet_val<0.5,"Moyenne","Grande")))),
+  check.names=FALSE
+)
+
+kable(df_tw, format = "latex", booktabs = TRUE,
+      caption = "Tests de Wilcoxon — rendement avec vs sans engrais inorganique.") %>%
+  kable_styling(latex_options = c("hold_position"),
+                font_size = 9, full_width = FALSE)
+```
+
+Le rendement médian des parcelles de maïs fertilisées s'établit à **`r med_mais_avec` kg/ha** contre **`r med_mais_sans` kg/ha** sans fertilisation, soit un rapport de `r round(med_mais_avec / med_mais_sans, 1)`. Cet écart est **statistiquement significatif** (p = `r p_mais_val`, r = `r r_mais_val`). Le millet présente une dynamique analogue (p = `r p_millet_val`, r = `r r_millet_val`). Ces observations confirment le rôle déterminant de la fertilisation chimique dans l'amélioration de la productivité agricole.
+
+# Conclusion
+
+Cette analyse fait ressortir quatre résultats marquants.
+
+**1. Prédominance des céréales et des tubercules.** Le maïs (`r pct_premiere`\% des exploitations), le sorgho et le manioc forment le socle de l'agriculture nigériane en 2018.
+
+**2. Pluriculture plus prononcée en zone rurale.** Avec `r moy_rural` cultures en moyenne contre `r moy_urbain` en ville (p = `r p_diversif`), les exploitations rurales déploient des stratégies de diversification visant à réduire le risque alimentaire.
+
+**3. Faible pénétration des intrants modernes.** Seuls `r pct_engrais`\% des ménages recourent à l'engrais inorganique. Les taux d'adoption les plus élevés se concentrent dans le Nord.
+
+**4. Effet positif avéré de l'engrais sur le rendement.** Les parcelles fertilisées produisent significativement davantage, avec un effet de taille `r ifelse(r_mais_val<0.1,"négligeable",ifelse(r_mais_val<0.3,"petite",ifelse(r_mais_val<0.5,"moyenne","grande")))` pour le maïs. L'analyse en **kg/ha** (grâce aux superficies GPS et auto-déclarées du fichier `secta1_harvestw4`) permet une comparaison standardisée des rendements.
+
+# Références {-}
+
+- World Bank / NBS Nigeria (2019). *Nigeria General Household Survey Panel 2018-2019, Wave 4*. LSMS-ISA. Washington DC : The World Bank.
+- Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*. Hoboken : Wiley.
+- Kruskal, W. H. \& Wallis, W. A. (1952). Use of ranks in one-criterion variance analysis. *Journal of the American Statistical Association*, 47(260), 583--621.
+- Wilcoxon, F. (1945). Individual comparisons by ranking methods. *Biometrics Bulletin*, 1(6), 80--83.
+- Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences* (2e éd.). Hillsdale : Lawrence Erlbaum.
+
+\vfill
+\begin{center}
+\small\textit{Rapport généré via R Markdown — ENSAE Pierre Ndiaye, 2025-2026.}
+\end{center}
