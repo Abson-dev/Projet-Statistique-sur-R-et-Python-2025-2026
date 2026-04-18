@@ -1,0 +1,27 @@
+=== Test chi-deux : Régime de tenure × Milieu (Urbain/Rural) ===
+
+                  
+                   Urbain Rural
+  Propriété pleine    383   914
+  Héritage            700  6260
+  Location            295   932
+  Métayage             21    47
+  Prêt                250  1264
+  Autre                 0     0
+
+
+	Pearson's Chi-squared test
+
+data:  tab_contingence
+X-squared = NaN, df = 5, p-value = NA
+
+
+Résidus standardisés :
+                  
+                   Urbain  Rural
+  Propriété pleine  15.75 -15.75
+  Héritage         -18.63  18.63
+  Location           9.54  -9.54
+  Métayage           3.71  -3.71
+  Prêt               1.89  -1.89
+  Autre                         
