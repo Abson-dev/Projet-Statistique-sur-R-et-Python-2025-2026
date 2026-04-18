@@ -1,0 +1,10 @@
+
+	Spearman's rank correlation rho
+
+data:  superf_menage$nb_parcelles and superf_menage$superf_totale_ha
+S = 35237974, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho 
+0.4428818 
+

@@ -1,0 +1,310 @@
+---
+title: ""
+author: ""
+date: ""
+output:
+  word_document:
+    reference_docx: template.docx
+    toc: false
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 5,
+  fig.height = 3.5
+)
+library(knitr)
+library(dplyr)
+
+chemin <- "C:/Users/HP/Desktop/ISE1 CL/Semestre2/Projet statistique avec R ou python/Dossier R/TP/TP4"
+```
+
+\newpage
+
+# 1. Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP4, à partir des données de la Nigeria General Household Survey (GHS) Panel -- vague 4 (2018--2019). L'objectif est de décrire la structure foncière des exploitations agricoles nigérianes : superficie des parcelles, comparaison entre mesure déclarée et mesure GPS, régime de tenure foncière, et disparités géographiques entre États.
+
+# 2. Méthodologie
+
+## 2.1 Données et Variables Clés
+
+Les fichiers suivants ont été utilisés :
+
+- **secta1_harvestw4.dta** : 10 961 parcelles, module agriculture -- roster des parcelles cultivées (`sa1q11` superficie déclarée en m², `prefilled_gps_area` superficie GPS en m², `sa1q4` accès à la parcelle, `sa1q7` raison de la perte d'accès, `sector` milieu, `state` État).
+
+- **secta_harvestw4.dta** : 5 025 ménages, poids de sondage (`wt_wave4`).
+
+- **nga_plotgeovariables_y4.dta** : 7 354 parcelles, variables géographiques (pente `srtmslp_nga`, élévation `srtm_nga`, distance au ménage `dist_household`).
+
+- **sect11b1_plantingw4.dta** : 11 076 parcelles, module planting -- tenure foncière (`s11b1q4` mode d'acquisition de la parcelle, 7 modalités).
+
+Les variables clés retenues sont :
+
+- **Superficie déclarée** : `sa1q11` (m², convertie en hectares par division par 10 000).
+
+- **Superficie GPS** : `prefilled_gps_area` (m², convertie en hectares), mesurée lors de la visite post-plantation.
+
+- **Mode d'acquisition (tenure)** : `s11b1q4` (issu de `sect11b1_plantingw4.dta`), recodé en sept catégories : Achat, Location, Usage gratuit (terres non possédées), Attribution communautaire, Héritage familial, Métayage, Échange temporaire. Cette variable constitue la mesure directe du régime de tenure foncière.
+
+- **Accès à la parcelle** : `sa1q4` (1 = Oui, 2 = Non), complétée par `sa1q7` (raison de la perte d'accès) pour les parcelles concernées.
+
+- **Milieu de résidence** : `sector` (1 = Urbain, 2 = Rural).
+
+- **État** : `state` (codes 1--37, 37 États nigérians).
+
+- **Poids de sondage** : `wt_wave4` (poids coupe transversale, issu de `secta_harvestw4.dta`), propagé au niveau parcelle via `hhid`. Le poids longitudinal `wt_longpanel` n'est pas utilisé, l'analyse ne portant pas sur des comparaisons inter-vagues.
+
+## 2.2 Traitements Effectués
+
+```{r traitements, eval=FALSE, echo=TRUE}
+# Chargement et jointures
+# Left join : secta1 est la table principale (niveau parcelle)
+# wt_wave4 propagé depuis secta via hhid (NA = 0,01 %, MCAR -> exclus)
+# geovars jointe par (hhid, plotid)
+# sect11b1 jointe par (hhid, plotid) : tenure foncière (s11b1q4)
+
+parcelles <- secta1 %>%
+  left_join(secta %>% select(hhid, wt_wave4), by = "hhid") %>%
+  left_join(geovars %>% select(hhid, plotid,
+                                dist_household, srtm_nga, srtmslp_nga),
+            by = c("hhid", "plotid")) %>%
+  left_join(sect11b1 %>% select(hhid, plotid, s11b1q4),
+            by = c("hhid", "plotid"))
+
+# Conversion m² -> hectares ; pente character -> numérique
+# s11b1q4 recodée en 7 catégories de tenure
+parcelles <- parcelles %>%
+  mutate(
+    superf_declaree_ha = sa1q11 / 10000,
+    superf_gps_ha      = prefilled_gps_area / 10000,
+    pente_num          = suppressWarnings(as.numeric(srtmslp_nga)),
+    milieu             = ifelse(sector == 1, "Urbain", "Rural"),
+    acces_parcelle     = case_when(
+      sa1q4 == 1 ~ "A encore acces",
+      sa1q4 == 2 ~ "N'a plus acces",
+      TRUE       ~ NA_character_
+    ),
+    tenure = case_when(
+      s11b1q4 == 1 ~ "Achat",
+      s11b1q4 == 2 ~ "Location",
+      s11b1q4 == 3 ~ "Usage gratuit",
+      s11b1q4 == 4 ~ "Attribution communautaire",
+      s11b1q4 == 5 ~ "Heritage familial",
+      s11b1q4 == 6 ~ "Metayage",
+      s11b1q4 == 7 ~ "Echange temporaire",
+      TRUE         ~ NA_character_
+    )
+  )
+
+# Parcelles valides : superficie déclarée non manquante et non aberrante
+parcelles_val <- parcelles %>%
+  filter(!is.na(superf_declaree_ha),
+         superf_declaree_ha >= 0,
+         superf_declaree_ha <= 500)
+
+# Agrégation au niveau ménage
+superf_menage <- parcelles_val %>%
+  group_by(hhid) %>%
+  summarise(
+    nb_parcelles     = n(),
+    superf_totale_ha = sum(superf_declaree_ha, na.rm = TRUE),
+    wt_wave4         = first(wt_wave4),
+    milieu           = first(milieu),
+    state            = first(state)
+  )
+
+# Tests statistiques sur données brutes (Spearman, Chi-deux) :
+# pas de version pondérée standard disponible en R pour ces tests.
+# La carte par État est calculée sur données brutes :
+# le GHS-Panel n'est pas représentatif au niveau des États.
+```
+
+Les traitements réalisés comprennent la jointure des quatre fichiers avec intégration des poids de sondage et de la variable de tenure depuis `sect11b1_plantingw4`, la conversion des superficies de m² en hectares, l'identification et la caractérisation des valeurs manquantes et aberrantes, l'agrégation au niveau ménage pour le calcul de la superficie totale, la comparaison entre superficies déclarée et GPS par corrélation de Spearman, l'analyse du régime de tenure foncière avec distribution par mode d'acquisition et test du Chi-deux selon le milieu, la relation superficie--nombre de parcelles par corrélation de Spearman et courbe loess, et la cartographie des disparités de superficie médiane par État.
+
+# 3. Résultats
+
+## 3.1 Qualité des Données et Valeurs Manquantes
+
+L'examen des valeurs manquantes révèle une situation très particulière pour ce module agricole. La superficie déclarée (`sa1q11`) présente 90,3 % de valeurs manquantes -- soit 9 895 parcelles sur 10 961. Cette proportion élevée est structurellement attendue : `sa1q11` n'est renseignée que pour les parcelles effectivement mesurées lors de la visite post-récolte, les autres étant renseignées uniquement par mesure GPS lors de la visite post-plantation (`prefilled_gps_area`). La superficie GPS présente quant à elle 37,7 % de valeurs manquantes. Aucun doublon n'a été détecté sur la clé (`hhid`, `plotid`). Le seul NA sur `wt_wave4` (0,01 %) est exclu des analyses pondérées.
+
+Après filtrage sur la superficie déclarée disponible et non aberrante (aucune valeur < 0 ha ni > 500 ha n'a été détectée), la base analytique comprend **1 066 parcelles valides** appartenant à **724 ménages agriculteurs**.
+
+```{r tab_qualite}
+qa <- read.csv(paste0(chemin, "/outputs/tables/qualite_donnees_tp4.csv"))
+kable(qa,
+      caption   = "Diagnostic qualité des variables clés",
+      col.names = c("Variable", "NA (n)", "NA (%)", "Aberrants", "Seuil"),
+      align     = c("l", "c", "c", "c", "l"))
+```
+
+## 3.2 Analyse Univariée de la Superficie
+
+### Par parcelle
+
+Sur les 1 066 parcelles valides, la superficie déclarée présente une distribution fortement asymétrique à droite, caractéristique des structures foncières dans les pays en développement. La médiane est de **0,20 ha** (Q1 = 0,07 ha, Q3 = 0,52 ha), indiquant que la moitié des parcelles couvre moins de 2 000 m² -- des exploitations de petite taille. La moyenne (0,45 ha) est plus du double de la médiane, tirée vers le haut par quelques grandes parcelles. Le maximum observé est de 6,22 ha. Cette dispersion justifie le recours à l'échelle logarithmique pour la visualisation.
+
+```{r tab_stats_parcelle}
+stats <- read.csv(paste0(chemin, "/outputs/tables/stats_superf_parcelle.csv"))
+kable(stats,
+      caption = "Statistiques descriptives de la superficie déclarée par parcelle (ha)",
+      digits  = 3,
+      align   = "c")
+```
+
+```{r tab_deciles}
+deciles <- read.csv(paste0(chemin, "/outputs/tables/deciles_superf_parcelle.csv"))
+kable(deciles,
+      caption   = "Distribution par décile -- superficie déclarée par parcelle (ha)",
+      col.names = c("Décile", "Superficie (ha)"),
+      digits    = 4,
+      align     = c("l", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 1 : Distribution de la superficie déclarée par parcelle (échelle logarithmique)
+:::
+
+```{r fig_hist_parcelle}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/hist_superf_parcelle_log.png"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 2 : Dispersion de la superficie déclarée par parcelle (boxplot, échelle logarithmique)
+:::
+
+```{r fig_boxplot_parcelle}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/boxplot_superf_parcelle.png"))
+```
+
+### Par ménage
+
+Au niveau ménage, la superficie totale médiane est de **0,25 ha** (Q1 = 0,09 ha, Q3 = 0,71 ha) pour une moyenne de 0,66 ha. Le maximum observé est de 9,66 ha. La distribution reste fortement asymétrique, illustrant la coexistence de très petites exploitations de subsistance et d'un petit nombre d'exploitations plus importantes.
+
+```{r tab_stats_menage}
+stats_m <- read.csv(paste0(chemin, "/outputs/tables/stats_superf_menage.csv"))
+kable(stats_m,
+      caption = "Statistiques descriptives de la superficie totale par ménage (ha)",
+      digits  = 3,
+      align   = "c")
+```
+
+::: {custom-style="Figure Caption"}
+Figure 3 : Distribution de la superficie totale par ménage (échelle logarithmique)
+:::
+
+```{r fig_hist_menage}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/hist_superf_menage_log.png"))
+```
+
+## 3.3 Comparaison Superficie Déclarée vs Superficie GPS
+
+L'analyse porte sur les **573 parcelles** disposant des deux mesures (superficie déclarée et superficie GPS) non manquantes et strictement positives. La corrélation de Spearman entre les deux mesures est de **r = 0,824** (p < 2,2e-16), indiquant une très forte concordance de rang entre les deux méthodes de mesure. Cependant, l'analyse du biais de déclaration révèle que **62 % des parcelles** présentent une superficie déclarée supérieure à la superficie GPS (ratio déclaré/GPS > 1), avec un ratio médian de 1,19. Ce biais de sur-déclaration, systématique mais modéré, est cohérent avec la littérature sur les enquêtes agricoles en Afrique subsaharienne : sans référence mesurée, les agriculteurs tendent à surestimer leurs superficies.
+
+La ligne à 45° sur le scatter plot représente la concordance parfaite (superficie déclarée = superficie GPS). Les points situés au-dessus de cette ligne correspondent aux parcelles sur-déclarées. La dispersion augmente pour les grandes parcelles, suggérant que le biais de déclaration est d'autant plus marqué que les parcelles sont vastes.
+
+::: {custom-style="Figure Caption"}
+Figure 4 : Superficie déclarée vs superficie GPS (scatter plot, échelle logarithmique)
+:::
+
+```{r fig_scatter_gps, fig.width=6, fig.height=5}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/scatter_declaree_vs_gps.png"))
+```
+
+## 3.4 Régime de Tenure Foncière
+
+L'analyse du régime de tenure repose sur la variable `s11b1q4` ("How was [PLOT] acquired?") issue de `sect11b1_plantingw4`, disponible pour 10 961 parcelles après jointure sur (`hhid`, `plotid`), dont 10 961 ont une modalité renseignée. Sept modalités sont distinguées : achat direct, location contre espèces ou en nature, usage gratuit de terres non possédées, attribution communautaire, héritage familial, métayage et échange temporaire.
+
+L'héritage familial est très nettement le mode d'acquisition dominant, représentant **63,0 % des parcelles** (6 907 parcelles). Ce résultat reflète la prévalence des droits fonciers coutumiers transmis au sein des lignages dans le contexte nigérian, où le Land Use Act de 1978 a formellement nationalisé les terres tout en laissant subsister des pratiques d'héritage coutumier. L'achat représente la deuxième modalité (11,6 %), traduisant l'émergence de marchés fonciers formels. La location et l'usage gratuit sont comparables (11,1 % et 9,1 % respectivement), ce dernier regroupant des arrangements informels courants en zone rurale. L'attribution communautaire (4,2 %), le métayage (0,6 %) et l'échange temporaire (0,4 %) restent marginaux.
+
+::: {custom-style="Figure Caption"}
+Figure 5 : Répartition des parcelles selon le mode d'acquisition (tenure foncière)
+:::
+
+```{r fig_tenure}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/tenure_fonciere.png"))
+```
+
+### Tenure et milieu de résidence
+
+La distribution des modes de tenure diffère significativement selon le milieu de résidence. Le test du Chi-deux révèle une association très fortement significative entre tenure et milieu (χ² = 509,43, ddl = 6, p < 2,2e-16). Le V de Cramér (0,216) indique une association modérée sur le plan pratique, nettement plus substantielle que pour la variable d'accès. En milieu urbain, la part des achats est proportionnellement plus élevée (380 sur 1 639 parcelles urbaines, soit 23,2 %) que dans les zones rurales (888 sur 9 322, soit 9,5 %), reflétant la marchandisation des terres péri-urbaines. À l'inverse, l'attribution communautaire est quasi absente en ville (31 parcelles, 1,9 %) contre une présence notable en milieu rural (424 parcelles, 4,5 %).
+
+## 3.5 Accès aux Parcelles
+
+L'immense majorité des parcelles (97,6 %, soit 10 694 sur 10 960) font l'objet d'un accès maintenu au moment de l'enquête. Seules 266 parcelles (2,4 %) ont fait l'objet d'une perte ou d'un abandon d'accès. Cette proportion faible témoigne d'une relative stabilité du patrimoine foncier sur la période de l'enquête.
+
+::: {custom-style="Figure Caption"}
+Figure 6 : Répartition des parcelles selon le statut d'accès
+:::
+
+```{r fig_acces}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/acces_parcelles.png"))
+```
+
+Parmi les 214 parcelles dont la raison de la perte d'accès est renseignée, l'incapacité à cultiver est de loin la cause la plus fréquente (31,8 %), devant la recherche d'une meilleure terre (16,8 %), les raisons diverses (12,6 %), la non-rentabilité (12,1 %) et le besoin d'argent (11,7 %). Ces résultats suggèrent que les pertes d'accès sont davantage liées à des contraintes physiques ou économiques qu'à des phénomènes d'expropriation.
+
+```{r tab_raisons}
+raisons <- read.csv(paste0(chemin, "/outputs/tables/raisons_perte_acces.csv"))
+kable(raisons,
+      caption   = "Raisons de la perte d'accès aux parcelles",
+      col.names = c("Raison", "Effectif", "Proportion (%)"),
+      align     = c("l", "c", "c"))
+```
+
+Le test du Chi-deux avec correction de Yates confirme une association statistiquement significative entre le milieu de résidence et le statut d'accès (χ² = 28,59, ddl = 1, p = 8,93×10⁻⁸). Cependant, le V de Cramér (0,051) indique une association très faible sur le plan pratique. La différence est statistiquement robuste du fait de l'importante taille d'échantillon, mais son interprétation substantive reste limitée.
+
+## 3.6 Relation Superficie Totale × Nombre de Parcelles
+
+L'analyse porte sur les 724 ménages agriculteurs disposant d'au moins une parcelle valide. La corrélation de Spearman entre la superficie totale du ménage et son nombre de parcelles est de **r = 0,443** (p < 2,2e-16), indiquant une association positive significative mais modérée. Ce résultat est intuitivement attendu : les ménages disposant d'un plus grand nombre de parcelles tendent à détenir une superficie totale plus étendue, mais la relation n'est pas proportionnelle -- certains ménages avec peu de parcelles peuvent exploiter des surfaces importantes si chaque parcelle est grande.
+
+La courbe loess révèle une relation non linéaire : la superficie marginale associée à chaque parcelle supplémentaire augmente au-delà de 4--5 parcelles, suggérant que les grands exploitants tendent à avoir des parcelles individuellement plus vastes.
+
+::: {custom-style="Figure Caption"}
+Figure 7 : Relation entre superficie totale et nombre de parcelles (courbe loess)
+:::
+
+```{r fig_scatter_nb, fig.width=6, fig.height=5}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/scatter_superf_nb_parcelles.png"))
+```
+
+## 3.7 Disparités Géographiques -- Superficie Médiane par État
+
+La carte ci-dessous présente la superficie médiane des parcelles déclarées par État nigérian. Ces résultats sont calculés sur données brutes non pondérées. Le plan de sondage du GHS-Panel n'étant pas conçu pour produire des estimations représentatives au niveau des États (représentatif au niveau national et par zone géopolitique uniquement), ils sont fournis à titre indicatif uniquement et ne doivent pas être interprétés comme des estimations officielles.
+
+Yobe se distingue nettement avec la superficie médiane la plus élevée (proche de 0,90 ha), suivi de Kebbi et Oyo (autour de 0,55--0,60 ha), cohérents avec des systèmes agricoles extensifs. L'État du Niger apparaît en gris, faute d'un nombre de parcelles suffisant dans l'échantillon pour calculer une médiane fiable. Les États du Sud-Est et du Sud-Sud -- Abia, Akwa Ibom, Anambra, Rivers -- présentent les médianes les plus faibles (inférieures à 0,10 ha), reflétant la densité de population élevée et la fragmentation foncière prononcée dans ces régions.
+
+::: {custom-style="Figure Caption"}
+Figure 8 : Superficie médiane des parcelles par État au Nigeria (données brutes, indicatif)
+:::
+
+```{r fig_carte, fig.width=6, fig.height=7}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/carte_superf_mediane_par_etat.png"))
+```
+
+# 4. Discussion
+
+Les résultats dressent un portrait de la structure foncière nigériane dominé par la petite agriculture et les droits coutumiers. La superficie médiane par parcelle (0,20 ha) et par ménage (0,25 ha) place le Nigeria parmi les pays à agriculture fortement fragmentée d'Afrique subsaharienne. Cette fragmentation est l'héritière de systèmes fonciers communautaires, de droits d'usage non formalisés et de pressions démographiques qui réduisent la taille des parcelles transmises entre générations.
+
+L'héritage familial comme mode d'acquisition dominant (63,0 %) confirme la persistance des régimes fonciers coutumiers au Nigeria, malgré les tentatives de formalisation engagées depuis le Land Use Act de 1978. L'association significative entre tenure et milieu (V de Cramér = 0,216) illustre la dualité du marché foncier nigérian : marchandisation progressive en milieu urbain et périurbain, maintien des arrangements coutumiers en zone rurale.
+
+La sur-déclaration des superficies (62 % des parcelles, ratio médian de 1,19) est un résultat important pour la qualité des données agricoles. Elle plaide pour le maintien et l'expansion des mesures GPS systématiques dans les enquêtes agricoles, et soulève des interrogatifs sur la fiabilité des statistiques agricoles nationales fondées sur des données déclaratives.
+
+La corrélation modérée (r = 0,44) entre nombre de parcelles et superficie totale, associée à la non-linéarité de la courbe loess, confirme l'hétérogénéité structurelle des exploitations agricoles nigérianes. La dispersion des grandes exploitations -- quelques ménages avec des superficies totales dépassant 5 ha -- coexiste avec une masse de micro-exploitations de subsistance.
+
+**Limites :**
+
+- Le taux de 90,3 % de valeurs manquantes sur la superficie déclarée limite fortement la représentativité de l'analyse : les 1 066 parcelles valides ne sont pas nécessairement représentatives de l'ensemble des 10 961 parcelles du module.
+
+- La carte par État est calculée sur données brutes ; le plan de sondage du GHS-Panel ne permet pas d'estimations représentatives à ce niveau géographique.
+
+- Le test de Spearman est appliqué sur données brutes, en l'absence de version pondérée standard disponible en R. Il fournit une mesure de l'association de rang, indépendante de la pondération.
+
+- Le test du Chi-deux tenure × milieu est appliqué sur données brutes ; les proportions commentées dans le texte sont des estimations d'échantillon non pondérées.
+
+# 5. Conclusion
+
+Ce travail a permis de décrire la structure foncière des exploitations agricoles nigérianes à partir du module parcelles de la vague 4 du GHS-Panel. Il met en évidence une agriculture de petite taille (superficie médiane de 0,20 ha par parcelle), une dominance marquée de l'héritage familial comme mode d'acquisition (63,0 %), un biais de sur-déclaration systématique par rapport à la mesure GPS (62 % des parcelles, ratio médian de 1,19), une très grande stabilité du statut d'accès aux parcelles (97,6 % maintenu), et une opposition géographique entre les États du Nord à agricultures extensives et les États du Sud à forte densité foncière. Ces résultats constituent une base solide pour des analyses ultérieures portant sur la productivité agricole, les déterminants de l'investissement foncier, ou l'évolution de la structure agraire entre vagues du GHS-Panel.

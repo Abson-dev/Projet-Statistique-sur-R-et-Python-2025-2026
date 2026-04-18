@@ -1,0 +1,6 @@
+
+	Pearson's Chi-squared test
+
+data:  tab_mat_tenure
+X-squared = 509.43, df = 6, p-value < 2.2e-16
+

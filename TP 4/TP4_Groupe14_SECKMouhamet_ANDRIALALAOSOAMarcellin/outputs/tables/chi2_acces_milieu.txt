@@ -1,0 +1,6 @@
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  tab_acces_milieu
+X-squared = 28.592, df = 1, p-value = 8.934e-08
+
