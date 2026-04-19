@@ -160,7 +160,7 @@ Groupe7_YAMAHA_Herman_DIALLO_Bourama_TP5/
 │   ├── Rapport_TP5_cultures_rendements.docx ← Rapport Word compilé
 │   └── modele.docx                          ← Template Word de mise en forme
 │
-├── data/                                    ← Dossier des données brutes et objets intermédiaires initialement vide et qui se rempli au cours de l'exécution des scripts
+├── data/                                    ← Dossier des données brutes et objets intermédiaires initialement qui se rempli au cours de l'exécution des scripts
 │   ├── raw/                                 ← Fichiers .dta bruts (auto-téléchargés)
 │   │   ├── secta3i_harvestw4.dta
 │   │   ├── secta3ii_harvestw4.dta
