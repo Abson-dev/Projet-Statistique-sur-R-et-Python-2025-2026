@@ -1,0 +1,13 @@
+data/
+renv/library/
+renv/staging/
+renv/cellar/
+.Rproj.user/
+.RData
+.Rhistory
+.Rprofile
+outputs/tables/*.html
+.DS_Store
+Thumbs.db
+*~
+

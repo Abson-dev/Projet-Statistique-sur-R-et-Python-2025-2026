@@ -1,0 +1,257 @@
+---
+title: "Parcelles agricoles, superficie et tenure foncière"
+subtitle: "Nigeria General Household Survey Panel Wave 4 (2018-2019)"
+author:
+  - "Nkwa T. Leslye & Ouattara Ousmane"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+lang: fr
+output:
+  word_document:
+    reference_docx: reference.docx
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, out.width="95%", dpi=180)
+library(tidyverse); library(knitr); library(flextable); library(gtsummary)
+library(scales); library(srvyr); library(here)
+options(scipen=999)
+source_ghs <- "Source : GHS Panel W4 (2018-2019), NBS Nigeria / World Bank LSMS-ISA. Calculs des auteurs."
+
+df_parcelles   <- readRDS(here("data","processed","df_parcelles.rds"))
+sup_menage     <- readRDS(here("data","processed","sup_menage.rds"))
+stats_sup      <- readRDS(here("data","processed","stats_sup.rds"))
+stats_menage   <- readRDS(here("data","processed","stats_menage.rds"))
+deciles_sup    <- readRDS(here("data","processed","deciles_sup.rds"))
+tenure_pondere <- readRDS(here("data","processed","tenure_pondere.rds"))
+sup_etat       <- readRDS(here("data","processed","sup_etat.rds"))
+tests_tenure   <- readRDS(here("data","processed","tests_tenure.rds"))
+spearman_nb    <- readRDS(here("data","processed","spearman_nb_sup.rds"))
+spearman_gps   <- readRDS(here("data","processed","spearman_gps.rds"))
+stats_histo    <- readRDS(here("data","processed","stats_histo.rds"))
+
+fmt <- function(x, d=1) format(round(x,d), big.mark=" ", decimal.mark=",", nsmall=d, scientific=FALSE, trim=TRUE)
+
+n_tot <- nrow(df_parcelles); n_men <- n_distinct(df_parcelles$hhid)
+n_men_pp <- 5263; n_sans <- n_men_pp - n_men; pct_sans <- round(n_sans/n_men_pp*100,1)
+n_gps_ph <- sum(df_parcelles$source_sup=="GPS Post-Harvest",na.rm=TRUE)
+n_gps_pp <- sum(df_parcelles$source_sup=="GPS Post-Planting",na.rm=TRUE)
+n_decl   <- sum(df_parcelles$source_sup=="Déclarée convertie",na.rm=TRUE)
+couv_gps <- round((n_gps_ph+n_gps_pp)/n_tot*100,1)
+
+# Tenure
+pct_heritage <- tenure_pondere |> filter(mode_acquisition=="Héritage familial") |> pull(proportion) |> round(3) * 100
+pct_achat    <- tenure_pondere |> filter(mode_acquisition=="Achat") |> pull(proportion) |> round(3) * 100
+
+# États extrêmes
+etat_max <- sup_etat |> arrange(desc(sup_mediane)) |> slice(1)
+etat_min <- sup_etat |> arrange(sup_mediane) |> slice(1)
+
+# Sexe
+n_gest_h <- sum(df_parcelles$sexe_gest_f=="Homme",na.rm=TRUE)
+n_gest_f <- sum(df_parcelles$sexe_gest_f=="Femme",na.rm=TRUE)
+pct_gest_f <- round(n_gest_f/(n_gest_h+n_gest_f)*100,1)
+
+# Aberrants
+n_aberrants <- sum(df_parcelles$aberrant, na.rm=TRUE)
+p99_val <- round(max(df_parcelles$sup_ha, na.rm=TRUE), 2)
+```
+
+# Messages clés
+
+**Structure foncière.** Les exploitations agricoles nigérianes sont de petite taille. Un ménage agricole gère en moyenne `r fmt(stats_menage$nb_parcelles_moy,2)` parcelles, pour une superficie totale moyenne de `r fmt(stats_menage$sup_totale_moy,2)` hectare. La médiane par parcelle est de `r fmt(stats_sup$mediane,2)` ha, ce qui signifie que la moitié des parcelles nigérianes font au plus cette superficie. Cette multiplicité de petites parcelles par foyer traduit un morcellement générationnel lié aux systèmes de succession coutumière.
+
+**Fiabilité de la mesure.** La stratégie à trois niveaux (GPS Post-Harvest en priorité, puis GPS Post-Planting, puis déclaration convertie) permet d'atteindre `r couv_gps` % de couverture GPS. En hectares naturels, la relation Mode (`r fmt(stats_histo$mode,2)` ha) < Médiane (`r fmt(stats_histo$mediane,2)` ha) < Moyenne (`r fmt(stats_histo$moyenne,2)` ha) confirme que la distribution est asymétrique à droite (log-normale), ce qui justifie l'échelle logarithmique et le choix de la médiane plutôt que la moyenne comme indicateur de tendance centrale.
+
+**Biais de déclaration.** La corrélation entre la mesure GPS et la déclaration de l'exploitant (rho de Spearman = `r fmt(spearman_gps$spearman_gps$estimate,3)`) confirme un biais. En effet, les petites parcelles sont surdéclarées (l'exploitant dit 0,3 ha pour 0,1 ha mesuré) et les grandes sont sous-déclarées (l'exploitant dit 3 ha pour 5 ha mesuré).
+
+**Tenure foncière.** L'héritage familial domine avec environ `r fmt(pct_heritage,1)` % des parcelles, reflet de la persistance du droit coutumier. L'achat ne représente qu'environ `r fmt(pct_achat,1)` % et est significativement plus fréquent en milieu urbain (chi-deux Rao-Scott p < 0,001). Environ `r pct_gest_f` % des parcelles dont le gestionnaire est identifié sont gérées par une femme.
+
+**Disparités régionales.** Le gradient Nord-Sud est net : l'État de `r etat_max$state_name` atteint `r fmt(etat_max$sup_mediane,2)` ha de médiane, tandis que `r etat_min$state_name` ne dépasse pas `r fmt(etat_min$sup_mediane,2)` ha. Cette différence reflète le type d'agriculture (céréales extensives au Nord, cultures vivrières au Sud) et la pression démographique (très forte densité au Sud-Est).
+
+**Ménages non agricoles.** Sur les `r format(n_men_pp,big.mark=" ")` ménages du fichier de poids, `r format(n_sans,big.mark=" ")` (`r pct_sans` %) n'ont aucune parcelle agricole et sont exclus de cette analyse.
+
+# Introduction
+
+L'agriculture constitue le principal moyen de subsistance de la majorité des ménages nigérians, en particulier en milieu rural. La structure foncière détermine en grande partie la capacité productive des exploitations et l'accès des ménages aux marchés du crédit.
+
+Ce rapport analyse les parcelles agricoles à partir des modules Post-Planting et Post-Harvest de la vague 4 du GHS Panel (2018-2019). La stratégie de mesure combine les deux visites pour maximiser la couverture GPS : `r format(n_gps_ph,big.mark=" ")` parcelles mesurées en Post-Harvest (saison sèche, meilleures conditions), `r format(n_gps_pp,big.mark=" ")` mesurées en Post-Planting, et `r format(n_decl,big.mark=" ")` estimées par déclaration convertie. Toutes les statistiques sont pondérées par `wt_wave4`, qui est un poids ménage issu du plan de sondage à deux degrés (grappes, puis ménages). Le GHS Panel ne prévoit pas de sous-échantillonnage des parcelles : le roster parcellaire est exhaustif au sein de chaque ménage enquêté. L'application du poids ménage aux analyses au niveau parcelle est donc légitime et conforme à la pratique standard dans les analyses LSMS-ISA.
+
+# Exploration et qualité des données
+
+Le fichier `sect11a1_plantingw4` contient `r format(n_tot,big.mark=" ")` parcelles issues de `r format(n_men,big.mark=" ")` ménages agricoles. Ce fichier constitue le roster parcellaire du module Post-Planting : chaque ligne représente une parcelle déclarée par le ménage lors de la première visite (saison des pluies, 2018). Il contient la superficie GPS mesurée sur le terrain (`s11aq4c`, en mètres carrés) lorsque l'enquêteur a pu effectuer la mesure, ainsi que la superficie déclarée par l'exploitant (`s11aq4aa`) avec son unité locale (`s11aq4b` : heaps, ridges, stands, acres, hectares ou mètres carrés).
+
+```{r fig-na, fig.cap="Valeurs manquantes sur les variables clés. GPS PH a le plus fort taux de NA (90 %) car seules les parcelles non mesurées en PP se voient proposer une nouvelle mesure. GPS PP manque pour 38 % des parcelles. La variable finale (combinant les 3 sources) ne manque que pour 0,1 % des parcelles."}
+knitr::include_graphics(here("outputs","figures","fig00_diagnostic_NA.png"))
+```
+
+Le fichier `secta1_harvestw4`, issu de la visite Post-Harvest (saison sèche, 2019), apporte `r format(n_gps_ph,big.mark=" ")` mesures GPS supplémentaires pour les parcelles qui n'avaient pas pu être mesurées en Post-Planting, portant la couverture GPS combinée à `r couv_gps` %.
+
+Le graphique des valeurs manquantes révèle une structure en escalier. La variable GPS Post-Harvest (GPS PH) est la plus lacunaire (environ 90 % de NA), ce qui est normal : cette mesure n'est proposée qu'aux parcelles non mesurées en Post-Planting. Le GPS Post-Planting manque pour environ 38 % des parcelles. Grâce à la stratégie de repli sur la déclaration, la variable de superficie finale n'a presque aucune valeur manquante. La variable Sexe du gestionnaire manque pour environ 25 % des parcelles (exploitants non identifiés dans le roster).
+
+# Distribution de la superficie des parcelles
+
+**Histogramme en échelle logarithmique**
+
+```{r fig-histo, fig.cap="Histogramme en échelle logarithmique. Les trois lignes verticales montrent le mode (bleu), la médiane (vert) et la moyenne (rouge). Leur ordre confirme l'asymétrie à droite."}
+knitr::include_graphics(here("outputs","figures","fig01_histogramme_superficie.png"))
+```
+
+La distribution de la superficie est fortement asymétrique à droite : la grande majorité des parcelles sont petites (moins de 0,5 ha) tandis qu'une minorité atteint plusieurs hectares. En échelle linéaire, l'histogramme serait écrasé à gauche et illisible, d'où le passage en échelle logarithmique. Il est important de distinguer l'échelle de visualisation (log) de l'échelle de calcul des indicateurs (hectares naturels) : l'histogramme est affiché en log pour la lisibilité, mais les trois statistiques de position (mode, médiane, moyenne) sont calculées en hectares naturels pour être comparables entre elles.
+
+L'inégalité Mode < Médiane < Moyenne est le critère classique d'une distribution asymétrique à droite (log-normale). Elle signifie que la valeur la plus fréquente est très petite, que la valeur centrale est plus grande, et que la moyenne est encore plus grande à cause de la longue queue à droite. C'est cette asymétrie qui justifie deux choix méthodologiques qui sont l'utilisation de l'échelle logarithmique pour la visualisation, et la médiane plutôt que la moyenne comme indicateur de tendance centrale.
+
+Un point technique mérite attention , en effet,  en échelle logarithmique, l'asymétrie s'inverse. Les valeurs en log10 donnent Moyenne < Médiane < Mode, ce qui correspond à une asymétrie à gauche. Ce n'est pas une contradiction : la transformation logarithmique comprime la queue droite (les grandes parcelles) et étale la queue gauche (les petites parcelles), inversant mécaniquement la forme de la distribution. C'est précisément la propriété recherchée : une distribution log-normale est asymétrique à droite en hectares naturels, mais devient approximativement symétrique (ou légèrement asymétrique à gauche) après transformation logarithmique.
+
+Ce que l'histogramme ne montre pas clairement dans ses barres extrêmes est que `r n_aberrants` parcelles dépassaient le seuil du P99 avant winsorisation. À l'inverse, les barres les plus hautes (entre 0,1 et 0,5 ha) concentrent plus de 5 000 parcelles, soit environ la moitié de l'échantillon.
+
+**Boxplot par milieu de résidence**
+
+```{r fig-boxplot,fig.cap="Boxplot de la superficie par milieu (échelle log). Les parcelles rurales sont légèrement plus grandes."}
+knitr::include_graphics(here("outputs","figures","fig02_boxplot_superficie.png"))
+```
+
+Le boxplot par milieu confirme que les parcelles rurales sont légèrement plus grandes que les parcelles urbaines. La médiane rurale est supérieure à la médiane urbaine, ce qui est cohérent avec le type d'agriculture pratiqué en milieu rural (grandes cultures extensives) par rapport au milieu urbain (maraîchage, parcelles résiduelles).
+
+**Boxplots par zone géopolitique et milieu**
+
+```{r fig-zones, fig.cap="Boxplots par zone géopolitique et milieu. "}
+knitr::include_graphics(here("outputs","figures","fig07_boxplot_zone_milieu.png"))
+```
+
+```{r load-sup-region-zones, include=FALSE}
+sup_region <- readRDS(here("data","processed","sup_region.rds"))
+zone_max <- sup_region |> arrange(desc(sup_mediane)) |> slice(1)
+zone_min <- sup_region |> arrange(sup_mediane) |> slice(1)
+```
+Pour les boxplots à facettes, chaque boîte représente la distribution de la superficie dans une combinaison zone-milieu. Le triangle rouge marque la moyenne : lorsqu'il est au-dessus de la médiane, cela confirme l'asymétrie à droite (la moyenne est tirée vers le haut par les grandes parcelles).
+
+Le `r zone_max$zone_f` présente les parcelles les plus étendues, avec une médiane de `r fmt(zone_max$sup_mediane,2)` ha. En milieu rural dans cette zone, la boîte est large et la moustache supérieure est longue, ce qui traduit une forte hétérogénéité car on y trouve aussi bien des petites parcelles de 0,1 ha que des exploitations dépassant 2 ha. 
+
+Le `r zone_min$zone_f` se situe à l'opposé, avec une médiane de seulement `r fmt(zone_min$sup_mediane,2)` ha, et ce dans les deux milieux. Les boîtes sont compactes et basses, les moustaches courtes donc la grande majorité des parcelles sont très petites et la dispersion est faible. Cette homogénéité dans la petitesse reflète la forte densité de population dans cette zone. Les cultures dominantes (manioc, igname) se prêtent à cette agriculture intensive sur micro-parcelles.
+
+ Le South West se distingue par un écart marqué entre milieu urbain et rural car en zone urbaine (Lagos, périphérie d'Ibadan), les parcelles sont très petites, tandis qu'en zone rurale, elles atteignent des tailles proches du North Central. Le South South rejoint le South East parmi les zones à petites parcelles, avec des médianes inférieures à 0,1 ha.
+
+L'écart entre la moyenne (triangle) et la médiane (trait) est visible dans toutes les zones, confirmant que l'asymétrie à droite est un phénomène structurel de l'agriculture nigériane, pas une particularité régionale.
+
+# Comparaison superficie GPS vs déclarée
+
+```{r fig-scatter, fig.cap="Scatter plot déclarée (abscisse) vs GPS (ordonnée) en échelle log-log. Orange = concordance parfaite. Vert foncé = loess."}
+knitr::include_graphics(here("outputs","figures","fig03_scatter_gps_declaree.png"))
+```
+
+La corrélation de Spearman entre la superficie GPS et la superficie déclarée est de rho = `r fmt(spearman_gps$spearman_gps$estimate,3)`. Cette corrélation forte mais loin de 1 confirme le biais de déclaration bien documenté dans la littérature LSMS-ISA (Carletto et al., 2013).
+
+Le biais suit un schéma classique visible sur le graphique. Les points situés au-dessus de la diagonale orange (à gauche du graphique) représentent les petites parcelles surdéclarées : l'exploitant dit 0,3 ha alors que le GPS mesure 0,1 ha. Ce biais s'explique par la désirabilité sociale (ne pas paraître trop pauvre) et les problèmes d'arrondi sur de très petites surfaces. Les points situés en dessous de la diagonale (à droite) représentent les grandes parcelles sous-déclarées : l'exploitant dit 3 ha alors que le GPS mesure 5 ha. Cela tient à la difficulté d'estimer à l'oeil nu de vastes surfaces irrégulières, et parfois à une prudence vis-à-vis des autorités fiscales.
+
+La courbe loess (Locally Estimated Scatterplot Smoothing) est un lissage local qui trace la tendance moyenne sans imposer de forme. Elle visualise ce biais en se situant au-dessus de la diagonale pour les petites parcelles et en dessous pour les grandes.
+
+# Analyse de la tenure foncière
+
+```{r fig-tenure, fig.cap="Mode d'acquisition des parcelles (proportions pondérées wt_wave4). "}
+knitr::include_graphics(here("outputs","figures","fig04_tenure_barplot.png"))
+```
+
+L'héritage familial représente environ `r fmt(pct_heritage,1)` % des parcelles, reflet de la persistance du droit coutumier dans l'accès à la terre au Nigeria. L'achat représente le deuxième mode (environ `r fmt(pct_achat,1)` %), suivi de la location et du don gratuit. Le métayage et l'échange temporaire sont marginaux (moins de 1 % chacun).
+
+Le test du chi-deux pondéré de Rao-Scott est hautement significatif (p < 0,001) avec un V de Cramér de `r fmt(tests_tenure$v_cramer,3)`. La composition de la tenure varie donc significativement entre milieu urbain et rural. Cette significativité statistique, combinée à un V de Cramér modéré, signifie que la différence est réelle mais qu'elle n'explique qu'une fraction de la variabilité de la tenure. Concrètement, l'achat est plus fréquent en zone urbaine (marché foncier plus actif, prix du sol plus élevés) et l'héritage plus fréquent en zone rurale (systèmes lignagers coutumiers dominants).
+
+## Désagrégation par sexe du gestionnaire
+
+```{r tab-tenure-sexe}
+readRDS(here("data","processed","tab_tenure_sexe_ft.rds"))
+```
+
+&nbsp;
+
+Sur les `r format(n_gest_h+n_gest_f,big.mark=" ")` parcelles avec un gestionnaire identifié, `r format(n_gest_h,big.mark=" ")` (`r round(n_gest_h/(n_gest_h+n_gest_f)*100,1)` %) sont gérées par un homme et `r format(n_gest_f,big.mark=" ")` (`r pct_gest_f` %) par une femme. 
+Les parcelles gérées par des hommes sont systématiquement plus grandes que celles gérées par des femmes, tant en milieu urbain qu'en milieu rural. En milieu rural, la médiane masculine dépasse celle des femmes, un écart qui reflète l'accès inégal à la terre dans les systèmes fonciers coutumiers ouest-africains. L'héritage familial domine pour les deux sexes. La location, en revanche, concerne davantage les femmes, un mode d'accès plus précaire qui ne garantit pas la sécurité foncière à long terme.
+
+## Désagrégation par sexe du chef de ménage
+
+```{r tab-tenure-chef}
+readRDS(here("data","processed","tab_tenure_chef_ft.rds"))
+```
+
+&nbsp;
+
+Le passage du sexe du gestionnaire à celui du chef de ménage modifie sensiblement la lecture. Les ménages dirigés par des femmes détiennent des parcelles de taille médiane inférieure à celles des ménages dirigés par des hommes, un écart encore plus prononcé qu'au niveau du gestionnaire. La prépondérance de l'héritage est maintenue dans les deux cas, mais les ménages dirigés par des femmes recourent davantage au don gratuit et à la distribution communautaire, des modes d'acquisition qui traduisent une dépendance aux réseaux familiaux et communautaires faute d'accès au marché foncier formel.
+
+# Superficie totale du ménage et nombre de parcelles
+
+```{r fig-nb-sup, fig.cap="Nombre de parcelles vs superficie totale. Loess avec IC 95 %. L'aplatissement au-delà de 5-6 parcelles traduit la fragmentation successorale."}
+knitr::include_graphics(here("outputs","figures","fig05_scatter_nb_sup.png"))
+```
+
+La corrélation de Spearman entre le nombre de parcelles et la superficie totale du ménage est de rho = `r fmt(spearman_nb$spearman$estimate,3)`, avec un intervalle de confiance à 95 % par bootstrap de [`r fmt(spearman_nb$ic_boot[1],3)` ; `r fmt(spearman_nb$ic_boot[2],3)`]. La corrélation est positive, significative et modérée.
+
+La courbe loess (Locally Estimated Scatterplot Smoothing) est une méthode de lissage qui trace la tendance moyenne des données sans imposer de forme à l'avance. Pour chaque point de l'axe horizontal, elle calcule la moyenne des points voisins. Ce que cette courbe révèle est que pour les ménages qui passent de 1 à 3 parcelles, chaque parcelle supplémentaire ajoute de la superficie de manière visible (la courbe monte). Mais au-delà de 5-6 parcelles, la courbe s'aplatit : chaque parcelle supplémentaire ajoute de moins en moins. C'est le phénomène de **fragmentation successorale**. Quand un ménage hérite de la terre de génération en génération, chaque nouvelle génération subdivise les parcelles existantes, produisant beaucoup de petites parcelles plutôt que peu de grandes.
+
+# Carte de la superficie médiane par État
+
+```{r fig-carte, fig.cap="Carte choroplèthe. Les noms des États et les superficies médianes sont affichés. Le vert foncé indique les grandes parcelles (Nord), le vert clair les petites (Sud)."}
+knitr::include_graphics(here("outputs","figures","fig06_carte_superficie.png"))
+```
+
+La carte montre un gradient Nord-Sud prononcé.En effet, les États du Nord (Niger : `r fmt(etat_max$sup_mediane,2)` ha, Kebbi, Yobe, Borno) ont des parcelles nettement plus grandes que ceux du Sud-Est (Imo, Anambra, Akwa Ibom : moins de 0,1 ha). Cette structure spatiale reflète le fait que le Nord dispose de vastes étendues de savane propices aux cultures céréalières, tandis que le Sud, plus dense et forestier, se prête à de petites parcelles de cultures vivrières intensives (manioc, igname, plantain).L'État de Niger (zone North Central) se distingue avec la médiane la plus élevée, cohérent avec sa vocation de grenier céréalier. 
+
+# Carte de la superficie médiane par région
+
+```{r fig-carte-region, fig.cap="Carte choroplèthe par zone géopolitique. "}
+knitr::include_graphics(here("outputs","figures","fig08_carte_region.png"))
+```
+
+```{r load-region, include=FALSE}
+reg_max <- sup_region |> arrange(desc(sup_mediane)) |> slice(1)
+reg_min <- sup_region |> arrange(sup_mediane) |> slice(1)
+```
+
+Nous observons que la zone `r reg_max$zone_f` affiche la médiane la plus élevée (`r fmt(reg_max$sup_mediane,2)` ha, n = `r format(reg_max$n_parcelles,big.mark=" ")` parcelles), tandis que la zone `r reg_min$zone_f` a la médiane la plus faible (`r fmt(reg_min$sup_mediane,2)` ha, n = `r format(reg_min$n_parcelles,big.mark=" ")`). **Le passage de 37 unités à 6 stabilise les médianes et rend les comparaisons plus fiables, car chaque zone contient au moins plusieurs centaines de parcelles.**
+
+# Tableau de synthèse
+
+```{r tab-gtsummary}
+readRDS(here("data","processed","tab_parcelles_word.rds"))
+```
+
+&nbsp;
+
+Ce tableau synthétise les caractéristiques des parcelles par milieu. La superficie médiane est légèrement plus élevée en milieu rural. L'héritage familial est plus fréquent en rural. La variable Source de la superficie montre la répartition des trois niveaux de mesure (GPS PH, GPS PP, déclaration).
+
+# Discussion
+
+## Confrontation avec le rapport officiel NBS/World Bank
+
+Les résultats sont cohérents avec la Table 6.4 du rapport officiel. Le nombre moyen de parcelles par ménage (`r fmt(stats_menage$nb_parcelles_moy,2)`) est proche de la référence (2,85). La superficie moyenne totale par ménage (`r fmt(stats_menage$sup_totale_moy,2)` ha) est dans l'ordre de grandeur de la référence (1,28 ha). Les écarts s'expliquent par le traitement des valeurs aberrantes (winsorisation au P99) et la méthode de conversion.Les autres statistiques oscillent généralement près de celles du rapport ou ne sont pas énormément différentes.
+
+## Biais potentiels
+
+L'inversion de la hiérarchie entre la mesure GPS et la déclaration transformerait radicalement les résultats. La mesure GPS est l'innovation majeure du LSMS-ISA : elle corrige les biais de perception. Sans elle, on dépendrait des facteurs de conversion pour traduire les heaps, ridges et stands en hectares, et toute imprécision dans ces coefficients se propagerait. Le biais de sélection GPS est documenté : les parcelles sans GPS sont concentrées dans le South East (inondations) et pour les parcelles éloignées du domicile. L'exclusion de certaines zones de Borno pour raisons sécuritaires signifie que les résultats représentent le Nigeria accessible en 2018-2019. La saisonnalité de la mesure (Post-Planting en saison des pluies, Post-Harvest en saison sèche) affecte la précision du signal GPS sous couvert forestier.
+
+## Implications pour les politiques publiques
+
+**Fragmentation foncière.** Les parcelles se divisent de génération en génération par héritage, surtout dans le Sud-Est où les médianes sont les plus basses (< 0,1 ha). À cette échelle, il devient difficile de produire suffisamment pour nourrir un ménage. Il faut faciliter le regroupement volontaire de parcelles voisines, par exemple via des incitations fiscales ou des programmes communautaires de remembrement.
+
+**Accès des femmes à la terre.** Seulement 20 % des parcelles sont gérées par des femmes, alors qu'elles représentent la moitié de la main-d'oeuvre agricole. Les femmes accèdent à la terre principalement par le don ou la location, des modes précaires qui découragent l'investissement à long terme. Les programmes de délivrance de titres fonciers devraient réserver un quota explicite aux femmes gestionnaires, comme l'a fait le Rwanda avec sa réforme foncière de 2008 qui a imposé la co-titularisation systématique des conjoints.
+
+**Politiques différenciées Nord-Sud.** Le Nord dispose de grandes parcelles mais de rendements faibles : la priorité y est l'accès à l'irrigation et aux intrants. Le Sud a des parcelles petites mais un potentiel de diversification (maraîchage, cultures de rente) : la priorité y est l'accompagnement technique et l'accès au crédit pour valoriser chaque hectare.
+
+# Conclusion
+
+L'agriculture nigériane est caractérisée par une multitude de petites parcelles, héritées de génération en génération, gérées principalement par des hommes, dans un gradient Nord-Sud marqué. La mesure GPS apportée par le LSMS-ISA corrige les biais de déclaration et produit des statistiques fiables. La fragmentation successorale, l'inégalité de genre dans l'accès à la terre, et les disparités régionales sont les trois défis structurels que cette analyse met en lumière.
+
+# Références
+
+[1] NBS & World Bank (2019). *Nigeria GHS Panel W4*. LSMS-ISA. DOI: 10.48529/1hgw-dq47
+
+[2] NBS & World Bank (2021). *Basic Information Document, GHS-Panel W4*. Rev. Oct 2021.
+
+[3] Carletto, C. et al. (2013). Fact or artefact. *J. Dev. Econ.*, 103, 254-261.
+
+[4] Kilic, T. et al. (2017). Missing(ness) in action. *World Dev.*, 92, 59-77. https://doi.org/10.1016/j.worlddev.2016.11.018
+
+
+              Superviseur : M. Aboubacar HEMA, IFPRI Research Scientist
