@@ -16,17 +16,16 @@ Pour des soucis de légèreté, les données ont été placées dans le `gitigno
 Vous pouvez accéder aux données via le catalogue  <https://microdata.worldbank.org/index.php/catalog/3557> de la banque mondiale.
 
 ## 2.Reproduction
-
-# A. Cloner le dépôt
+-> A. Cloner le dépôt
 ```bash
 git clone <url-du-depot>
-cd GROUPE16_TP2_LESLYE_NKWA_KEITA_LANCINA
+cd Projet-Statistique-sur-R-et-Python-2025-2026/TP\ 4/TP4_GROUPE12_LESLYE_NKWA_OUSMANE_OUATTARA
 ```
-# B. Restaurer l'environnement avec
+-> B. Restaurer l'environnement avec
 ```r
 renv::restore()
 ```
-# C. Télécharger les fichiers `.dta` (voir section Données sources) et les placer dans le dossier `raw` puis lancer le pipeline complet
+-> C. Télécharger les fichiers `.dta` (voir section Données sources) et les placer dans le dossier `raw` puis lancer le pipeline complet
 ```r
 source("main.R")
 ```
