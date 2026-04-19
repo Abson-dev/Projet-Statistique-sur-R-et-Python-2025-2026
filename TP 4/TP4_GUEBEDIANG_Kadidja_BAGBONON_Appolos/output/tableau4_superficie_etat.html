@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<style>body{background-color:white;}</style>
+
+
+</head>
+<body>
+<div id="mdlstyenmo" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+  <style>#mdlstyenmo table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#mdlstyenmo thead, #mdlstyenmo tbody, #mdlstyenmo tfoot, #mdlstyenmo tr, #mdlstyenmo td, #mdlstyenmo th {
+  border-style: none;
+}
+
+#mdlstyenmo p {
+  margin: 0;
+  padding: 0;
+}
+
+#mdlstyenmo .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #929292;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#mdlstyenmo .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#mdlstyenmo .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#mdlstyenmo .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#mdlstyenmo .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#mdlstyenmo .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+}
+
+#mdlstyenmo .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #929292;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#mdlstyenmo .gt_col_heading {
+  color: #FFFFFF;
+  background-color: #004D80;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#mdlstyenmo .gt_column_spanner_outer {
+  color: #FFFFFF;
+  background-color: #004D80;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#mdlstyenmo .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#mdlstyenmo .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#mdlstyenmo .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#mdlstyenmo .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#mdlstyenmo .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #929292;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#mdlstyenmo .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #929292;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+  vertical-align: middle;
+}
+
+#mdlstyenmo .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#mdlstyenmo .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#mdlstyenmo .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: dashed;
+  border-top-width: 1px;
+  border-top-color: #929292;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #929292;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #929292;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#mdlstyenmo .gt_stub {
+  color: #333333;
+  background-color: #D5D5D5;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #FFFFFF;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mdlstyenmo .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#mdlstyenmo .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#mdlstyenmo .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#mdlstyenmo .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mdlstyenmo .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #929292;
+}
+
+#mdlstyenmo .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#mdlstyenmo .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+}
+
+#mdlstyenmo .gt_grand_summary_row {
+  color: #333333;
+  background-color: #D5D5D5;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mdlstyenmo .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #929292;
+}
+
+#mdlstyenmo .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #929292;
+}
+
+#mdlstyenmo .gt_striped {
+  background-color: #F4F4F4;
+}
+
+#mdlstyenmo .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #929292;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #929292;
+}
+
+#mdlstyenmo .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#mdlstyenmo .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mdlstyenmo .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#mdlstyenmo .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mdlstyenmo .gt_left {
+  text-align: left;
+}
+
+#mdlstyenmo .gt_center {
+  text-align: center;
+}
+
+#mdlstyenmo .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#mdlstyenmo .gt_font_normal {
+  font-weight: normal;
+}
+
+#mdlstyenmo .gt_font_bold {
+  font-weight: bold;
+}
+
+#mdlstyenmo .gt_font_italic {
+  font-style: italic;
+}
+
+#mdlstyenmo .gt_super {
+  font-size: 65%;
+}
+
+#mdlstyenmo .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#mdlstyenmo .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#mdlstyenmo .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#mdlstyenmo .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#mdlstyenmo .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#mdlstyenmo .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#mdlstyenmo .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#mdlstyenmo .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#mdlstyenmo div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+  <table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_heading">
+      <td colspan="5" class="gt_heading gt_title gt_font_normal" style>Superficie médiane des exploitations agricoles par État</td>
+    </tr>
+    <tr class="gt_heading">
+      <td colspan="5" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>GHS-Panel Wave 4, Nigeria 2018/2019 — Estimations pondérées</td>
+    </tr>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="aÉtat">State code</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="Superficie-médiane-(ha)">Superficie médiane (ha)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="Nb-ménages-(éch.)">Nb ménages (éch.)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="Nb-ménages-(pondéré)">Nb ménages (pondéré)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="state_clean">state_clean</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="État" class="gt_row gt_center">26. Niger</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #990000; color: #FFFFFF;">2.465</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">78</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">528,979</td>
+<td headers="state_clean" class="gt_row gt_left">Niger</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">2. Adamawa</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #A52710; color: #FFFFFF;">2.218</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">16</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">20,740</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Adamawa</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">31. Plateau</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #AA3116; color: #FFFFFF;">2.127</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">64</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">716,343</td>
+<td headers="state_clean" class="gt_row gt_left">Plateau</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">8. Borno</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #B03C1D; color: #FFFFFF;">2.000</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">11</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">171,118</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Borno</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">5. Bauchi</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #B03C1E; color: #FFFFFF;">1.998</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">42</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">147,599</td>
+<td headers="state_clean" class="gt_row gt_left">Bauchi</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">33. Sokoto</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #B13F1F; color: #FFFFFF;">1.967</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">65</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">484,817</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Sokoto</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">30. Oyo</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #C05A34; color: #FFFFFF;">1.638</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">41</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">414,193</td>
+<td headers="state_clean" class="gt_row gt_left">Oyo</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">37. FCT</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #C25D36; color: #FFFFFF;">1.600</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">42</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">63,649</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">FCT</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">34. Taraba</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #C5623A; color: #FFFFFF;">1.536</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">84</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">409,064</td>
+<td headers="state_clean" class="gt_row gt_left">Taraba</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">15. Gombe</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #CA6B42; color: #FFFFFF;">1.414</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">93</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">214,751</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Gombe</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">29. Osun</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #D37C4F; color: #FFFFFF;">1.200</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">18</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">74,022</td>
+<td headers="state_clean" class="gt_row gt_left">Osun</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">23. Kwara</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #D47D51; color: #FFFFFF;">1.178</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">87</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">283,366</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Kwara</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">25. Nasarawa</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #D47E51; color: #FFFFFF;">1.170</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">4</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">56,288</td>
+<td headers="state_clean" class="gt_row gt_left">Nasarawa</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">21. Kebbi</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #D9885A; color: #FFFFFF;">1.035</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">70</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">397,558</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Kebbi</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">18. Kaduna</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #DD9061; color: #FFFFFF;">0.932</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">144</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">860,321</td>
+<td headers="state_clean" class="gt_row gt_left">Kaduna</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">24. Lagos</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #E19767; color: #000000;">0.840</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">2</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">6,575</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Lagos</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">17. Jigawa</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #E19767; color: #000000;">0.836</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">3</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">18,782</td>
+<td headers="state_clean" class="gt_row gt_left">Jigawa</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">20. Katsina</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #E19767; color: #000000;">0.834</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">23</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">142,031</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Katsina</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">7. Benue</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #E29969; color: #000000;">0.810</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">96</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">426,446</td>
+<td headers="state_clean" class="gt_row gt_left">Benue</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">22. Kogi</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #E6A06F; color: #000000;">0.717</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">69</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">189,989</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Kogi</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">27. Ogun</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #E7A473; color: #000000;">0.668</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">30</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">264,223</td>
+<td headers="state_clean" class="gt_row gt_left">Ogun</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">28. Ondo</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #E9A876; color: #000000;">0.618</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">50</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">505,282</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Ondo</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">19. Kano</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #E9A876; color: #000000;">0.618</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">16</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">93,080</td>
+<td headers="state_clean" class="gt_row gt_left">Kano</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">10. Delta</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #EAA977; color: #000000;">0.600</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">70</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">389,519</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Delta</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">36. Zamfara</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #EDAF7C; color: #000000;">0.524</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">11</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">54,513</td>
+<td headers="state_clean" class="gt_row gt_left">Zamfara</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">12. Edo</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #F1B784; color: #000000;">0.414</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">68</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">272,692</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Edo</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">35. Yobe</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #F1B885; color: #000000;">0.400</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">6</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">49,389</td>
+<td headers="state_clean" class="gt_row gt_left">Yobe</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">9. Cross River</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #F1B986; color: #000000;">0.388</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">53</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">292,611</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Cross River</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">13. Ekiti</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #F2BA86; color: #000000;">0.377</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">58</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">104,831</td>
+<td headers="state_clean" class="gt_row gt_left">Ekiti</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">6. Bayelsa</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #F6C38E; color: #000000;">0.265</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">12</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">176,382</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Bayelsa</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">32. Rivers</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #F6C48F; color: #000000;">0.248</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">14</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">318,941</td>
+<td headers="state_clean" class="gt_row gt_left">Rivers</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">11. Ebonyi</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #F7C590; color: #000000;">0.235</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">72</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">358,007</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Ebonyi</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">1. Abia</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #F8C893; color: #000000;">0.202</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">49</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">172,907</td>
+<td headers="state_clean" class="gt_row gt_left">Abia</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">14. Enugu</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #F9CB95; color: #000000;">0.163</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">92</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">456,912</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Enugu</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">4. Anambra</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #FACC97; color: #000000;">0.143</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">24</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">202,504</td>
+<td headers="state_clean" class="gt_row gt_left">Anambra</td></tr>
+    <tr><td headers="État" class="gt_row gt_center gt_striped">3. Akwa Ibom</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right gt_striped" style="background-color: #FACC97; color: #000000;">0.141</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right gt_striped">77</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right gt_striped">317,020</td>
+<td headers="state_clean" class="gt_row gt_left gt_striped">Akwa Ibom</td></tr>
+    <tr><td headers="État" class="gt_row gt_center">16. Imo</td>
+<td headers="Superficie médiane (ha)" class="gt_row gt_right" style="background-color: #FDD49E; color: #000000;">0.042</td>
+<td headers="Nb ménages (éch.)" class="gt_row gt_right">21</td>
+<td headers="Nb ménages (pondéré)" class="gt_row gt_right">130,280</td>
+<td headers="state_clean" class="gt_row gt_left">Imo</td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="gt_sourcenotes">
+      <td class="gt_sourcenote" colspan="5">Source : NBS/Banque Mondiale — GHS-Panel Wave 4 (2018/2019)</td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+</body>
+</html>
