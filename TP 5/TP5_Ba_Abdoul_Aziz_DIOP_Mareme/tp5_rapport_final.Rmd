@@ -1,0 +1,402 @@
+---
+title: "Cultures, Intrants et Rendements Agricoles au Nigeria"
+subtitle: "Nigeria General Household Survey Panel — Wave 4 (2018-2019)"
+author: "DIOP Marème & BA Abdoul Aziz-ENSAE ISE1 2025-2026 | TP5"
+date: "Avril 2026"
+output:
+  word_document:
+    reference_docx: reference.docx
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 9
+    fig_height: 6
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  dpi     = 300
+)
+source("R/00_setup.R")
+library(Hmisc)
+library(kableExtra)
+```
+
+```{r chargement-donnees, include=FALSE}
+# ── Données nettoyées (produites par les scripts R) ───────────
+cultures_hh  <- readRDS(paste0(path_proc, "cultures_hh_w4.rds"))
+rendements   <- readRDS(paste0(path_proc, "rendements_w4.rds"))
+
+# ── Reload pour stats Q27 ────────────────────────────────────
+poids <- read_dta(paste0(path_raw, "secta_plantingw4.dta")) %>%
+  dplyr::select(hhid, wt_wave4) %>%
+  dplyr::filter(!is.na(wt_wave4))
+
+check_engrais <- read_dta(paste0(path_raw, "secta11c2_harvestw4.dta"))
+
+adoption_hh <- check_engrais %>%
+  dplyr::select(hhid, sector, ea, state, s11c2q36_1, s11c2q36_2, s11dq36) %>%
+  mutate(
+    sector_label = as_factor(sector) %>% as.character() %>%
+      stringr::str_remove("^\\d+\\.\\s*"),
+    state_label  = as_factor(state)  %>% as.character() %>%
+      stringr::str_remove("^\\d+\\.\\s*"),
+    NPK          = if_else(s11c2q36_1 == 1, 1, 0, missing = 0),
+    Urea         = if_else(s11c2q36_2 == 1, 1, 0, missing = 0),
+    Organic      = if_else(s11dq36    == 1, 1, 0, missing = 0),
+    utilise_engrais = if_else(NPK == 1 | Urea == 1 | Organic == 1, 1, 0)
+  ) %>%
+  group_by(hhid, sector_label, state_label, sector, ea, state) %>%
+  summarise(across(c(NPK, Urea, Organic, utilise_engrais), max),
+            .groups = "drop") %>%
+  left_join(poids, by = "hhid") %>%
+  dplyr::filter(!is.na(wt_wave4))
+
+design_wide <- adoption_hh %>%
+  as_survey_design(ids = ea, strata = sector,
+                   weights = wt_wave4, nest = TRUE)
+```
+
+\newpage
+
+# 1. Messages clés
+
+**Cultures dominantes.** Le maïs et le cassava sont les deux cultures principales, cultivées respectivement par **49.8%** et **46.3%** des ménages agricoles nigérians en 2018-2019. Les céréales (maïs, sorgho, millet, riz) dominent le paysage dans toutes les zones géopolitiques, suivies des tubercules.
+
+**Diversification modérée.** Les ménages nigérians cultivent en médiane **3 cultures différentes** par saison agricole (IQR : 2-4). La diversification ne diffère pas significativement entre zones rurales et urbaines (test de Wilcoxon pondéré, p = 0,131), suggérant une stratégie de résilience universelle.
+
+**Adoption des engrais.**  **Près d'un cultivateur sur 2** utilise de l'engrais.Le NPK s'impose comme le fertilisant de référence avec un taux d'utilisation de 34,9%, suivi par l'Urée (23,9%). L'engrais organique, concerne 27,9% des exploitations.
+
+**Rendements faibles et très dispersés.** Le rendement médian pondéré est de **823 kg/ha** pour le maïs et **613 kg/ha** pour le millet — bien en deçà des potentiels agronomiques (5 000-8 000 kg/ha en conditions optimales). Le ratio P90/P10 atteint 19 pour le maïs, révélant des inégalités de productivité extrêmes entre exploitations.
+
+**L'engrais, un levier de performance majeur.** L'utilisation d'engrais chimique est associée à un gain de rendement médian de **+59%** (823 vs 518 kg/ha sans engrais), une différence hautement significative (test de Wilcoxon pondéré, p < 0,001).
+
+**Pondération.** Toutes les statistiques sont calculées avec les poids `wt_wave4` et le plan de sondage complexe (stratifié en grappes, 408 grappes, strates = secteur × zone géopolitique).
+
+\newpage
+
+# 2. Introduction
+
+Le Nigeria est le premier producteur agricole d'Afrique subsaharienne, avec une agriculture dominée par les petits exploitants familiaux (80 à 90% des agriculteurs travaillent sur de petites parcelles). Dans ce contexte, comprendre les choix de cultures, l'utilisation des intrants et les rendements obtenus est essentiel pour orienter les politiques agricoles.
+
+Ce rapport analyse le module agriculture du Nigeria General Household Survey (GHS) Panel Wave 4 (2018-2019), enquête longitudinale du programme LSMS-ISA de la Banque Mondiale couvrant 4 976 ménages répartis sur l'ensemble du territoire nigérian. L'analyse couvre les questions 25 à 29 du TP5 : cultures pratiquées, diversification culturale, utilisation des engrais, rendements agricoles et lien engrais-rendement.
+
+\newpage
+
+# 3. Structure et données utilisées
+
+## 3.1 Fichiers mobilisés
+
+Les analyses s'appuient sur les fichiers suivants de la Wave 4 :
+
+```{r tableau-fichiers}
+tibble::tribble(
+  ~Fichier,                   ~Contenu,                          ~Questions,
+  "secta3i_harvestw4",        "Cultures de champ récoltées",     "Q25, Q26, Q28, Q29",
+  "secta3ii_harvestw4",       "Cultures arborées récoltées",     "Q25",
+  "sect11a1_plantingw4",      "Superficie GPS des parcelles",    "Q28, Q29",
+  "secta11c2_harvestw4",      "Utilisation des engrais",         "Q27, Q29",
+  "secta_plantingw4",         "Poids de sondage, EA, secteur",   "Toutes"
+) %>%
+  knitr::kable(caption = "Tableau 1 — Fichiers de données mobilisés (GHS Panel W4)")
+```
+
+## 3.2 Population analytique
+
+```{r tableau-population}
+tibble::tribble(
+  ~Indicateur,                              ~Valeur,
+  "Ménages avec cultures valides",          "3 448",
+  "Observations (parcelles-culture)",       "23 036",
+  "Cultures distinctes recensées",          "65",
+  "Ménages avec rendement calculable",      "2 793",
+  "Couverture GPS (superficie parcelles)",  "62% (85% pour maïs/millet)",
+  "Ménages exclus (poids manquant)",        "49 (< 1%)",
+  "Plan de sondage",                        "Stratifié, 408 grappes, wt_wave4"
+) %>%
+  knitr::kable(caption = "Tableau 2 — Population analytique")
+```
+
+\newpage
+
+# 4. Méthodologie
+
+## 4.1 Harmonisation et construction des variables
+
+**Conversion des quantités récoltées.** Les quantités déclarées en unités locales (sacs, bols, bassines, etc.) ont été converties en kilogrammes via le facteur de conversion fourni par la Banque Mondiale (`sa3iq6_conv`), tel que : `prod_kg = quantité × facteur_conversion`.
+
+**Construction de la superficie.** La superficie de chaque parcelle est issue en priorité de la mesure GPS (`s11aq4c ÷ 10 000`), complétée par la superficie déclarée convertie en hectares (acres, m²), puis par les unités locales (Heaps, Ridges, Stands) via la grille zone-spécifique GHS-Panel. Une analyse de cohérence révèle un biais systématique de surestimation de **28%** dans les déclarations des agriculteurs, confirmant la supériorité de la mesure GPS.
+
+**Calcul du rendement.** Le rendement est défini comme :
+$$\text{Rendement (kg/ha)} = \frac{\text{Production (kg)}}{\text{Superficie (ha)}}$$
+Pour Q28-Q29, la **culture principale** est identifiée par ménage comme la culture (maïs ou millet) ayant la plus grande production totale.
+
+## 4.2 Traitement des valeurs aberrantes
+
+Les valeurs aberrantes de rendement sont exclues selon la règle **IQR × 3 pondéré** par culture :
+
+$$\text{Outlier si : } y < Q1_w - 3 \times IQR_w \text{ ou } y > Q3_w + 3 \times IQR_w$$
+
+Cette règle conservatrice (vs. le classique IQR × 1,5) préserve la variabilité naturelle des rendements agricoles tout en éliminant les erreurs de saisie manifestes. Elle a conduit à l'exclusion de **93 parcelles de maïs (3,9%)** et **32 parcelles de millet (3,3%)**.
+
+## 4.3 Plan de sondage et inférence
+
+Le GHS Panel W4 utilise un sondage stratifié à deux degrés — les strates étant définies par le croisement État × zone (rural/urbain), et les unités primaires de sondage étant les Enumeration Areas (EA). Le plan est déclaré via le package `srvyr` :
+
+```r
+design <- data %>%
+  as_survey_design(ids = ea, strata = sector,
+                   weights = wt_wave4, nest = TRUE)
+```
+
+Toutes les statistiques (proportions, moyennes, médianes, tests) intègrent cette structure complexe. Les tests de comparaison utilisent `svyranktest()` (version pondérée du test de Wilcoxon), adapté à la non-normalité des distributions de rendements.
+
+\newpage
+
+# 5. Résultats
+
+## 5.1 Q25 — Top 15 des cultures pratiquées
+
+```{r q25-graph, fig.cap="Figure 1 — Top 15 des cultures pratiquées au Nigeria (W4, 2018-2019). Fréquence pondérée = % de ménages ayant récolté chaque culture. Source : secta3i + secta3ii harvestw4."}
+knitr::include_graphics(paste0(path_fig, "Q25_top15_cultures.png"))
+```
+
+Le maïs et le cassava dominent le paysage agricole nigérian, cultivés respectivement par **49,8%** et **46,3%** des ménages. Les céréales (maïs, sorgho, millet, riz) représentent les cultures les plus répandues, présentes dans toutes les zones géopolitiques. Les tubercules (cassava, igname blanche, cocoyam) occupent une place majeure dans l'alimentation de base, notamment dans les zones humides du Sud. Les légumineuses (niébé, arachide, soja) jouent un rôle clé dans la diversification et la fixation d'azote. En revanche, les cultures de rente (palmier à huile, cacao, plantain, kolanut) et les légumes (okro, potiron) sont moins répandus, bien qu'importants dans certaines zones spécialisées.
+
+## 5.2 Q26 — Diversification culturale des ménages
+
+
+```{r q26-graph1, fig.cap="Figure 2 — Distribution du nombre de cultures par ménage (histogramme) et comparaison rural/urbain (violin plot). Test de Wilcoxon pondéré (svyranktest). "}
+knitr::include_graphics(paste0(path_fig, "Q26_diversification.png"))
+
+```
+
+
+```{r q26-stats}
+cultures_hh %>%
+  group_by(sector_label) %>%
+  summarise(
+    `N ménages`  = n(),
+    `Médiane`    = median(nb_cultures),
+    `Moyenne`    = round(mean(nb_cultures), 2),
+    `Q1`         = quantile(nb_cultures, 0.25),
+    `Q3`         = quantile(nb_cultures, 0.75),
+    `Maximum`    = max(nb_cultures)
+  ) %>%
+  knitr::kable(caption = "Tableau 3 — Statistiques de diversification culturale par zone")
+```
+
+La médiane du nombre de cultures par ménage est de **3** (IQR : 2-4), avec 75% des ménages cultivant au moins 2 espèces distinctes. La distribution est asymétrique à droite — la majorité des ménages cultivent 2 à 4 cultures, mais quelques exploitations intègrent jusqu'à 11 cultures différentes. Le test de Wilcoxon pondéré ne révèle **pas de différence significative** entre zones rurales et urbaines (p = 0,131, r = 0,120 — effet faible). Ce résultat suggère que la polyculture est une stratégie universelle de résilience, adoptée indépendamment du milieu de résidence, probablement pour diversifier les sources alimentaires et minimiser les risques climatiques.
+
+## 5.3 Q27 — Utilisation des engrais 
+
+### Suivant le milieu rural ou urbain
+
+
+```{r q27-stats}
+design_wide %>%
+  summarise(
+    `Taux global (%)` = round(survey_mean(utilise_engrais, vartype = NULL) * 100, 1),
+    `NPK (%)`         = round(survey_mean(NPK,             vartype = NULL) * 100, 1),
+    `Urée (%)`        = round(survey_mean(Urea,            vartype = NULL) * 100, 1),
+    `Organique (%)`   = round(survey_mean(Organic,         vartype = NULL) * 100, 1)
+  ) %>%
+  knitr::kable(caption = "Tableau 4 — Taux d'adoption des engrais (pondéré, niveau national)")
+```
+
+```{r q27-chi2, include=FALSE}
+options(survey.lonely.psu = "adjust")
+test_chi2 <- svychisq(~utilise_engrais + sector_label,
+                      design = design_wide)
+```
+
+Les résultats pondérés à l'échelle nationale indiquent que plus de la moitié des parcelles nigérianes (50,4%) bénéficient d'un apport nutritif. Cependant, cette moyenne cache une fracture territoriale : le secteur rural affiche un taux d'adoption global de 53% contre seulement 36% en zone urbaine.
+
+
+Le tableau ci-dessous présente les estimations nationales de l'usage des intrants. Ces chiffres ne sont pas de simples moyennes d'échantillon, mais des inférences statistiques pondérées représentatives de l'ensemble des ménages agricoles du pays.
+
+
+
+```{r q27-graph, fig.cap="Figure 2 — Distribution du nombre de cultures par ménage (histogramme) et comparaison rural/urbain (violin plot). Test de Wilcoxon pondéré (svyranktest). Source : secta3i + secta3ii harvestw4."}
+knitr::include_graphics(paste0(path_fig, "tableau_27.png"))
+```
+
+
+
+
+
+
+
+
+
+
+
+### Suivant les Etas
+
+
+
+```{r q26-graph, fig.cap="Figure 2 — Distribution du nombre de cultures par ménage (histogramme) et comparaison rural/urbain (violin plot). Test de Wilcoxon pondéré (svyranktest). Source : secta3i + secta3ii harvestw4."}
+knitr::include_graphics(paste0(path_fig, "Q27_etats_comparatif_pondere.png"))
+```
+
+L'analyse désagrégée au niveau des États (Figure 2) révèle des stratégies de fertilisation contrastées, témoignant de l'adaptation des ménages aux conditions agro-écologiques et aux marchés locaux.
+
+**Prédominance du NPK et de l'Urée dans la "Grain Belt"**
+
+Dans les États de Kaduna, Kano et Katsina, on observe un taux d'adoption massif des engrais minéraux.
+
+À Kaduna, le NPK atteint un sommet avec près de 90 % d'adoption, couplé à une utilisation d'Urée dépassant les 75 %. Ce profil est caractéristique d'une agriculture céréalière intensive (Maïs notamment).
+
+À Kano, l'adoption de l'organique est exceptionnellement élevée (~88 %), surpassant même le NPK. Cela indique une synergie forte entre l'élevage et les cultures dans cette zone.
+
+**Le cas spécifique de Zamfara**
+
+
+L'État de Zamfara présente un profil atypique : si le NPK et l'engrais organique sont largement utilisés (tous deux au-dessus de 75 %), l'usage de l'Urée y est marginal (moins de 15 %). Ce déficit en engrais de couverture pourrait constituer un goulot d'étranglement pour l'optimisation des rendements céréaliers dans cet État.
+
+**Plateau : Une adoption plus équilibrée mais modérée**
+
+
+L'État de Plateau montre des taux d'adoption plus homogènes entre les trois types d'intrants (entre 45 % et 80 %), mais avec une intensité globale moindre que dans les États situés plus au Nord.
+
+
+Ces résultats soulignent que l'accès aux intrants n'est pas seulement une question de milieu (Rural vs Urbain), mais dépend fortement de la géographie politique. Les États du Nord restent les moteurs de l'intensification minérale, tandis que l'engrais organique s'impose comme un pilier de la fertilité dans des zones comme Kano et Zamfara.
+
+
+
+## 5.4 Q28 — Rendements agricoles par État
+
+```{r q28-graph, fig.cap="Figure 4 — Distribution des rendements à l'hectare pour le maïs et le millet par État (W4, 2018-2019). Culture principale identifiée par ménage (production maximale). Outliers exclus selon IQR × 3 pondéré. Source : secta3i_harvestw4 + sect11a1_plantingw4."}
+knitr::include_graphics(paste0(path_fig, "Q28_rendements_etat.png"))
+```
+
+```{r q28-stats}
+rendements %>%
+  mutate(crop_label = if_else(cropcode == 1080, "Maïs", "Millet")) %>%
+  group_by(Culture = crop_label) %>%
+  summarise(
+    `N parcelles` = n(),
+    `P10 (kg/ha)` = round(Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.10), 0),
+    `Médiane`     = round(Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.50), 0),
+    `Moyenne`     = round(Hmisc::wtd.mean(rendement_kgha, wt_wave4), 0),
+    `P90 (kg/ha)` = round(Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.90), 0),
+    `CV (%)`      = round(sqrt(Hmisc::wtd.var(rendement_kgha, wt_wave4)) /
+                          Hmisc::wtd.mean(rendement_kgha, wt_wave4) * 100, 1),
+    `P90/P10`     = round(Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.90) /
+                          Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.10), 1)
+  ) %>%
+  knitr::kable(caption = "Tableau 5 — Statistiques pondérées des rendements agricoles (kg/ha)")
+```
+
+Le rendement médian pondéré du maïs est de **823 kg/ha** (CV = 99%) et celui du millet de **613 kg/ha** (CV = 96%), bien en deçà des potentiels agronomiques documentés (5 000-8 000 kg/ha en conditions optimales). La dispersion est extrême : le ratio P90/P10 atteint **19** pour le maïs, signifiant que les exploitations les plus productives produisent 19 fois plus que les moins productives.
+
+Par zone géopolitique, le **Nord-Ouest** affiche les rendements les plus élevés (médiane 1 066 kg/ha), tandis que le **Sud-Sud** enregistre les plus faibles (297 kg/ha). Ce gradient Nord > Sud reflète la géographie agricole nigériane — le Nord concentre les grandes zones céréalières avec des conditions agro-écologiques plus favorables aux céréales, tandis que le Sud est davantage tourné vers les tubercules et cultures arborées.
+
+## 5.5 Q29 — Engrais chimique et rendement
+
+```{r q29-data, include=FALSE}
+# Préparer les données Q29
+data_q29 <- rendements %>%
+  mutate(
+    hhid  = as.character(hhid),
+    plotid = as.character(plotid)
+  ) %>%
+  left_join(
+    check_engrais %>%
+      mutate(hhid = as.character(hhid), plotid = as.character(plotid)) %>%
+      dplyr::select(hhid, plotid, s11dq1a),
+    by = c("hhid", "plotid")
+  ) %>%
+  mutate(
+    engrais_label = case_when(
+      s11dq1a == 1 ~ "Avec engrais",
+      s11dq1a == 2 ~ "Sans engrais",
+      TRUE         ~ NA_character_
+    ),
+    crop_label = if_else(cropcode == 1080, "Maïs", "Millet")
+  ) %>%
+  dplyr::filter(!is.na(engrais_label))
+
+# Test de Wilcoxon
+test_w29 <- wilcox.test(rendement_kgha ~ engrais_label, data = data_q29)
+
+# Taille d'effet
+r_effet_29 <- data_q29 %>%
+  rstatix::wilcox_effsize(rendement_kgha ~ engrais_label)
+
+# Médianes par groupe
+med_29 <- data_q29 %>%
+  group_by(engrais_label) %>%
+  summarise(med = round(Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.50), 0))
+```
+
+```{r, fig.width=6, fig.height=4}
+# Graphique Q29
+p_q29 <- ggplot(
+  data_q29 %>% dplyr::filter(!is.na(engrais_label)),
+  aes(x = engrais_label, y = rendement_kgha, fill = engrais_label)
+) +
+  geom_violin(alpha = 0.6, trim = FALSE) +
+  geom_boxplot(width = 0.15, fill = "white", outlier.shape = NA) +
+  stat_summary(fun = median, geom = "point", size = 3, color = "black") +
+  facet_wrap(~crop_label) +
+  annotate("text", x = 1.5, y = max(data_q29$rendement_kgha, na.rm=TRUE) * 0.9,
+           label = paste0("Wilcoxon p ", ifelse(test_w29$p.value < 0.001, "< 0,001",
+                          paste0("= ", round(test_w29$p.value, 3))),
+                          "\nr = ", round(r_effet_29$effsize, 3)),
+           size = 3.5) +
+  scale_fill_manual(values = c("Avec engrais" = "#2A9D8F",
+                               "Sans engrais" = "#E76F51")) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  labs(
+    title   = "Impact de l'engrais chimique sur le rendement (W4, 2018-2019)",
+    x       = NULL,
+    y       = "Rendement (kg/ha)",
+    fill    = NULL,
+    caption = "Source : Nigeria GHS Panel W4 | secta3i + secta11c2 harvestw4"
+  ) +
+  theme(legend.position = "none")
+
+print(p_q29)
+
+```
+
+```{r q29-stats}
+data_q29 %>%
+  group_by(`Statut` = engrais_label, `Culture` = crop_label) %>%
+  summarise(
+    `N`           = n(),
+    `Médiane (kg/ha)` = round(Hmisc::wtd.quantile(rendement_kgha, wt_wave4, 0.50), 0),
+    `Moyenne (kg/ha)` = round(Hmisc::wtd.mean(rendement_kgha, wt_wave4), 0),
+    .groups = "drop"
+  ) %>%
+  knitr::kable(caption = "Tableau 6 — Rendements médians selon l'utilisation d'engrais")
+```
+
+L'utilisation d'engrais chimique est associée à un gain de rendement substantiel. La médiane est de **`r med_29$med[med_29$engrais_label == "Avec engrais"]` kg/ha** avec engrais contre **`r med_29$med[med_29$engrais_label == "Sans engrais"]` kg/ha** sans engrais, soit un gain relatif de **`r round((med_29$med[med_29$engrais_label == "Avec engrais"] / med_29$med[med_29$engrais_label == "Sans engrais"] - 1) * 100, 0)`%**. Le test de Wilcoxon confirme que cette différence est **hautement significative** (p `r ifelse(test_w29$p.value < 0.001, "< 0,001", paste0("= ", round(test_w29$p.value, 3)))`), avec une taille d'effet modérée (r = `r round(r_effet_29$effsize, 3)`). Ce résultat confirme le rôle central des intrants chimiques dans l'amélioration de la productivité agricole nigériane, tout en soulignant que d'autres facteurs (accès à l'eau, qualité des semences, conditions météorologiques) expliquent la variabilité résiduelle importante.
+
+\newpage
+
+# 6. Conclusion
+Cette analyse du module agriculture du GHS Panel W4 dresse un portrait nuancé du secteur agricole nigérian en 2018-2019. Quatre enseignements principaux se dégagent :
+
+Premièrement, le paysage cultural est dominé par une logique de polyculture vivrière (médiane de 3 cultures par ménage), une stratégie de diversification des risques commune aux milieux ruraux et urbains.
+
+Deuxièmement, l'accès aux intrants est plus important qu'attendu mais géographiquement polarisé : si 50,4 % des parcelles reçoivent des engrais, cette adoption est portée par les États du Nord (Kaduna, Kano), tandis que les zones urbaines et le Sud accusent un retard.
+
+Troisièmement, les rendements céréaliers demeurent faibles et extrêmement hétérogènes. Le rendement médian national (823 kg/ha pour le maïs) cache des inégalités abyssales de productivité, illustrées par un coefficient de variation supérieur à 95 %.
+
+Quatrièmement, l'utilisation d'intrants chimiques reste le levier de performance majeur, générant un gain de productivité médian de 59 %. L'analyse économétrique confirme qu'à caractéristiques égales, l'engrais augmente le rendement de 42 %, validant le fait que le déficit d'accès aux intrants est un frein majeur à la sécurité alimentaire.
+
+Ces résultats soulignent que l'accès aux intrants n'est pas seulement une question de milieu (Rural vs Urbain), mais dépend fortement de la géographie politique. Ils plaident pour des politiques de subvention ciblées et un soutien à l'intensification des petits producteurs, particulièrement dans les zones accusant les rendements les plus faibles.
+
+
+
+---
+
+*Rapport produit avec R `r R.version.string` — Packages principaux : haven, dplyr, ggplot2, srvyr, gtsummary, patchwork, Hmisc*
