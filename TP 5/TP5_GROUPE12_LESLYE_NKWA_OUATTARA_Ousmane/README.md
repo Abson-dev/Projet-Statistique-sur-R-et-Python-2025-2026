@@ -1,13 +1,13 @@
 
 ---
 
-# Nigeria GHS-Panel Analysis | TP 5 : Cultures, Intrants et Rendements
+# TP 5 : Cultures, Intrants et Rendements du Nigéria
 
 Ce projet réalise une analyse statistique approfondie du secteur agricole au Nigeria, en se basant sur les données de la **vague 4 (2018-2019)** de l'enquête *General Household Survey (GHS) Panel* de la Banque Mondiale (LSMS-ISA). 
 
 L'étude se concentre sur trois piliers : la diversité des cultures, l'adoption des intrants chimiques et l'analyse de la productivité (rendements) du maïs et du millet.
 
-## 📌 Objectifs du TP
+##  Objectifs du TP
 * **Cartographie des cultures** : Identifier et classifier les 15 cultures prédominantes.
 * **Diversification** : Mesurer l'indice de diversification culturale par ménage et comparer les milieux urbains et ruraux.
 * **Modernisation** : Analyser les taux d'utilisation des engrais (organiques vs chimiques) et leur impact réel sur la productivité.
@@ -16,7 +16,7 @@ L'étude se concentre sur trois piliers : la diversité des cultures, l'adoption
 
 ---
 
-## 📁 Structure du Projet
+## Structure du Projet
 Le projet est organisé de manière modulaire pour garantir la reproductibilité :
 
 ```text
@@ -39,7 +39,7 @@ PROJET_TP5_NIGERIA/
 
 ---
 
-## 🛠️ Installation et Prérequis
+##  Installation et Prérequis
 
 ### 1. Logiciels nécessaires
 * **R** (version 4.0 ou supérieure)
@@ -55,7 +55,7 @@ install.packages(c("tidyverse", "haven", "here", "labelled", "rstatix",
 
 ---
 
-## 🚀 Comment exécuter le projet ?
+##  Comment exécuter le projet ?
 
 Il n'est pas nécessaire de lancer les scripts un par un. Tout a été automatisé :
 
@@ -71,7 +71,7 @@ Il n'est pas nécessaire de lancer les scripts un par un. Tout a été automatis
 
 ---
 
-## 📊 Méthodologie Statistique
+##  Méthodologie Statistique
 * **Nettoyage des données** : Les rendements extrêmes sont traités par la méthode de l'Écart Interquartile (**IQR × 3**) pour éviter de biaiser les moyennes.
 * **Tests de Comparaison** : 
     * **Test de Wilcoxon-Mann-Whitney** pour comparer les rendements et la diversification (distributions non normales).
