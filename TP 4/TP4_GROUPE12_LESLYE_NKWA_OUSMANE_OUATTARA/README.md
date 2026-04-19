@@ -1,4 +1,4 @@
-# TP 4 : Parcelles agricoles, superficie et tenure foncière
+# TP 4 : Analyse de la tenure foncière et de la superficie des parcelles agricoles au Nigeria
 
 Ce TP est pour le compte du cours intitulé **Projet Statistique avec R & Python**, dispensé par M. Aboubacar HEMA qui est research scientist à IFPRI.
 
