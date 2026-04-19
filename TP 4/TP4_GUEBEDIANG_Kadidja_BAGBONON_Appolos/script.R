@@ -1,21 +1,12 @@
-# =============================================================================
-# GHS-PANEL NIGERIA — ANALYSE 4
-# Parcelles agricoles : superficie, tenure foncière, utilisation des terres
-# Wave 4 (Post-Planting & Post-Harvest) — Questions 19, 20, 21, 23, 24
-# (Q22 intentionnellement absente sur instruction)
-# =============================================================================
-# Auteur  : ENSAE ISE 1 — 2025-2026
-# Données : Nigeria GHS Panel W4 | NBS / Banque Mondiale LSMS-ISA
-# =============================================================================
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 0. CHARGEMENT DES PACKAGES
-# ─────────────────────────────────────────────────────────────────────────────
+
 #install.packages("dplyr")
 #library(dplyr)
 #install.packages("rlang")
-#install.packages("remotes")
-#remotes::install_github("ropensci/rnaturalearthhires")
+install.packages("remotes")
+remotes::install_github("ropensci/rnaturalearthhires")
 packages_requis <- c(
   "haven", "survey", "srvyr", "ggplot2", "scales",
   "gtsummary", "patchwork", "ggrepel", "naniar", "forcats",
@@ -33,9 +24,9 @@ dir.create("output", showWarnings = FALSE)
 
 #sessionInfo()
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 1. IMPORTATION DES DONNÉES
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 url_base <- "https://raw.githubusercontent.com/KadidjaGUEBEDIANG/GHS/main/"
 
@@ -62,9 +53,8 @@ for (i in seq_along(fichiers)) {
 cat("✓ Données importées\n")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. NETTOYAGE & PRÉPARATION (pré-Q19)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # --- Identifier les ménages à interview incomplète ---
 menages_interview_incomplet <- secta_plantingw4 %>%
@@ -181,10 +171,9 @@ cat("✓ Base principale construite :",
     n_distinct(secta1_harvestw4_sup$hhid), "ménages\n")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. DESIGN D'ENQUÊTE (pondération)
 #    Note : on utilise srvyr pour avoir dplyr-friendly survey
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # Design parcelle (1 ligne = 1 parcelle)
 design_parcelle <- svydesign(
@@ -245,9 +234,9 @@ caption_note <- paste0(
 )
 
 
-# =============================================================================
+
 # QUESTION 19 — PRÉPARATION : VALEURS MANQUANTES & ABERRANTES
-# =============================================================================
+
 
 cat("\n===== QUESTION 19 : VALEURS MANQUANTES & ABERRANTES =====\n")
 
@@ -315,9 +304,9 @@ svyquantile(~superficie, design_parcelle,
             na.rm = TRUE)
 
 
-# =============================================================================
+
 # QUESTION 20 — ANALYSE UNIVARIÉE DE LA SUPERFICIE
-# =============================================================================
+
 
 cat("\n===== QUESTION 20 : ANALYSE UNIVARIÉE DE LA SUPERFICIE =====\n")
 
@@ -339,10 +328,8 @@ deciles_menage <- svyquantile(
 cat("\nDéciles superficie/ménage (pondérés) :\n")
 print(deciles_menage)
 
-# Tableau gtsummary PONDÉRÉ avec tbl_svysummary ─────────────────────────────
-#  → tbl_svysummary() utilise les poids du design : les effectifs affichés
-#    sont des effectifs pondérés (représentant les millions de ménages nigérians)
-#    tandis que tbl_summary() aurait affiché les effectifs bruts de l'échantillon.
+# Tableau gtsummary PONDÉRÉ avec tbl_svysummary 
+
 
 srvyr_stats <- as_survey_design(
   svydesign(
@@ -458,9 +445,6 @@ ggsave("output/fig1b_histogramme_menage.png",
 cat("✓ Figure 1b sauvegardée\n")
 
 # ─── 20C. Boxplot par zone géopolitique (quantiles pondérés calculés manuellement) ───
-# Note : ggplot2::geom_boxplot() accepte weight= dans aes() mais il l'applique
-# comme fréquence de comptage, pas comme probabilité de sondage.
-# Pour des boxplots vraiment pondérés, on calcule les quantiles via svyquantile.
 
 quantiles_ponderes_zone <- secta1_harvestw4_sup %>%
   filter(!is.na(superficie), superficie > 0, !is.na(wt_wave4)) %>%
@@ -565,9 +549,8 @@ ggsave("output/fig3_scatter_gps_vs_declare.png",
 cat("✓ Figure 3 sauvegardée — ρ Spearman :", round(rho, 4), "\n")
 
 
-# =============================================================================
+
 # QUESTION 21 — RÉGIME DE TENURE FONCIÈRE
-# =============================================================================
 
 cat("\n===== QUESTION 21 : RÉGIME DE TENURE FONCIÈRE =====\n")
 
@@ -696,9 +679,8 @@ ggsave("output/fig5_tenure_par_milieu.png",
 cat("✓ Figure 5 sauvegardée\n")
 
 
-# =============================================================================
 # QUESTION 23 — SUPERFICIE TOTALE DU MÉNAGE vs NOMBRE DE PARCELLES
-# =============================================================================
+
 
 cat("\n===== QUESTION 23 : SUPERFICIE × NOMBRE DE PARCELLES =====\n")
 
@@ -789,11 +771,7 @@ gt::gtsave(tbl_q23, "output/tableau3_superficie_nparcelles.html")
 cat("✓ Tableau 3 sauvegardé\n")
 
 
-# =============================================================================
 # QUESTION 24 — CARTE CHOROPLÈTHE : SUPERFICIE MÉDIANE PAR ÉTAT
-# =============================================================================
-# Remplacement de la heatmap par une carte choroplèthe du Nigeria
-# → plus intuitive, exploite la dimension spatiale des données
 
 cat("\n===== QUESTION 24 : CARTE CHOROPLÈTHE — SUPERFICIE MÉDIANE PAR ÉTAT =====\n")
 
@@ -827,8 +805,6 @@ cat("Médiane pondérée de superficie par État :\n")
 print(mediane_etat, n = 40)
 
 # ─── 24B. Récupération du shapefile du Nigeria ───
-# On utilise rnaturalearth (niveau 1 = États)
-# Fallback si rnaturalearth ne charge pas : URL GitHub GeoJSON
 
 nigeria_sf <- tryCatch({
   ne_states(country = "nigeria", returnclass = "sf")
@@ -851,13 +827,11 @@ if (!is.null(nigeria_sf)) {
 }
 
 # ─── 24C. Harmonisation des noms d'États ───
-# Les noms dans GHS (state_label) peuvent différer légèrement des noms dans le shapefile.
-# On crée un dictionnaire de correspondance.
+
 
 if (!is.null(nigeria_sf)) {
   
   # Identifier la colonne des noms d'États dans le shapefile
-  # (souvent "name" ou "NAME_1" selon la source)
   col_nom_sf <- names(nigeria_sf)[
     names(nigeria_sf) %in% c("name", "NAME_1", "state_name", "admin1Name")
   ][1]
@@ -1096,39 +1070,5 @@ tbl_heatmap <- mediane_etat %>%
   gt::opt_stylize(style = 3)
 
 gt::gtsave(tbl_heatmap, "output/tableau4_superficie_etat.html")
-cat("✓ Tableau 4 sauvegardé\n")
-
-
-# =============================================================================
-# RÉSUMÉ FINAL
-# =============================================================================
-
-cat("\n")
-cat("═══════════════════════════════════════════════════════════════════\n")
-cat("  ANALYSE 4 TERMINÉE — FICHIERS DANS ./output/\n")
-cat("═══════════════════════════════════════════════════════════════════\n")
-cat("\nTableaux :\n")
-cat("  • tableau1_stats_superficie.html  (pondéré — tbl_svysummary)\n")
-cat("  • tableau2_tenure.html            (pondéré — tbl_svysummary)\n")
-cat("  • tableau3_superficie_nparcelles.html\n")
-cat("  • tableau4_superficie_etat.html\n")
-cat("\nFigures :\n")
-cat("  • fig0_vis_miss.png               (Q19 — carte NA)\n")
-cat("  • fig1a_histogramme_parcelle.png  (Q20)\n")
-cat("  • fig1b_histogramme_menage.png    (Q20)\n")
-cat("  • fig2_boxplot_zone.png           (Q20 — quantiles pondérés)\n")
-cat("  • fig3_scatter_gps_vs_declare.png (Q20)\n")
-cat("  • fig4_barplot_tenure.png         (Q21)\n")
-cat("  • fig5_tenure_par_milieu.png      (Q21)\n")
-cat("  • fig6_scatter_superficie_nparcelles.png (Q23)\n")
-cat("  • fig7_carte_superficie_etat.png  (Q24 — carte choroplèthe)\n")
-cat("  • fig7b_carte_superficie_etat_labels.png (Q24 — avec étiquettes)\n")
-cat("  • fig8_dotplot_superficie_etat.png (Q24 — dot plot Cleveland)\n")
-cat("\n")
-cat("NOTES IMPORTANTES SUR LES PONDÉRATIONS :\n")
-cat("  → tbl_summary()    = effectifs BRUTS (milliers = taille échantillon)\n")
-cat("  → tbl_svysummary() = effectifs PONDÉRÉS (millions = population Nigeria)\n")
-cat("  → geom_boxplot(weight=) = pondération de comptage uniquement\n")
-cat("  → Pour des quantiles pondérés exacts : calculer via svyquantile()\n")
-cat("     ou la formule cumsum(w)/sum(w) >= 0.5 utilisée ici pour les boîtes.\n")
+cat(" Tableau 4 sauvegardé\n")
 
