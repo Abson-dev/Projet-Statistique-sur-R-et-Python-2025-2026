@@ -80,9 +80,7 @@ Il n'est pas nécessaire de lancer les scripts un par un. Tout a été automatis
 
 ---
 
-## ✍️ Auteurs
+##  Auteurs
 * **OUATTARA Ousmane** - Élève Ingénieur Statisticien Économiste (ENSAE Dakar)
 * **LESLYE NKWA** - Élève Ingénieur Statisticien Économiste (ENSAE Dakar)
 
----
-*Dernière mise à jour : Avril 2026*
