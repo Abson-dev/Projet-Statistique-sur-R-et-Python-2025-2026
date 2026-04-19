@@ -1,0 +1,465 @@
+---
+title: "TP5 — Cultures, Intrants et Rendements Agricoles"
+subtitle: "Nigeria GHS Panel Wave 4 (2018-2019) | Post-Harvest"
+author: "NGUEAJIO David et Serigne Ndame LO"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = FALSE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.width  = 10,
+  fig.height = 6,
+  fig.align  = "center",
+  dpi        = 150
+)
+```
+
+# Introduction
+
+Ce rapport analyse les **cultures pratiquées, les intrants agricoles utilisés et les rendements obtenus** par les exploitations agricoles nigérianes à partir du *Nigeria General Household Survey (GHS) Panel — Wave 4 (2018-2019)*, collecté dans le cadre du programme LSMS-ISA de la Banque Mondiale.
+
+> **Note sur les fichiers de données.** L'énoncé mentionne les fichiers `secta3`, `secta5a` et `secta9a` qui correspondent aux conventions de nommage des vagues 1 à 3. En vague 4, la structure du questionnaire agricole a été entièrement renumérotée (sections 11A à 11L). Les fichiers réellement disponibles et utilisés ici sont :
+> - `secta3ii_harvestw4.dta` — roster des cultures par parcelle  
+> - `secta11c2_harvestw4.dta` — intrants (engrais) par parcelle  
+> - `secta9a_harvestw4.dta` — production récoltée par culture  
+> - `secta1_harvestw4.dta` — roster des parcelles (superficie)
+
+---
+
+# Chargement des packages et des données
+
+```{r packages}
+library(haven)      # lecture fichiers .dta
+library(dplyr)      # manipulation données
+library(tidyr)      # pivots
+library(forcats)    # facteurs ordonnés
+library(ggplot2)    # visualisations
+library(scales)     # formatage axes
+library(patchwork)  # assemblage graphiques
+library(rstatix)    # tests statistiques
+library(ggpubr)     # annotations statistiques
+library(gtsummary)  # tableaux résumés
+```
+
+```{r chargement-donnees}
+# --- Chemins (adapter si besoin) ---
+path_raw <- "../data/raw/"
+
+# Fichier 1 : cultures par parcelle (Wave 4)
+# Note BM : correspond à sect11f_plantingw4 dans le catalogue officiel,
+# mais le fichier distribué porte le nom secta3ii_harvestw4
+df_crops <- read_dta(paste0(path_raw, "secta3ii_harvestw4.dta"))
+
+# Fichier 2 : intrants / engrais (Section 11C2 du questionnaire W4)
+df_fert  <- read_dta(paste0(path_raw, "secta11c2_harvestw4.dta"))
+
+# Fichier 3 : production récoltée (harvest questionnaire Wave 4)
+df_prod  <- read_dta(paste0(path_raw, "secta9a_harvestw4.dta"))
+
+# Fichier 4 : roster des parcelles (superficie GPS et déclarée)
+df_plots <- read_dta(paste0(path_raw, "secta1_harvestw4.dta"))
+
+# Encodage officiel du secteur (questionnaire W4, Section A1, Q4) :
+# Urban = 1 | Rural = 2
+sector_labels <- c("1" = "Urbain", "2" = "Rural")
+```
+
+```{r apercu}
+cat("=== df_crops ===\n"); glimpse(df_crops)
+cat("=== df_fert ===\n");  glimpse(df_fert)
+cat("=== df_prod ===\n");  glimpse(df_prod)
+cat("=== df_plots ===\n"); glimpse(df_plots)
+```
+
+---
+
+# Tâche 25 — Les 15 cultures les plus fréquentes (W4) {#t25}
+
+## Construction du classement
+
+```{r t25-top15}
+# Table de correspondance codes → noms et types de cultures
+# Source : LSMS Crop Classification & questionnaire W4
+crop_labels <- tibble(
+  cropcode = c(1080, 1050, 1070, 1110, 1100, 1040, 1030,
+               2010, 2040, 2030, 2020, 2050,
+               1020, 1120, 1060, 1140,
+               5010, 5050, 3020, 3010),
+  crop_name = c("Maïs", "Mil", "Sorgho", "Riz", "Blé", "Patate douce",
+                "Taro/Cocoyam", "Niébé", "Arachide", "Soja", "Haricot",
+                "Pois bambara", "Manioc", "Igname", "Macabo", "Plantain",
+                "Coton", "Canne à sucre", "Tomate", "Légumes feuilles"),
+  crop_type = c("Céréale","Céréale","Céréale","Céréale","Céréale",
+                "Tubercule","Tubercule",
+                "Légumineuse","Légumineuse","Légumineuse","Légumineuse","Légumineuse",
+                "Tubercule","Tubercule","Tubercule","Tubercule",
+                "Culture de rente","Culture de rente",
+                "Maraîchère","Maraîchère")
+)
+
+# Fréquence des cultures (nb de parcelles plantées avec chaque culture)
+top15 <- df_crops %>%
+  filter(!is.na(cropcode)) %>%
+  count(cropcode, name = "freq") %>%
+  arrange(desc(freq)) %>%
+  slice_head(n = 15) %>%
+  left_join(crop_labels, by = "cropcode") %>%
+  mutate(
+    crop_name = if_else(is.na(crop_name),
+                        paste("Code", cropcode), crop_name),
+    crop_type = if_else(is.na(crop_type), "Autre", crop_type),
+    prop      = freq / sum(freq),
+    crop_name = fct_reorder(crop_name, freq)
+  )
+
+top15
+```
+
+## Visualisation
+
+```{r t25-plot, fig.height=7}
+type_colors <- c(
+  "Céréale"         = "#2196F3",
+  "Légumineuse"     = "#4CAF50",
+  "Tubercule"       = "#FF9800",
+  "Culture de rente"= "#9C27B0",
+  "Maraîchère"      = "#F44336",
+  "Autre"           = "#9E9E9E"
+)
+
+ggplot(top15, aes(x = crop_name, y = freq, fill = crop_type)) +
+  geom_col(width = 0.7, alpha = 0.9) +
+  geom_text(
+    aes(label = paste0(comma(freq), "  (", percent(prop, accuracy = 0.1), ")")),
+    hjust = -0.05, size = 3.3, color = "grey30"
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = type_colors, name = "Type de culture") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.25)),
+    labels = comma
+  ) +
+  labs(
+    title    = "Figure 1 — Les 15 cultures les plus fréquentes (GHS Wave 4, 2018-2019)",
+    subtitle = "Nombre de parcelles plantées par culture · Nigeria",
+    x        = NULL,
+    y        = "Nombre de parcelles",
+    caption  = "Source : Nigeria GHS Panel W4 — LSMS-ISA, Banque Mondiale"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 13),
+    plot.subtitle   = element_text(color = "grey50"),
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank()
+  )
+```
+
+**Commentaire.** Les céréales dominent le système agricole nigérian en vague 4.
+
+---
+
+# Tâche 26 — Indice de diversification culturale par ménage {#t26}
+
+## Calcul de l'indice
+
+```{r t26-build}
+# Nombre de cultures distinctes par ménage
+hh_crop <- df_crops %>%
+  filter(!is.na(cropcode)) %>%
+  group_by(hhid) %>%
+  summarise(
+    nb_crops = n_distinct(cropcode),
+    sector   = first(sector),
+    .groups  = "drop"
+  ) %>%
+  mutate(
+    milieu = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural"))
+  )
+
+# Statistiques descriptives
+hh_crop %>%
+  group_by(milieu) %>%
+  summarise(
+    n       = n(),
+    Moyenne = round(mean(nb_crops), 2),
+    Médiane = median(nb_crops),
+    Écart_type = round(sd(nb_crops), 2),
+    Q1 = quantile(nb_crops, 0.25),
+    Q3 = quantile(nb_crops, 0.75)
+  )
+```
+
+## Distribution globale (histogramme)
+
+```{r t26-histo}
+p_hist <- ggplot(hh_crop, aes(x = nb_crops)) +
+  geom_histogram(
+    binwidth = 1, fill = "#1976D2", color = "white", alpha = 0.85
+  ) +
+  geom_vline(
+    xintercept = median(hh_crop$nb_crops),
+    linetype = "dashed", color = "#D32F2F", linewidth = 1
+  ) +
+  annotate(
+    "text",
+    x     = median(hh_crop$nb_crops) + 0.3,
+    y     = Inf, vjust = 1.5,
+    label = paste("Médiane =", median(hh_crop$nb_crops)),
+    color = "#D32F2F", size = 3.5
+  ) +
+  scale_x_continuous(breaks = 1:max(hh_crop$nb_crops)) +
+  labs(
+    title    = "Figure 2a — Distribution du nombre de cultures par ménage",
+    x        = "Nombre de cultures différentes",
+    y        = "Nombre de ménages",
+    caption  = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"))
+
+p_hist
+```
+
+## Comparaison Rural / Urbain
+
+```{r t26-wilcox}
+# Test de Wilcoxon-Mann-Whitney
+wilcox_res <- wilcox.test(nb_crops ~ milieu, data = hh_crop, conf.int = TRUE)
+
+# Taille d'effet (r de rang)
+
+wilcox_r <- rstatix::wilcox_effsize(hh_crop, nb_crops ~ milieu)
+
+cat("=== Test de Wilcoxon ===\n")
+print(wilcox_res)
+cat("\nTaille d'effet (r de rang) :", round(wilcox_r$effsize, 3), "\n")
+cat("Interprétation :", as.character(wilcox_r$magnitude), "\n")
+```
+
+```{r t26-violin}
+p_violin <- ggplot(hh_crop, aes(x = milieu, y = nb_crops, fill = milieu)) +
+  geom_violin(trim = FALSE, alpha = 0.6, color = NA) +
+  geom_boxplot(width = 0.12, outlier.shape = 21, outlier.size = 1.5,
+               alpha = 0.85) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 3,
+               fill = "white", color = "black") +
+  scale_fill_manual(values = c("Urbain" = "#FF9800", "Rural" = "#2196F3")) +
+  scale_y_continuous(breaks = seq(0, max(hh_crop$nb_crops), 2)) +
+  annotate(
+    "text", x = 1.5, y = max(hh_crop$nb_crops) * 0.95,
+    label = paste0("W = ", round(wilcox_res$statistic),
+                   "\np ", ifelse(wilcox_res$p.value < 0.001, "< 0.001",
+                                  paste("=", round(wilcox_res$p.value, 3))),
+                   "\nr = ", round(wilcox_r$effsize, 3)),
+    size = 3.8, color = "grey20"
+  ) +
+  labs(
+    title    = "Figure 2b — Diversification culturale selon le milieu de résidence",
+    subtitle = "Violin plot + boîte à moustaches | losange = moyenne",
+    x        = "Milieu de résidence",
+    y        = "Nombre de cultures distinctes par ménage",
+    fill     = NULL,
+    caption  = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    legend.position = "none"
+  )
+
+p_violin
+```
+
+**Commentaire.** Le test de Wilcoxon-Mann-Whitney permet de comparer les distributions sans hypothèse de normalité. La taille d'effet *r* de rang quantifie l'amplitude de la différence entre milieux. Les ménages ruraux pratiquent généralement une agriculture plus diversifiée que les ménages urbains, ce qui reflète la logique de subsistance et de résilience face aux aléas climatiques.
+
+---
+
+# Tâche 27 — Utilisation des engrais par type, zone et État {#t27}
+
+## Préparation des données
+
+```{r t27-build}
+# Correction de l'hhid aberrant identifié dans l'exploration
+# (ménage 99002 avec valeurs manquantes systématiques sur tous les intrants)
+df_fert_clean <- df_fert %>%
+  filter(hhid != 99002) %>%
+  mutate(
+    # Indicateurs binaires (1 = utilisé, 0 = non utilisé)
+    # Variables confirmées depuis le questionnaire Section 11C2 :
+    # s11dq1a    = utilisation engrais inorganique (oui/non)
+    # s11dq36    = utilisation engrais organique
+    # s11c2q36_1 = type NPK
+    # s11c2q36_2 = type urée
+    # s11c2q36_99= autre type
+    use_inorganic = if_else(s11dq1a  == 1, 1L, 0L, missing = 0L),
+    use_organic   = if_else(s11dq36  == 1, 1L, 0L, missing = 0L),
+    use_npk       = if_else(s11c2q36_1  == 1, 1L, 0L, missing = 0L),
+    use_urea      = if_else(s11c2q36_2  == 1, 1L, 0L, missing = 0L),
+    use_other     = if_else(s11c2q36_99 == 1, 1L, 0L, missing = 0L)
+  )
+
+# Agrégation au niveau ménage (max = ménage ayant utilisé sur au moins 1 parcelle)
+fert_hh <- df_fert_clean %>%
+  group_by(hhid) %>%
+  summarise(
+    inorganic = max(use_inorganic, na.rm = TRUE),
+    organic   = max(use_organic,   na.rm = TRUE),
+    npk       = max(use_npk,       na.rm = TRUE),
+    urea      = max(use_urea,      na.rm = TRUE),
+    other     = max(use_other,     na.rm = TRUE),
+    sector    = first(sector),
+    state     = first(state),
+    zone      = first(zone),
+    .groups   = "drop"
+  ) %>%
+  mutate(
+    milieu = factor(sector, levels = c(1, 2), labels = c("Urbain", "Rural"))
+  )
+```
+
+## Test chi-deux : Zone × utilisation d'engrais inorganique
+
+```{r t27-chitest}
+tab_chi <- table(Milieu = fert_hh$milieu, Engrais_inorganique = fert_hh$inorganic)
+cat("=== Tableau de contingence ===\n")
+print(addmargins(tab_chi))
+
+chi_res  <- chisq.test(tab_chi)
+cramer_v <- rstatix::cramer_v(tab_chi)
+
+cat("\n=== Test du chi-deux ===\n")
+print(chi_res)
+cat("\nV de Cramér =", round(cramer_v, 4), "\n")
+```
+
+## Barplot groupé avec IC 95%
+
+```{r t27-barplot-zone, fig.height=6}
+# Taux par milieu pour chaque type d'engrais
+fert_long <- fert_hh %>%
+  pivot_longer(
+    cols      = c(inorganic, organic, npk, urea, other),
+    names_to  = "type_engrais",
+    values_to = "utilise"
+  ) %>%
+  group_by(milieu, type_engrais) %>%
+  summarise(
+    n     = n(),
+    rate  = mean(utilise, na.rm = TRUE),
+    se    = sqrt(rate * (1 - rate) / n),
+    lower = pmax(rate - 1.96 * se, 0),
+    upper = pmin(rate + 1.96 * se, 1),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    type_engrais = recode(type_engrais,
+      inorganic = "Inorganique (total)",
+      organic   = "Organique",
+      npk       = "NPK",
+      urea      = "Urée",
+      other     = "Autre chimique"
+    ),
+    type_engrais = fct_reorder(type_engrais, rate, .fun = max)
+  )
+
+ggplot(fert_long, aes(x = type_engrais, y = rate, fill = milieu)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65, alpha = 0.9) +
+  geom_errorbar(
+    aes(ymin = lower, ymax = upper),
+    position = position_dodge(width = 0.75),
+    width = 0.2, linewidth = 0.7
+  ) +
+  geom_text(
+    aes(label = percent(rate, accuracy = 0.1), y = upper + 0.015),
+    position = position_dodge(width = 0.75),
+    size = 3, vjust = 0
+  ) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = percent_format(accuracy = 1),
+    limits = c(0, 1)
+  ) +
+  scale_fill_manual(
+    values = c("Urbain" = "#FF9800", "Rural" = "#2196F3"),
+    name   = "Milieu"
+  ) +
+  labs(
+    title    = "Figure 3a — Taux d'utilisation des engrais par type et milieu de résidence",
+    subtitle = "Avec intervalle de confiance à 95% | Niveau ménage",
+    x        = "Type d'engrais",
+    y        = "Taux d'utilisation",
+    caption  = paste0(
+      "χ² = ", round(chi_res$statistic, 2),
+      ", ddl = ", chi_res$parameter,
+      ", p ", ifelse(chi_res$p.value < 0.001, "< 0.001", paste("=", round(chi_res$p.value, 3))),
+      " | V de Cramér = ", round(cramer_v, 4),
+      "\nSource : Nigeria GHS Panel W4"
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "grey50"),
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank()
+  )
+```
+
+## Heatmap : État × Type d'engrais
+
+```{r t27-heatmap, fig.height=9}
+fert_state <- fert_hh %>%
+  group_by(state) %>%
+  summarise(
+    Inorganique = mean(inorganic, na.rm = TRUE),
+    Organique   = mean(organic,   na.rm = TRUE),
+    NPK         = mean(npk,       na.rm = TRUE),
+    Urée        = mean(urea,      na.rm = TRUE),
+    n           = n(),
+    .groups     = "drop"
+  ) %>%
+  filter(n >= 10) %>%   # exclure états avec trop peu d'observations
+  pivot_longer(
+    cols      = c(Inorganique, Organique, NPK, Urée),
+    names_to  = "type_engrais",
+    values_to = "rate"
+  )
+
+ggplot(fert_state, aes(x = type_engrais, y = reorder(factor(state), rate), fill = rate)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = percent(rate, accuracy = 1)), size = 2.8, color = "white",
+            fontface = "bold") +
+  scale_fill_gradient2(
+    low      = "#1565C0",
+    mid      = "#42A5F5",
+    high     = "#FF6F00",
+    midpoint = 0.2,
+    labels   = percent_format(accuracy = 1),
+    name     = "Taux\nd'utilisation"
+  ) +
+  labs(
+    title    = "Figure 3b — Taux d'utilisation des engrais par État (Nigeria GHS W4)",
+    subtitle = "États avec au moins 10 ménages agricoles",
+    x        = "Type d'engrais",
+    y        = "État (code)",
+    caption  = "Source : Nigeria GHS Panel W4"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title  = element_text(face = "bold"),
+    axis.text.y = element_text(size = 8),
+    legend.position = "right"
+  )
+```
+
+**Commentaire.** Le test du chi-deux évalue l'indépendance entre le milieu de résidence et l'usage des engrais inorganiques. La disparité est significative si p < 0,05. Le V de Cramér mesure l'intensité de l'association (0 = indépendance, 1 = association parfaite). La heatmap révèle les disparités inter-étatiques dans l'adoption des intrants, qui reflètent à la fois les politiques d'encadrement agricole et les conditions agro-écologiques.
+
+---
