@@ -1,0 +1,207 @@
+---
+title: "Rapport du TP4 portant sur l'analyse des parcelles agricoles au Nigeria"
+author: "Rédaction de Herman YAMAHA et Bourama DIALLO, sous la supervision de M. Aboubacar HEMA"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    reference_docx: reference.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = FALSE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.width  = 10,
+  fig.height = 7,
+  dpi        = 300
+)
+```
+```{r}
+library(here)
+```
+
+```{r, fig.cap="A Survey Report by the Nigerian National Bureau of Statistics in Collaboration with the World Bank"}
+dir.create(here("outputs","images"), showWarnings = FALSE, recursive = TRUE)
+knitr::include_graphics(here("outputs","images","marché.jpeg"))
+```
+
+# Introduction  
+
+L'agriculture est un secteur majeur de l' économie nigériane, représentant jusqu'à 35 % de l'emploi total en 2020. Selon la FAO, l'agriculture demeure le pilier de l'économie nigériane, assurant les moyens de subsistance de la plupart des Nigérians et générant des millions d'emplois. Outre le pétrole brut, le Nigéria dépend des produits agricoles qu'il exporte pour générer la majeure partie de ses recettes nationales . Le secteur agricole nigérian comprend quatre sous-secteurs : la production végétale , l'élevage , la sylviculture et la pêche.
+Le Nigéria possède une superficie agricole totale de 70,8 millions d'hectares, dont 34 millions d'hectares sont des terres arables , 6,5 millions d'hectares sont utilisés pour les cultures permanentes et 30,3 millions d'hectares sont des prairies et des pâturages .
+
+# Exploration  des données et méthodologie  
+
+L'exploration des données a révélé 5 valeurs de superficies aberrantes (superficie_ha > 500) dont trois parcelles dans le secteur North East ( 2000 ha, 1000 ha, 1800 ha) et deux 
+parcelles dans le secteur North Central(1200 ha, 11495 ha).
+Nous avons constaté que 49 ménages n'ont pas de poids donc partout où le poids a été nécessaire pour les calculs,
+ces 49 ménages ont été écartés. 
+Il y a deux types ou mesures de superficies qui sont effectués sur la plupart
+des parcelles nigérians durant la vague 4, notamment la superficie de la parcelle 
+mésurée par GPS et la superficie déclarée par le méange.
+Il a été constaté que 4202 parcelles n'ont pas de superficies GPS(environ 34%) 
+donc afin de pouvoir construire la superficie en hectare nous avons utilisé 
+la superficie déclarée pour laquelle seulement 4 ménages n'ont pas de superficies.
+Les superficies déclarées que nous avons utilisé pour construire la variable 
+superficie en hectare, étaient exprimées dans des unités locales dont la correspondance
+en hectare varient selon le secteur. Nous avons utilisé le document ghs_panel_binfo_2018_19_rev_oct1_2021.pdf
+qui contient les informations nécéssaires aux conversions en hectare par secteur et par unité locale.
+Pour le heatmap nous avons utilisé la vague 4 seulement.
+Pour ce qui est de l'utilisation du poids dans les calculs, nous avons utilisé deux approches:
+pour certaines fonctions, nous avons utilisé manuellement le poids en le passant directement 
+en arguments dans la fonction sans faire de plan de sondage (mean,quantile) et pour des cas spécifiques 
+comme les tets, le regime de tenure nous avons fait le plan de sondage en tenant
+compte du degré de l'échantillonnage.
+
+```{r chargement, include=FALSE}
+source(here::here("scripts", "02_analyse.R"))
+```
+# Analyse univariée de la superficie par parcelle et par ménage
+
+## Distribution de la superficie par parcelle
+
+```{r histogramme-parcelle}
+hist_parcelle
+```
+
+La distribution des superficies agricoles par parcelle, pondérée par `wt_wave4`,
+révèle une forte concentration des exploitations dans les petites surfaces.
+La majorité des parcelles (environ 20.9%) ont une superficie comprise entre 0.25
+et 0.5 ha, ce qui reflète la prédominance de la petite agriculture familiale au
+Nigeria. Les parcelles de plus de 10 ha sont marginales (environ 0.2%).
+
+## Distribution de la superficie totale par ménage
+
+```{r histogramme-menage}
+hist_menage
+```
+
+La distribution par ménage présente un profil similaire à celle par parcelle, mais décalée vers des surfaces plus élevées, 41.5% des ménages ont une superficie comprise entre 1 ha et 5 ha, un ménage pouvant cumuler plusieurs parcelles. La fragmentation foncière reste néanmoins prononcée.
+
+## Statistiques descriptives par décile — Parcelle
+
+```{r table-deciles-parcelle}
+knitr::kable(
+  stats_decile_parcelle,
+  caption   = "Statistiques pondérées de superficie par décile (parcelle)",
+  digits    = 3,
+  col.names = c("Décile", "N parcelles", "Moyenne pond. (ha)",
+                "Médiane pond. (ha)", "Min (ha)", "Max (ha)")
+)
+```
+
+Le D1 regroupe les parcelles ayant une superficie inférieure ou égale à 0.018 ha tandis que le D10 concentre les grandes exploitations allant jusqu'à 2 000 ha. L'écart inter-décile illustre une forte inégalité dans la distribution foncière.
+
+## Statistiques descriptives par décile — Ménage
+
+```{r table-deciles-menage}
+knitr::kable(
+  stats_decile_menage,
+  caption   = "Statistiques pondérées de superficie par décile (ménage)",
+  digits    = 3,
+  col.names = c("Décile", "N ménages", "Moyenne pond. (ha)",
+                "Médiane pond. (ha)", "Min (ha)", "Max (ha)")
+)
+```
+Le D1 regroupe les ménages ayant une superficie de parcelles inférieure ou égale à 0.065 ha tandis que le D10 concentre les grandes exploitations allant jusqu'à 3 000 ha. L'écart inter-décile illustre une forte inégalité dans la distribution foncière.
+
+## Boxplot de la superficie par parcelle et par ménage
+
+```{r boxplot-parcelle}
+box_combined
+```
+
+Le boxplot de la superficie par ménage  confirme la forte asymétrie de la distribution : la médiane
+se situe autour de 0.875 ha, l'ecart entre le premier quartile et le troisième quartile montre une dispersion moyenne des données donc les superficies sont dispersées au niveau ménage. 75% des ménages ont une superficie inférieure ou égale à 2 ha. Les valeurs extrêmes s'étendent bien au-delà
+du 3ème quartile, traduisant la présence de grandes exploitations atypiques.
+On consate une faible dispersion entre les superficies des parcelles, 75% des parcelles ont une superficie inférieure à 0.875 ha avec une médiane autour de 0.25 ha. On observe quelques parcelles qui s'ecartent de l'ensemble des parcelles de par leurs superficies. 
+
+## Comparaison superficie déclarée vs superficie GPS
+
+```{r scatter-gps}
+scatter_gps
+```
+
+La corrélation de Spearman pondérée entre superficie déclarée et superficie GPS
+est ρ = `r round(rho_spearman, 3)`, indiquant une concordance modérée à bonne
+entre les deux mesures. Le nuage de points se distribue globalement autour de la
+ligne 45°, bien qu'une dispersion non négligeable soit observable — les agriculteurs
+ayant tendance à surestimer ou sous-estimer leurs superficies par rapport à la
+mesure GPS objective. À noter que 4 135 parcelles ont été exclues en raison de
+valeurs manquantes pour la superficie GPS.
+
+# Analyse du régime de tenure foncière
+
+## Fréquences et proportions des modalités
+
+```{r barplot-tenure}
+barplot_tenure
+```
+
+L'héritage familial (*Family inheritance*) constitue le régime dominant (63,1%),
+suivi de l'achat direct (13,1%). La location en espèces ou en nature reste
+minoritaire (11,2%), ce qui suggère un marché foncier peu développé dans les
+zones rurales nigérianes.
+
+## Test du chi-deux : tenure × secteur (rural/urbain)
+
+```{r chi-deux, include=FALSE}
+print(chi_test)
+```
+
+Le test du chi-deux pondéré indique une association statistiquement significative
+entre le régime de tenure et le secteur rural/urbain (p < 2.2e-16). Cela suggère
+que les modes d'accès à la terre diffèrent sensiblement selon le milieu de résidence.
+
+# Relation superficie totale × nombre de parcelles
+
+```{r scatter-correlation}
+scatter_plot
+```
+
+La corrélation de Spearman pondérée est ρ = `r round(rho_spearman_q23, 3)`,
+indiquant une association positive modérée entre le nombre de parcelles et la
+superficie totale cultivée par ménage. Les ménages disposant de plusieurs parcelles
+tendent donc à exploiter de plus grandes surfaces au total.
+
+# Disparités géographiques de la superficie médiane par État
+
+```{r heatmap-etats, fig.height=10}
+heatmap
+```
+
+La heatmap révèle des disparités géographiques marquées entre les 37 États du
+Nigeria. Les États du Nord (North West, North East) affichent des superficies
+médianes généralement plus élevées, cohérentes avec les vastes exploitations
+céréalières de ces zones agroécologiques. Les États du Sud présentent des
+parcelles plus fragmentées, liées aux cultures de rente et à la pression
+démographique.  
+
+# Conclusion  
+
+le regime de tenure "family inheritance" est le plus dominant avec 63,1% des cas.
+20,9% des parcelles ont une superficie comprise entre 025 ha et 05 ha et c'est ce groupe
+de parcelles qui domine.
+41,5% des ménages ont une superficie totale de parcelle comprise entre 1 ha et 5 ha
+et c'est ce groupe qui regroupe le plus grand nombre de ménages.
+Seulement 0.1% des ménages ont une superficie totale supérieure à 50 ha.
+Il existe une corrélation linéaire forte entre les superficies GPS et les superficies déclarées.
+Le secteur agricole nigérian reste principalement dominé par les petites exploitations et
+les Étatst du Plateau et du Niger sont les possèdent le plus grand nombre de superficies agricoles avec une superficie médiane de 2,8 ha.
+
+# Références   
+
+- InfoGuideNigeria.com (6 décembre 2020). *10 rôles de l’agriculture dans le développement économique du Nigéria*.  
+- Banque mondiale (2020). *Emploi dans l'agriculture (% de l'emploi total) (estimation modélisée de l'OIT) - Nigéria*. Données de la Banque mondiale.  
+- FAO. *Aperçu du Nigéria*. Disponible sur : www.fao.org  
+- Statista. *Nigeria : part du secteur agricole dans l’emploi*.  
+- Adeite, Adedotun (14 avril 2022). *L’agriculture au Nigéria : 7 faits et statistiques intéressants*. Babban Gona.  
+- Jlukmon (18 novembre 2022). *Liste de 10 raisons de l'importance de l'agriculture au Nigéria*. À propos des Nigérians. Archivé le 29 novembre 2022.  
+- Ehighebolo, Izin Anne (2023). *Impacts des performances des sous-secteurs agricoles sur la croissance économique du Nigéria : une analyse empirique*. African Journal of Agricultural Science and Food Research.  
+- Statista. *Sujet : Agriculture au Nigéria*.  
+- Banque mondiale. *Microdata Catalog*. Disponible sur : https://microdata.worldbank.org/catalog/3557/related-materials  
+- Nigeria National Bureau of Statistics. *An Online Microdata Catalog*.  
