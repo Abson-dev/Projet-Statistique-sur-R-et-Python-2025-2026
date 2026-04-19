@@ -1,6 +1,6 @@
 # README — TP4 : Analyse des parcelles agricoles
 
-**Auteurs :** Herman YAMAHA \| Bourama DIALLO\
+**Auteurs :** Herman YAMAHA \| Bourama DIALLO (Groupe 7)\
 **Cours :** Statistique — ENSAE Pierre Ndiaye \| 2025–2026\
 **Données :** Nigeria General Household Survey (GHS) Panel Wave 4 (2018/19)\
 **Source :** World Bank Living Standards Measurement Study (LSMS)
@@ -52,23 +52,24 @@ Il existe une corrélation linéaire forte entre les superficies GPS et les supe
 
 ```         
 TP4/
-├── main.R                      # Point d'entrée : exécute tous les scripts
-├── data/
-│   ├── raw/                    # Fichiers .dta bruts (téléchargés depuis github)
+├── TP4_Herman_YAMAHA _Bourama_DIALLO.Rproj                      
+├── main.R                                                   # Point d'entrée : exécute tous les scripts
+├── data/                                                    # Dossier initialement inexistant, qui se crée et se remplit lors de l'exécution de main.R
+│   ├── raw/                                                 # Fichiers .dta bruts (téléchargés depuis github)
 │   │   ├── secta_harvestw4.dta
 │   │   ├── sect11a1_plantingw4.dta
 │   │   └── sect11b1_plantingw4.dta
-│   └── processed/                  # Bases intermédiaires produites par les scripts
+│   └── processed/                                           # Bases intermédiaires produites par les scripts
 │       ├── base_parcelle.rds
 │       ├── bp_clean.rds
 │       ├── prop_data.rds
 │       └── superficie_menage.rds
 ├── outputs/
-│   ├── figures/                    # Graphiques produits (.png)
-│   └── tables/                     # Tableaux produits
+│   ├── figures/                                             # Graphiques produits (.png)
+│   └── tables/                                              # Tableaux produits
 ├── scripts/
-│   ├── 01_nettoyage.R              # Script d'import et de nettoyage
-|   ├── 02_analyse.R                # Script d'analyse 
+│   ├── 01_nettoyage.R                                       # Script d'import et de nettoyage
+|   ├── 02_analyse.R                                         # Script d'analyse 
 ├── docs/
 │   ├──  Rapport_TP4_Analyse_parcelles_agricoles_Nigeria.Rmd              
 |   ├──  Rapport_TP4_Analyse_parcelles_agricoles_Nigeria.docs                
