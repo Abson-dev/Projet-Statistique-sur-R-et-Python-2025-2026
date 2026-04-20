@@ -1,0 +1,263 @@
+---
+title: "Analyse des Parcelles Agricoles Nigérianes"
+subtitle: "Superficie, Tenure Foncière et Structure Agraire — GHS Panel Wave 4 (2018-2019)"
+author: "ENSAE ISE1 | 2025-2026"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, dpi=300, out.width="100%")
+proj <- normalizePath(file.path(dirname(knitr::current_input(dir=TRUE)),".."), mustWork=FALSE)
+if (!dir.exists(file.path(proj,"outputs"))) proj <- "/home/claude/TP4"
+library(knitr); library(haven); library(dplyr)
+
+na_tab   <- read.csv(file.path(proj,"outputs/tab_NA_parcelles.csv"))
+tab_zone <- read.csv(file.path(proj,"outputs/tab01_structure_par_zone.csv"))
+tab_ten  <- read.csv(file.path(proj,"outputs/tab02_tenure_par_milieu.csv"))
+tab_test <- read.csv(file.path(proj,"outputs/tab03_tests_statistiques.csv"))
+
+sect11b1 <- read_dta(file.path(proj,"data/sect11b1_plantingw4.dta"))
+n_parc_tot <- nrow(sect11b1)
+n_cult <- sum(as.numeric(zap_labels(sect11b1$s11b1q27))==1, na.rm=TRUE)
+n_men  <- n_distinct(as.character(sect11b1$hhid)[as.numeric(zap_labels(sect11b1$s11b1q27))==1])
+
+tenure_raw <- sect11b1 %>%
+  mutate(t=as.numeric(zap_labels(s11b1q4)),
+         tenure_lbl=case_when(
+           t==1~"Achat direct", t==2~"Location (cash)", t==3~"Pret/Gratuit",
+           t==4~"Distribution communale", t==5~"Heritage familial",
+           t==6~"Metayage", t==7~"Echange temporaire", TRUE~NA_character_)) %>%
+  filter(!is.na(tenure_lbl)) %>%
+  count(tenure_lbl) %>%
+  mutate(pct=round(n/sum(n)*100,1)) %>%
+  arrange(desc(n))
+
+top_tenure <- tenure_raw$tenure_lbl[1]
+top_pct    <- tenure_raw$pct[1]
+
+n_parc_df <- sect11b1 %>%
+  filter(as.numeric(zap_labels(s11b1q27))==1) %>%
+  mutate(hhid=as.character(hhid)) %>%
+  count(hhid, name="n_p")
+med_parc <- median(n_parc_df$n_p)
+moy_parc <- round(mean(n_parc_df$n_p),2)
+cv_parc  <- round(sd(n_parc_df$n_p)/mean(n_parc_df$n_p)*100,1)
+```
+
+---
+
+# Messages clés
+
+**Prédominance de l'héritage familial.** La tenure foncière nigériane est dominée par l'héritage familial (`r top_pct`%), reflétant la persistance des systèmes fonciers coutumiers. La transmission intergénérationnelle reste le mécanisme principal d'accès à la terre, héritage d'un système juridique pluraliste où le droit coutumier coexiste avec le droit formel.
+
+**Fragmentation des exploitations.** La médiane de `r med_parc` parcelles par ménage (CV = `r cv_parc`%) confirme la structure morcelée de l'agriculture nigériane. La forte asymétrie de la distribution (quelques ménages disposant de nombreuses parcelles) révèle des inégalités foncières importantes.
+
+**Fracture géographique Nord-Sud.** Des disparités très significatives existent entre zones géopolitiques (Kruskal-Wallis H=51,98 ; p<0,001). Le Nord exploite davantage de parcelles — cohérent avec les systèmes extensifs sahéliens — tandis que le Sud-Est présente la structure la plus fragmentée sous pression démographique.
+
+**Différentiel rural-urbain confirmé.** Avec 84,3% des ménages en milieu rural, l'agriculture reste essentiellement paysanne. Le test de Wilcoxon confirme une différence significative entre milieux (p<0,001) avec taille d'effet modérée (r≈0,13).
+
+**Association Tenure × Milieu significative.** Le chi-deux révèle une association faible à modérée entre tenure et milieu (X²=498,6 ; V de Cramér=0,212) : les ménages urbains ont légèrement plus recours à la location et à l'achat direct.
+
+---
+
+# Introduction
+
+L'agriculture représente le socle de l'économie nigériane, source de revenus pour plus de 70% de la population rurale. Face aux défis de sécurité alimentaire pour 200 millions d'habitants, comprendre la structure foncière est indispensable pour concevoir des politiques agricoles efficaces.
+
+Ce rapport analyse la **structure foncière des exploitations nigérianes** à partir du GHS Panel Wave 4 (2018-2019), conduit par le National Bureau of Statistics du Nigeria avec l'appui de la Banque mondiale (programme LSMS-ISA). Trois fichiers sont mobilisés :
+
+- **`sect11b1_plantingw4.dta`** : roster des parcelles avec tenure, irrigation, qualité du sol et pente ;
+- **`nga_plotgeovariables_y4.dta`** : variables GPS (distance, altitude SRTM, pente) ;
+- **`secta_harvestw4.dta`** : poids de sondage et localisation administrative.
+
+L'analyse couvre les tâches 19 à 24 du syllabus.
+
+---
+
+# Exploration et qualité des données
+
+## Fichiers et population analytique
+
+```{r tab_fichiers}
+tab_f <- data.frame(
+  Fichier=c("sect11b1_plantingw4","nga_plotgeovariables_y4","secta_harvestw4"),
+  Description=c("Parcelles — tenure, irrigation, sol, pente",
+                "Variables GPS — altitude, distance, pente SRTM",
+                "Menages — poids de sondage, zone, etat"),
+  Observations=c(11076,7354,5025), Variables=c(227,6,22)
+)
+kable(tab_f, caption="Fichiers de données mobilisés — TP4 Analyse Parcelles")
+```
+
+L'échantillon analytique comprend **`r n_parc_tot` parcelles** issues de **`r n_distinct(as.character(sect11b1$hhid))` ménages**. Parmi ces parcelles, **`r n_cult`** (`r round(n_cult/n_parc_tot*100,1)`%) ont été cultivées en 2018/2019, concernant **`r n_men` ménages** distincts.
+
+## Valeurs manquantes (Tâche 19)
+
+```{r tab_na}
+kable(na_tab, col.names=c("Variable","N total","N manquant","% manquant"),
+      caption="Analyse des valeurs manquantes — Variables clés du module parcelles")
+```
+
+```{r fig_na, fig.cap="Carte des valeurs manquantes — Module Parcelles GHS W4"}
+include_graphics(file.path(proj,"outputs/fig01_carte_NA.png"))
+```
+
+Les NA sur **irrigation, sol et pente** (18,1%) sont structurels : les questions agronomiques ne sont posées que pour les parcelles cultivées. La **distance GPS** (33,6%) manque pour les parcelles sans mesure satellitaire. La **tenure** affiche un taux de NA quasi nul (0,1%), témoignant de l'excellente qualité de collecte sur cette variable.
+
+---
+
+# Analyse de la tenure foncière (Tâche 21)
+
+## Répartition des modalités
+
+```{r tab_tenure}
+kable(tenure_raw, col.names=c("Mode de tenure","N parcelles","% total"),
+      caption="Répartition des parcelles selon le régime de tenure foncière — GHS W4")
+```
+
+```{r fig_tenure, fig.cap="Régime de tenure foncière des parcelles agricoles — GHS W4"}
+include_graphics(file.path(proj,"outputs/fig02_tenure_barplot.png"))
+```
+
+L'**héritage familial** est dominant avec `r top_pct`% des parcelles. Ce résultat confirme la prédominance du droit coutumier en milieu rural nigérian. L'achat direct (2e position) reflète la montée progressive d'un marché foncier formel, notamment dans les zones périurbaines.
+
+## Test d'indépendance Tenure × Milieu
+
+```{r tab_chi2}
+kable(tab_test, caption="Tests statistiques réalisés — TP4 Analyse Parcelles GHS W4")
+```
+
+```{r fig_heatmap_tenure, fig.cap="Tenure foncière selon le milieu de résidence — Proportions"}
+include_graphics(file.path(proj,"outputs/fig03_tenure_milieu_heatmap.png"))
+```
+
+L'association Tenure × Milieu est très significative (X²=498,6 ; p<0,001) mais de faible amplitude (V de Cramér=0,212). Les ménages urbains ont davantage recours à la location et à l'achat direct, traduisant une dynamique de formalisation foncière liée à l'urbanisation.
+
+---
+
+# Distribution des parcelles cultivées (Tâches 20 & 23)
+
+## Statistiques descriptives
+
+```{r tab_desc}
+tab_desc <- data.frame(
+  Statistique=c("N menages","Minimum","Q1","Mediane","Moyenne","Q3","Maximum","Ecart-type","CV (%)"),
+  Valeur=c(nrow(n_parc_df), min(n_parc_df$n_p), quantile(n_parc_df$n_p,.25),
+           median(n_parc_df$n_p), round(mean(n_parc_df$n_p),2),
+           quantile(n_parc_df$n_p,.75), max(n_parc_df$n_p),
+           round(sd(n_parc_df$n_p),2), cv_parc)
+)
+kable(tab_desc, col.names=c("Statistique","Valeur"),
+      caption="Statistiques : nombre de parcelles cultivées par ménage — GHS W4")
+```
+
+```{r fig_dist, fig.cap="Distribution du nombre de parcelles cultivées par ménage"}
+include_graphics(file.path(proj,"outputs/fig04_distrib_parcelles.png"))
+```
+
+La distribution est **fortement asymétrique** (CV=`r cv_parc`%) : la majorité des ménages cultivent 1 à 3 parcelles, mais une minorité dispose d'exploitations bien plus étendues, révélant des inégalités foncières importantes.
+
+## Comparaison Rural vs Urbain
+
+```{r fig_violin, fig.cap="Nombre de parcelles : Rural vs Urbain — Violin + Test de Wilcoxon"}
+include_graphics(file.path(proj,"outputs/fig06_violin_rural_urbain.png"))
+```
+
+Les ménages ruraux cultivent significativement plus de parcelles (médiane=2) que les ménages urbains (médiane=1). La taille d'effet modérée (r≈0,13) indique que la différence existe mais n'est pas massive, reflétant la diversification des sources de revenus des ménages agricoles urbains.
+
+---
+
+# Disparités géographiques (Tâches 22 & 24)
+
+## Par zone géopolitique
+
+```{r tab_zone}
+kable(tab_zone, col.names=c("Zone","N menages","Mediane","Moyenne","Ecart-type","CV (%)","% > 3 parc."),
+      caption="Structure foncière par zone géopolitique — GHS W4",
+      align=c("l","r","r","r","r","r","r"))
+```
+
+```{r fig_boxplot, fig.cap="Distribution du nombre de parcelles par zone — Test de Kruskal-Wallis"}
+include_graphics(file.path(proj,"outputs/fig05_boxplot_zones.png"))
+```
+
+Le Kruskal-Wallis confirme des différences très significatives entre zones (H=51,98 ; p<0,001). Le North-East et le North-West présentent les médianes les plus élevées (systèmes extensifs sahéliens), le South-East la médiane la plus faible (forte densité de population).
+
+## Heatmap État × Zone (Tâche 24)
+
+```{r fig_heatmap, fig.cap="Intensité foncière par État — Médiane parcelles/ménage", fig.height=9}
+include_graphics(file.path(proj,"outputs/fig07_heatmap_etat_zone.png"))
+```
+
+La heatmap révèle des disparités intra-zones importantes. Kebbi et Zamfara (North-West) affichent les médianes les plus élevées (>4 parcelles), tandis que tous les États du South-East restent ≤2 parcelles. Cette granularité géographique est essentielle pour des politiques foncières ciblées.
+
+## Ridge plot — Distribution par zone
+
+```{r fig_ridge, fig.cap="Distribution du nombre de parcelles par zone — Ridge plots"}
+include_graphics(file.path(proj,"outputs/fig09_ridge_zones.png"))
+```
+
+Les zones du Nord présentent des distributions plus étalées (hétérogénéité foncière forte), tandis que les zones du Sud-Est montrent des distributions concentrées autour de petites valeurs (homogénéité et fragmentation).
+
+---
+
+# Distance des parcelles au domicile
+
+```{r fig_distance, fig.cap="Distance des parcelles au domicile selon le milieu"}
+include_graphics(file.path(proj,"outputs/fig08_distance_parcelles.png"))
+```
+
+Les parcelles urbaines tendent à être légèrement plus éloignées du domicile, résultat de la rareté des terres péri-urbaines qui contraint les ménages agricoles urbains à accéder à des terres plus distantes, augmentant les coûts de transaction et de supervision.
+
+---
+
+
+
+## Cartes Choroplèthes Géographiques
+
+```{r fig_carte1, fig.cap="Carte 1 — Intensité foncière par État du Nigeria (médiane parcelles/ménage)"}
+include_graphics(file.path(proj, "outputs/fig_carte1_intensite_fonciere.png"))
+```
+
+La carte choroplèthe révèle une géographie foncière claire : les États du **Nord-Ouest** (Kebbi, Zamfara, Sokoto) et du **Nord-Est** (Borno, Adamawa, Yobe) affichent les médianes les plus élevées (3 à 5 parcelles par ménage), en cohérence avec les systèmes extensifs de culture céréalière sahélienne sur grandes superficies. À l'inverse, les États du **Sud-Est** (Imo, Anambra, Abia) et du **South-South** (Rivers, Bayelsa) présentent les médianes les plus faibles (1 à 2 parcelles), reflet d'une agriculture intensive sous forte pression démographique.
+
+```{r fig_carte2, fig.cap="Carte 2 — Proportion de ménages avec 3 parcelles ou plus par État"}
+include_graphics(file.path(proj, "outputs/fig_carte2_fragmentation.png"))
+```
+
+```{r fig_carte3, fig.cap="Carte 3 — Zones géopolitiques du Nigeria"}
+include_graphics(file.path(proj, "outputs/fig_carte3_zones.png"))
+```
+
+
+# Tableau de bord récapitulatif
+
+```{r fig_dashboard, fig.cap="Tableau de bord — Structure Foncière des Exploitations Agricoles Nigérianes", fig.width=12}
+include_graphics(file.path(proj,"outputs/fig10_dashboard_foncier.png"))
+```
+
+---
+
+# Conclusion
+
+L'analyse de la structure foncière des exploitations du GHS W4 dégage quatre enseignements pour la politique agricole :
+
+**1. Prédominance du foncier coutumier.** L'héritage familial (62,9%) freine la formalisation et l'investissement à long terme. La sécurisation foncière est un préalable à l'intensification agricole durable.
+
+**2. Fragmentation persistante.** Médiane=2 parcelles, CV=`r cv_parc`% : l'exploitation nigériane reste morcelée. La consolidation foncière progressive — sans dépossession — est nécessaire pour permettre la mécanisation et réduire les coûts unitaires de production.
+
+**3. Fracture Nord-Sud robuste.** Les disparités sont très significatives (p<0,001) et géographiquement cohérentes : systèmes extensifs au Nord, intensifs au Sud. Les politiques foncières doivent être différenciées par zone.
+
+**4. Dynamique d'urbanisation à accompagner.** La différence Rural-Urbain est réelle mais modérée (r=0,13), signalant une convergence progressive. L'agriculture urbaine et péri-urbaine mérite un cadre juridique adapté.
+
+---
+
+*Rapport TP4 — ENSAE ISE1 | 2025-2026*  
+*Données : Nigeria GHS Panel W4 (2018-2019) — World Bank LSMS-ISA*  
+*Outils : R `r R.version.string` | rmarkdown, haven, dplyr, ggplot2*

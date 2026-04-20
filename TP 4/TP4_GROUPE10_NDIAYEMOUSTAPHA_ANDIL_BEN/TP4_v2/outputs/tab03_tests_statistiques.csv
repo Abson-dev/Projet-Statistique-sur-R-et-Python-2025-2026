@@ -1,0 +1,4 @@
+"Test","Statistique","ddl","p_value","Taille_effet"
+"Kruskal-Wallis (parcelles ~ zone)",51.984,5,"5.44e-10",NA
+"Wilcoxon (parcelles ~ milieu)",1051595.5,NA,"<2e-16",0.199
+"Chi-deux (tenure ~ milieu)",498.589,6,"<2e-16",0.212
