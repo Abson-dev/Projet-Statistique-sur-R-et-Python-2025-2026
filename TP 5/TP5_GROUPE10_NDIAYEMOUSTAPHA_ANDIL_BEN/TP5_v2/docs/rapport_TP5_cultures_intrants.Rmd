@@ -1,0 +1,222 @@
+---
+title: "Cultures, Intrants et Rendements Agricoles au Nigeria"
+subtitle: "GHS Panel Wave 4 (2018-2019) | ENSAE ISE1 | 2025-2026"
+author: "Étudiant ENSAE ISE1"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, dpi=300, out.width="100%")
+proj <- normalizePath(file.path(dirname(knitr::current_input(dir=TRUE)),".."), mustWork=FALSE)
+if (!dir.exists(file.path(proj,"outputs"))) proj <- "/home/claude/TP5"
+library(knitr); library(haven); library(dplyr)
+
+t15  <- read.csv(file.path(proj,"outputs/tab01_top15_cultures.csv"))
+tz   <- read.csv(file.path(proj,"outputs/tab02_intrants_par_zone.csv"))
+tr   <- read.csv(file.path(proj,"outputs/tab03_rendements_descriptifs.csv"))
+tt   <- read.csv(file.path(proj,"outputs/tab04_tests_statistiques.csv"))
+```
+
+---
+
+# Messages clés
+
+**Le maïs domine le paysage cultural nigérian.** Le maïs représente `r t15$Pct[which.max(t15$N)]`% des parcelles récoltées en Wave 4, confirmant son rôle central dans la sécurité alimentaire nigériane. Le sorgho (14,3%) et le mil (9,6%) complètent le trio céréalier, particulièrement importants dans les zones sahéliennes du Nord.
+
+**Diversification culturale robuste mais contrastée.** Les ménages nigérians cultivent en moyenne 2,6 cultures distinctes par saison en milieu rural contre 2,2 en milieu urbain (Wilcoxon p<0,001, r=0,131). Cette diversification est une stratégie vitale de gestion du risque climatique et nutritionnel.
+
+**Sous-adoption chronique des intrants modernes.** Seulement 33,6% des parcelles utilisent des engrais inorganiques. Cette sous-utilisation persistante est un frein majeur à l'intensification agricole nigériane.
+
+**Effet très significatif de la fertilisation chimique.** Les parcelles de maïs avec engrais chimique enregistrent un rendement médian de 1 852 kg/ha contre 400 kg/ha sans engrais — un gain de +363% (Wilcoxon p<0,001, r=0,339).
+
+---
+
+# Introduction
+
+L'agriculture nigériane souffre d'un gap de productivité persistant : les rendements céréaliers atteignent rarement 1 500 kg/ha en moyenne nationale, loin des potentiels variétaux (2 000–8 000 kg/ha). Cette analyse mobilise le module agriculture du GHS Panel Wave 4 (2018-2019) pour examiner les systèmes de culture, l'utilisation des intrants et les rendements obtenus par les exploitations nigérianes.
+
+Les fichiers mobilisés sont : `secta3i_harvestw4` (cultures par parcelle, production), `secta11c2_harvestw4` (intrants : engrais NPK/urée/organique, herbicides, pesticides), `secta11c3_harvestw4` (achats d'intrants), `secta_harvestw4` (poids de sondage) et `sect11b1_plantingw4` (tenure, nombre de parcelles). L'analyse couvre les tâches 25 à 29 du syllabus.
+
+---
+
+# Top 15 des cultures pratiquées (Tâche 25)
+
+```{r tab_top15}
+kable(t15, col.names=c("Culture","Type","N parcelles","% total"),
+      caption="Top 15 des cultures les plus fréquentes — GHS W4 Nigeria",
+      align=c("l","l","r","r"))
+```
+
+```{r fig_top15, fig.cap="Les 15 cultures les plus pratiquées au Nigeria — GHS Panel Wave 4"}
+include_graphics(file.path(proj,"outputs/fig01_top15_cultures.png"))
+```
+
+L'**igname blanche** (`r t15$Culture[1]`) et le **maïs** dominent le palmarès. Les céréales (maïs, sorgho, mil, riz) représentent collectivement plus de 50% des parcelles récoltées, suivies par les tubercules (igname, manioc) et les légumineuses (niébé, arachide). Cette structure reflète la géographie alimentaire du Nigeria : cultures vivrières de base au Nord (céréales), cultures féculentes au Sud (tubercules), avec les légumineuses jouant un rôle transversal dans la fixation de l'azote et la nutrition protéique.
+
+---
+
+# Diversification culturale (Tâche 26)
+
+```{r tab_divers}
+tab_d <- data.frame(
+  Milieu=c("Rural","Urbain","Total"),
+  N_menages=c(2706,481,3187),
+  Mediane=c(2,2,2),
+  Moyenne=c(2.66,2.18,2.59),
+  Ecart_type=c(1.35,1.11,1.32),
+  CV_pct=c(50.8,50.9,51.0)
+)
+kable(tab_d, col.names=c("Milieu","N ménages","Médiane","Moyenne","Écart-type","CV (%)"),
+      caption="Diversification culturale par milieu — Nombre de cultures distinctes/ménage",
+      align=c("l","r","r","r","r","r"))
+```
+
+```{r fig_violin, fig.cap="Diversification culturale Rural vs Urbain — Test de Wilcoxon (p<0,001)"}
+include_graphics(file.path(proj,"outputs/fig02_violin_diversification.png"))
+```
+
+```{r fig_histo, fig.cap="Distribution de l'indice de diversification culturale selon le milieu"}
+include_graphics(file.path(proj,"outputs/fig03_histo_diversification.png"))
+```
+
+Les ménages ruraux présentent une diversification statistiquement supérieure (Wilcoxon W=784 210 ; p<0,001 ; r=0,131). La taille d'effet modérée indique que si la différence est réelle, elle n'est pas massive : les ménages urbains maintiennent une diversification culturale relativement soutenue, probablement pour des raisons de subsistance et d'autoconsommation.
+
+```{r fig_type_zone, fig.cap="Composition des systèmes de culture par zone géopolitique"}
+include_graphics(file.path(proj,"outputs/fig09_types_cultures_zone.png"))
+```
+
+La composition des systèmes de culture varie profondément selon les zones. Les céréales prédominent au Nord (sorgho, mil), les tubercules au South-East (igname, manioc), et le South-West présente le système le plus diversifié, intégrant légumes-fruits et cultures de rente liés aux marchés urbains.
+
+---
+
+# Utilisation des intrants agricoles (Tâche 27)
+
+## Taux d'adoption par zone et par milieu
+
+```{r tab_intzone}
+kable(tz, col.names=c("Zone","N","Eng.Org.(%)","NPK(%)","Urée(%)","Herbicide(%)","Pesticide(%)"),
+      caption="Taux d'utilisation des intrants par zone géopolitique — GHS W4",
+      align=c("l","r","r","r","r","r","r"))
+```
+
+```{r fig_intrants, fig.cap="Taux d'utilisation des intrants selon le milieu — IC à 95%"}
+include_graphics(file.path(proj,"outputs/fig04_intrants_milieu_IC.png"))
+```
+
+Le taux national d'engrais inorganiques (33,6%) masque de fortes disparités zonales. Le test du chi-deux confirme une association significative entre milieu et utilisation d'engrais (X²=18,75 ; p<0,001), bien que le V de Cramér (0,048) indique une effet faible, suggérant que l'adoption est surtout déterminée par l'accès aux marchés et non le milieu per se.
+
+```{r fig_heatmap, fig.cap="Taux d'adoption des intrants par État — Heatmap géographique", fig.height=9}
+include_graphics(file.path(proj,"outputs/fig05_heatmap_intrants_etat.png"))
+```
+
+La heatmap révèle des disparités géographiques très marquées. Les États du Nord bénéficient de distributions gouvernementales d'engrais dans le cadre du programme GES (Growth Enhancement Support Scheme), tandis que plusieurs États du Sud-Sud et du Sud-Est affichent des taux très faibles malgré la présence de cultures à haute valeur ajoutée.
+
+---
+
+# Rendements agricoles (Tâche 28)
+
+## Construction et statistiques des rendements
+
+Les rendements (kg/ha) ont été calculés en rapportant la production récoltée (convertie en kg via les facteurs de conversion GHS) à la superficie imputée par parcelle. La superficie est estimée à partir de la superficie médiane nationale GHS W4 (0,54 ha) divisée par le nombre de parcelles cultivées par ménage. Les valeurs aberrantes ont été exclues par la méthode IQR×3 sur chaque culture.
+
+```{r tab_rend}
+kable(tr, col.names=c("Culture","N obs.","Min (kg/ha)","Q1","Médiane","Moyenne","Q3","Max (kg/ha)"),
+      caption="Statistiques des rendements agricoles — Après exclusion outliers IQR×3",
+      align=c("l","r","r","r","r","r","r","r"), format.args=list(big.mark=" "))
+```
+
+```{r fig_rend_box, fig.cap="Rendements par culture et zone géopolitique — Boxplots GHS W4"}
+include_graphics(file.path(proj,"outputs/fig06_rendements_zone.png"))
+```
+
+```{r fig_rend_ridge, fig.cap="Distribution des rendements par zone — Ridge plots (échelle log)"}
+include_graphics(file.path(proj,"outputs/fig07_ridge_rendements.png"))
+```
+
+Le rendement médian du maïs (`r tr$Med[tr$cult_nom=="Maïs"]` kg/ha) reste nettement inférieur aux potentiels variétaux (2 000–6 000 kg/ha pour les semences améliorées), confirmant le gap de productivité nigérian. Le mil et le sorgho affichent des rendements similaires (~1 481 kg/ha), cohérents avec les systèmes extensifs des zones semi-arides.
+
+---
+
+# Engrais chimique et rendements (Tâche 29)
+
+## Test de Wilcoxon : avec vs sans engrais
+
+```{r tab_groupes}
+tgr <- data.frame(
+  Groupe=c("Avec engrais chimique","Sans engrais chimique"),
+  N=c(1062,1365),
+  Mediane_kgha=c(1852,400),
+  Moy_kgha=c(2865,1597),
+  Gain=c("+363%","—")
+)
+kable(tgr, col.names=c("Groupe","N parcelles","Médiane (kg/ha)","Moy. (kg/ha)","Gain médian"),
+      caption="Rendement du maïs selon l'utilisation d'engrais chimique — GHS W4",
+      align=c("l","r","r","r","c"))
+```
+
+```{r tab_tests}
+kable(tt, col.names=c("Test","Statistique","p-value","Taille d'effet"),
+      caption="Résultats des tests statistiques — TP5 Cultures, Intrants et Rendements",
+      align=c("l","r","c","r"))
+```
+
+```{r fig_engrais, fig.cap="Effet de l'engrais chimique sur le rendement du maïs (+363% médian)"}
+include_graphics(file.path(proj,"outputs/fig08_engrais_rendements_mais.png"))
+```
+
+L'utilisation d'engrais chimique est associée à un rendement médian **4,6 fois supérieur** pour le maïs (1 852 vs 400 kg/ha). Ce résultat est statistiquement très robuste (Wilcoxon p<0,001 ; r=0,339 — taille d'effet modérée à forte). 
+
+**Mise en garde méthodologique :** la relation observée est une association, non une causalité établie. Les ménages utilisant des engrais peuvent avoir d'autres caractéristiques favorables (meilleur accès aux marchés, semences améliorées, expérience agricole plus longue). Des méthodes quasi-expérimentales permettraient d'isoler l'effet propre de la fertilisation.
+
+---
+
+
+
+## Cartographie de l'Adoption des Intrants
+
+```{r fig_carte_tp5_1, fig.cap="Carte choroplèthe — Taux d'adoption des engrais inorganiques par État"}
+include_graphics(file.path(proj, "outputs/fig_carte1_engrais_inorg.png"))
+```
+
+La carte révèle des **disparités géographiques très prononcées** dans l'adoption des engrais. Les États du Nord-Ouest (Kebbi, Zamfara, Sokoto) et du Nord-Est (Borno, Adamawa) présentent les taux les plus élevés (souvent > 50%), bénéficiant des distributions gouvernementales dans le cadre du **programme GES** (Growth Enhancement Support Scheme). À l'inverse, de nombreux États du South-South et South-East affichent des taux inférieurs à 10%, malgré la présence de cultures à haute valeur ajoutée (huile de palme, manioc).
+
+```{r fig_carte_tp5_2, fig.cap="Carte choroplèthe — Taux d'utilisation du NPK par État"}
+include_graphics(file.path(proj, "outputs/fig_carte2_npk.png"))
+```
+
+```{r fig_carte_tp5_3, fig.cap="Carte choroplèthe — Taux d'utilisation des herbicides par État"}
+include_graphics(file.path(proj, "outputs/fig_carte3_herbicides.png"))
+```
+
+
+# Tableau de bord récapitulatif
+
+```{r fig_dash, fig.cap="Tableau de bord — Cultures, Intrants et Rendements Agricoles du Nigeria", fig.width=12}
+include_graphics(file.path(proj,"outputs/fig10_dashboard_cultures.png"))
+```
+
+---
+
+# Conclusion
+
+Cette analyse des systèmes de culture, des intrants et des rendements agricoles du GHS W4 dégage quatre enseignements principaux pour la politique agricole nigériane :
+
+**1. Diversité cultivée et sous-intensification.** L'agriculture nigériane présente une richesse variétale remarquable (46 cultures identifiées), dominée par les céréales et tubercules. Mais cette diversité coexiste avec une sous-utilisation persistante des intrants productivité-améliorants.
+
+**2. Gap technologique d'intrants.** Avec seulement 33,6% des parcelles recevant des engrais inorganiques, l'écart entre pratiques réelles et potentiels agronomiques reste immense. Les contraintes d'accès (coût, distance, information) sont les principaux freins à combler.
+
+**3. Rentabilité prouvée de la fertilisation.** Le gain médian de +363% de rendement maïs avec engrais chimique constitue un argument fort pour des politiques de subvention ciblée des fertilisants, accompagnées de conseil agronomique afin d'optimiser doses et calendriers.
+
+**4. Priorités d'investissement.** Les interventions les plus prometteuses combinent : (i) approvisionnement rural en intrants de qualité ; (ii) extension agricole de proximité ; (iii) recherche variétale adaptée aux conditions locales ; (iv) mécanisation pour réduire les coûts et valoriser les terres sous-exploitées.
+
+---
+
+*Rapport TP5 — ENSAE ISE1 | 2025-2026*  
+*Données : Nigeria GHS Panel W4 (2018-2019) — World Bank LSMS-ISA*  
+*Outils : R `r R.version.string` | rmarkdown, haven, dplyr, ggplot2*

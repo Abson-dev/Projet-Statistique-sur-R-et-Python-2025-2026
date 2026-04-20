@@ -1,0 +1,4 @@
+"Test","Stat","p_value","Taille_eff"
+"Wilcoxon div. culturale (Rural vs Urbain)","784210.5","1.55e-13",0.131
+"Chi-deux (engrais inorg. ~ milieu)","18.75","8.48e-05",0.048
+"Wilcoxon rendement maïs (engrais vs sans)","1011173","<2e-16",0.339

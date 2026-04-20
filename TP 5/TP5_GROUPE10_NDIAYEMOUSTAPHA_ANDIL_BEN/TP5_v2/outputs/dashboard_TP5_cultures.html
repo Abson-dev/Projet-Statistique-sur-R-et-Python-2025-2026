@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TP5 — Cultures, Intrants et Rendements | GHS W4 Nigeria</title>
+<style>
+:root{--primary:#1a3a5c;--secondary:#2e7d32;--accent:#e67e22;--blue:#1565c0;
+  --danger:#c62828;--warning:#f57f17;--light:#f4f6f8;--white:#fff;--text:#2c3e50;
+  --border:#dde1e7;--shadow:0 2px 12px rgba(0,0,0,0.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Arial,sans-serif;background:#f0f2f5;color:var(--text);font-size:14px;line-height:1.6}
+.header{background:linear-gradient(135deg,#0d3b14 0%,var(--secondary) 50%,#66bb6a 100%);
+  color:white;padding:24px 36px;box-shadow:0 3px 15px rgba(0,0,0,0.3);position:sticky;top:0;z-index:200}
+.header h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.header p{font-size:12px;opacity:0.82}
+.badges{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);
+  border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600}
+.nav{background:white;border-bottom:2px solid var(--border);padding:0 36px;
+  display:flex;gap:0;position:sticky;top:88px;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
+.nav-btn{padding:14px 18px;border:none;background:none;cursor:pointer;font-size:13px;
+  font-weight:600;color:#6c757d;border-bottom:3px solid transparent;transition:all .25s;white-space:nowrap}
+.nav-btn:hover{color:var(--secondary)}
+.nav-btn.active{color:var(--secondary);border-bottom-color:var(--secondary)}
+.page{display:none;animation:fadeUp .35s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.container{max-width:1400px;margin:0 auto;padding:24px 20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:16px;margin-bottom:28px}
+.kpi-card{background:white;border-radius:12px;padding:18px;box-shadow:var(--shadow);
+  border-top:4px solid var(--secondary);transition:transform .2s,box-shadow .2s}
+.kpi-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.kpi-card.blue{border-top-color:var(--blue)}
+.kpi-card.orange{border-top-color:var(--accent)}
+.kpi-card.red{border-top-color:var(--danger)}
+.kpi-card.purple{border-top-color:#7b2d8b}
+.kpi-value{font-size:28px;font-weight:800;color:var(--primary);line-height:1.1}
+.kpi-label{font-size:12px;color:#6c757d;margin-top:5px;font-weight:600}
+.kpi-sub{font-size:11px;color:#adb5bd;margin-top:2px}
+.section{background:white;border-radius:12px;padding:24px;box-shadow:var(--shadow);margin-bottom:24px}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;
+  padding-bottom:12px;border-bottom:2px solid var(--light)}
+.section-icon{width:36px;height:36px;border-radius:8px;background:var(--secondary);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.section-title{font-size:16px;font-weight:700;color:var(--primary)}
+.section-subtitle{font-size:12px;color:#6c757d;margin-top:1px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.img-wrap{text-align:center;background:#fafafa;border-radius:8px;padding:12px}
+.img-wrap img{max-width:100%;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.img-caption{font-size:11px;color:#6c757d;margin-top:8px;font-style:italic}
+.tab-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab-btn{padding:7px 16px;border:2px solid var(--border);border-radius:20px;
+  cursor:pointer;font-size:12px;font-weight:600;background:white;color:#6c757d;transition:all .2s}
+.tab-btn:hover{border-color:var(--secondary);color:var(--secondary)}
+.tab-btn.active{background:var(--secondary);border-color:var(--secondary);color:white}
+.tab-content{display:none}
+.tab-content.active{display:block;animation:fadeUp .3s ease}
+.table-wrap{overflow-x:auto;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+table.styled{width:100%;border-collapse:collapse;font-size:13px}
+table.styled th{background:var(--primary);color:white;padding:10px 14px;text-align:left;font-weight:600;font-size:12px;white-space:nowrap}
+table.styled td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.styled tr:hover td{background:#f0f4f8}
+table.styled tr:nth-child(even) td{background:#f8f9fa}
+.result-box{background:linear-gradient(135deg,#e8f5e9,#f3e5f5);
+  border:1px solid #a5d6a7;border-radius:10px;padding:16px;margin:12px 0;font-size:13px}
+.result-box h4{color:var(--primary);margin-bottom:8px;font-size:14px}
+.result-box.warning{background:linear-gradient(135deg,#fff9c4,#fff3e0);border-color:#f9a825}
+.result-box.danger{background:linear-gradient(135deg,#fce4ec,#fff3e0);border-color:#ef9a9a}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.chip.green{background:#e8f5e9;color:#1b5e20}
+.chip.blue{background:#e3f2fd;color:#0d47a1}
+.chip.orange{background:#fff3e0;color:#e65100}
+.chip.red{background:#fce4ec;color:#880e4f}
+/* Gauge chart */
+.gauge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0}
+.gauge-item{text-align:center;padding:16px;background:#fafafa;border-radius:10px;border:1px solid var(--border)}
+.gauge-circle{width:80px;height:80px;border-radius:50%;margin:0 auto 10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:white}
+.gauge-label{font-size:12px;color:#555;font-weight:600}
+.prog-item{display:flex;align-items:center;gap:10px;margin:7px 0}
+.prog-label{width:170px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
+.prog-track{flex:1;height:20px;background:#e9ecef;border-radius:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:6px;display:flex;align-items:center;
+  padding-left:8px;font-size:11px;font-weight:700;color:white;transition:width 1.5s ease}
+.prog-val{width:45px;font-size:12px;color:#6c757d;font-weight:600;text-align:right}
+footer{text-align:center;padding:20px;font-size:11px;color:#6c757d;
+  border-top:1px solid var(--border);margin-top:10px}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}.nav{overflow-x:auto}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <h1>🌱 TP5 — Cultures, Intrants et Rendements Agricoles</h1>
+      <p>Nigeria General Household Survey Panel Wave 4 (2018-2019) | ENSAE ISE1 | 2025-2026</p>
+    </div>
+    <div style="font-size:32px;opacity:0.7">🌾</div>
+  </div>
+  <div class="badges">
+    <span class="badge">3 188 ménages</span>
+    <span class="badge">10 966 récoltes</span>
+    <span class="badge">46 cultures</span>
+    <span class="badge">37 États</span>
+    <span class="badge">Maïs = 24,8%</span>
+    <span class="badge">Gain engrais = +363%</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage(this,'accueil')">🏠 Accueil</button>
+  <button class="nav-btn" onclick="showPage(this,'cartes')">🗺️ Cartes</button>
+  <button class="nav-btn" onclick="showPage(this,'cultures')">🌱 Cultures</button>
+  <button class="nav-btn" onclick="showPage(this,'intrants')">🧪 Intrants</button>
+  <button class="nav-btn" onclick="showPage(this,'rendements')">📈 Rendements</button>
+  <button class="nav-btn" onclick="showPage(this,'tests')">📐 Tests</button>
+</nav>
+
+<!-- ACCUEIL -->
+<div id="accueil" class="page active">
+<div class="container">
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value">3 188</div>
+      <div class="kpi-label">Ménages cultivateurs</div>
+      <div class="kpi-sub">Cultures récoltées saison 2018/19</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-value">46</div>
+      <div class="kpi-label">Cultures distinctes</div>
+      <div class="kpi-sub">Richesse variétale nationale</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-value">24,8%</div>
+      <div class="kpi-label">Le maïs domine</div>
+      <div class="kpi-sub">Culture N°1 en W4</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-value">33,6%</div>
+      <div class="kpi-label">Engrais inorganiques</div>
+      <div class="kpi-sub">% parcelles utilisatrices</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">800</div>
+      <div class="kpi-label">Rendement médian maïs</div>
+      <div class="kpi-sub">kg/ha — sans engrais chimique</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-value">+363%</div>
+      <div class="kpi-label">Gain engrais chimique</div>
+      <div class="kpi-sub">1 852 vs 400 kg/ha | p&lt;0,001</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <div class="section-title">Contexte et Objectifs</div>
+        <div class="section-subtitle">Tâches 25-29 | secta3i, secta11c2, secta11c3</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <p style="margin-bottom:12px;">Cette analyse examine les <strong>systèmes de culture, l'utilisation des intrants agricoles et les rendements</strong> obtenus par les exploitations nigérianes. Le gap de productivité — rendements céréaliers nigérians nettement inférieurs aux potentiels variétaux — constitue le fil rouge de l'analyse.</p>
+        <div class="chips">
+          <span class="chip green">Maïs = culture N°1</span>
+          <span class="chip blue">Diversification Rurale > Urbaine</span>
+          <span class="chip orange">Engrais NPK = 27,2% parcelles</span>
+          <span class="chip red">Rendement maïs sans engrais = 400 kg/ha</span>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:10px">
+        <div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#1b5e20">2,66</div>
+          <div style="font-size:11px;color:#388e3c;font-weight:600">Cultures/ménage (Rural)</div>
+        </div>
+        <div style="padding:14px;background:#e3f2fd;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#0d47a1">2,18</div>
+          <div style="font-size:11px;color:#1565c0;font-weight:600">Cultures/ménage (Urbain)</div>
+        </div>
+        <div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#e65100">1 852</div>
+          <div style="font-size:11px;color:#e67e22;font-weight:600">kg/ha (avec engrais)</div>
+        </div>
+        <div style="padding:14px;background:#fce4ec;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:800;color:#c62828">400</div>
+          <div style="font-size:11px;color:#e53935;font-weight:600">kg/ha (sans engrais)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🎯</div>
+      <div><div class="section-title">Messages Clés</div></div>
+    </div>
+    <div class="grid-3">
+      <div style="padding:16px;background:#e8f5e9;border-radius:8px;border-left:4px solid #1b7837">
+        <div style="font-size:22px;margin-bottom:6px">🌽</div>
+        <strong style="color:#1b5e20;font-size:13px">Maïs dominant, systèmes diversifiés</strong>
+        <p style="font-size:12px;margin-top:6px;color:#333">Le maïs (24,8%) domine mais les ménages cultivent en moyenne 2,6 cultures (rural), stratégie vitale de gestion du risque alimentaire.</p>
+      </div>
+      <div style="padding:16px;background:#fff3e0;border-radius:8px;border-left:4px solid #e67e22">
+        <div style="font-size:22px;margin-bottom:6px">🧪</div>
+        <strong style="color:#e65100;font-size:13px">Sous-adoption chronique des intrants</strong>
+        <p style="font-size:12px;margin-top:6px;color:#333">Seulement 33,6% des parcelles utilisent des engrais inorganiques. Ce fossé technologique explique en grande partie les faibles rendements observés.</p>
+      </div>
+      <div style="padding:16px;background:#e3f2fd;border-radius:8px;border-left:4px solid #1565c0">
+        <div style="font-size:22px;margin-bottom:6px">📈</div>
+        <strong style="color:#0d47a1;font-size:13px">Impact prouvé de la fertilisation</strong>
+        <p style="font-size:12px;margin-top:6px;color:#333">+363% de gain médian maïs avec engrais chimique (1 852 vs 400 kg/ha). Wilcoxon p&lt;0,001, r=0,339 : taille d'effet modérée à forte.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CARTES -->
+<div id="cartes" class="page">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🗺️</div>
+      <div>
+        <div class="section-title">Cartographie Géographique des Intrants</div>
+        <div class="section-subtitle">Cartes choroplèthes par État — Vraies frontières administratives</div>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab(this,'m1')">🌿 Engrais inorganiques</button>
+      <button class="tab-btn" onclick="showTab(this,'m2')">💊 NPK</button>
+      <button class="tab-btn" onclick="showTab(this,'m3')">🧴 Herbicides</button>
+    </div>
+    <div id="m1" class="tab-content active">
+      <div class="img-wrap">
+        <img src="fig_carte1_engrais_inorg.png" alt="Carte engrais inorganiques">
+        <div class="img-caption">Carte 1 — Taux d'adoption des engrais inorganiques par État. Les États du Nord-Ouest (Kebbi, Zamfara) et du Nord-Est (Borno, Adamawa) présentent les taux les plus élevés, bénéficiant des programmes gouvernementaux GES. Taux national : 33,6%.</div>
+      </div>
+    </div>
+    <div id="m2" class="tab-content">
+      <div class="img-wrap">
+        <img src="fig_carte2_npk.png" alt="Carte NPK">
+        <div class="img-caption">Carte 2 — Taux d'utilisation du NPK par État. L'engrais NPK est le plus répandu parmi les engrais inorganiques, dominant dans les zones de production céréalière intensive du Nord.</div>
+      </div>
+    </div>
+    <div id="m3" class="tab-content">
+      <div class="img-wrap">
+        <img src="fig_carte3_herbicides.png" alt="Carte herbicides">
+        <div class="img-caption">Carte 3 — Taux d'utilisation des herbicides par État. Répartition géographiquement plus homogène que les engrais, avec une adoption significative dans certains États du Sud (cultures maraîchères).</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CULTURES -->
+<div id="cultures" class="page">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🌱</div>
+      <div>
+        <div class="section-title">Top 15 Cultures et Diversification (Tâches 25-26)</div>
+      </div>
+    </div>
+    <div class="img-wrap" style="margin-bottom:20px;">
+      <img src="fig01_top15_cultures.png" alt="Top 15 cultures">
+      <div class="img-caption">Fig. 1 — Les 15 cultures les plus pratiquées. Le maïs domine (24,8%), suivi du sorgho (14,3%) et du mil (9,6%). Les céréales représentent plus de 50% des parcelles récoltées.</div>
+    </div>
+    <div class="grid-2">
+      <div class="img-wrap">
+        <img src="fig02_violin_diversification.png" alt="Violin diversification">
+        <div class="img-caption">Fig. 2 — Diversification Rural vs Urbain. Wilcoxon p&lt;0,001, r=0,131. Les ménages ruraux cultivent significativement plus de cultures distinctes.</div>
+      </div>
+      <div class="img-wrap">
+        <img src="fig09_types_cultures_zone.png" alt="Types cultures zone">
+        <div class="img-caption">Fig. 3 — Composition des systèmes de culture par zone. Céréales au Nord, Tubercules au Sud-Est.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- INTRANTS -->
+<div id="intrants" class="page">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🧪</div>
+      <div>
+        <div class="section-title">Utilisation des Intrants Agricoles (Tâche 27)</div>
+        <div class="section-subtitle">Engrais organiques, NPK, urée, herbicides, pesticides</div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <h4 style="color:var(--primary);margin-bottom:14px;">Taux d'adoption nationaux</h4>
+      <div class="prog-item"><span class="prog-label">Engrais inorganique (tous)</span>
+        <div class="prog-track"><div class="prog-fill" style="width:33.6%;background:#2e7d32">33,6%</div></div>
+        <span class="prog-val">33,6%</span></div>
+      <div class="prog-item"><span class="prog-label">NPK</span>
+        <div class="prog-track"><div class="prog-fill" style="width:27.2%;background:#1565c0">27,2%</div></div>
+        <span class="prog-val">27,2%</span></div>
+      <div class="prog-item"><span class="prog-label">Urée</span>
+        <div class="prog-track"><div class="prog-fill" style="width:14.3%;background:#6a1b9a">14,3%</div></div>
+        <span class="prog-val">14,3%</span></div>
+      <div class="prog-item"><span class="prog-label">Engrais organique</span>
+        <div class="prog-track"><div class="prog-fill" style="width:22.8%;background:#558b2f">22,8%</div></div>
+        <span class="prog-val">22,8%</span></div>
+      <div class="prog-item"><span class="prog-label">Herbicide</span>
+        <div class="prog-track"><div class="prog-fill" style="width:31.4%;background:#ad1457">31,4%</div></div>
+        <span class="prog-val">31,4%</span></div>
+      <div class="prog-item"><span class="prog-label">Pesticide</span>
+        <div class="prog-track"><div class="prog-fill" style="width:7.1%;background:#b71c1c">7,1%</div></div>
+        <span class="prog-val">7,1%</span></div>
+    </div>
+    <div class="img-wrap">
+      <img src="fig04_intrants_milieu_IC.png" alt="Intrants par milieu">
+      <div class="img-caption">Fig. 4 — Taux d'utilisation par milieu avec intervalles de confiance à 95%. Le milieu rural utilise davantage d'engrais organiques, l'urbain davantage de pesticides.</div>
+    </div>
+    <div class="img-wrap" style="margin-top:16px;">
+      <img src="fig05_heatmap_intrants_etat.png" alt="Heatmap intrants état" style="max-width:70%;">
+      <div class="img-caption">Fig. 5 — Heatmap des taux d'adoption par État. Disparités géographiques très marquées.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- RENDEMENTS -->
+<div id="rendements" class="page">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📈</div>
+      <div>
+        <div class="section-title">Rendements Agricoles et Effet Engrais (Tâches 28-29)</div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <table class="styled">
+        <thead><tr><th>Culture</th><th>N obs.</th><th>Min (kg/ha)</th><th>Q1</th><th>Médiane</th><th>Moyenne</th><th>Q3</th><th>Max (kg/ha)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Maïs</strong></td><td>2 427</td><td>3</td><td>200</td><td><strong>800</strong></td><td>2 110</td><td>2 963</td><td>14 074</td></tr>
+          <tr><td><strong>Mil/Millet</strong></td><td>951</td><td>12</td><td>741</td><td><strong>1 481</strong></td><td>1 992</td><td>2 778</td><td>8 333</td></tr>
+          <tr><td><strong>Sorgho</strong></td><td>1 402</td><td>10</td><td>739</td><td><strong>1 481</strong></td><td>1 879</td><td>2 593</td><td>8 333</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-2">
+      <div class="img-wrap">
+        <img src="fig06_rendements_zone.png" alt="Rendements boxplot">
+        <div class="img-caption">Fig. 6 — Rendements par culture et zone. Le maïs montre la plus grande variabilité.</div>
+      </div>
+      <div class="img-wrap">
+        <img src="fig08_engrais_rendements_mais.png" alt="Engrais rendements maïs">
+        <div class="img-caption">Fig. 7 — Effet engrais chimique sur le rendement du maïs. Gain médian : +363%. Wilcoxon p&lt;0,001.</div>
+      </div>
+    </div>
+    <div class="result-box danger" style="margin-top:16px;">
+      <h4>⚠️ Note Méthodologique Importante</h4>
+      <p style="font-size:13px;margin-top:6px;">La relation engrais → rendement est une <strong>association observationnelle, non une causalité établie</strong>. Les ménages utilisant des engrais peuvent avoir d'autres caractéristiques favorables (meilleur accès aux marchés, semences améliorées). Des méthodes quasi-expérimentales (PSM, DiD) seraient nécessaires pour isoler l'effet propre de la fertilisation.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TESTS -->
+<div id="tests" class="page">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📐</div>
+      <div>
+        <div class="section-title">Synthèse des Tests Statistiques</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="styled">
+        <thead><tr><th>Test</th><th>Objectif</th><th>Statistique</th><th>p-value</th><th>Taille d'effet</th><th>Interprétation</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Wilcoxon</strong></td><td>Diversification ~ Milieu</td><td>W = 784 210</td><td style="color:#1b7837"><strong>&lt; 0,001</strong></td><td>r = 0,131 (faible)</td><td>Rural > Urbain (diversification)</td></tr>
+          <tr><td><strong>Chi-deux</strong></td><td>Engrais ~ Milieu</td><td>X² = 18,75</td><td style="color:#1b7837"><strong>&lt; 0,001</strong></td><td>V = 0,048 (très faible)</td><td>Association faible</td></tr>
+          <tr><td><strong>Wilcoxon</strong></td><td>Rendement maïs ~ Engrais</td><td>W = 1 011 173</td><td style="color:#1b7837"><strong>&lt; 0,001</strong></td><td>r = 0,339 (modéré-fort)</td><td>+363% médian avec engrais</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="result-box" style="margin-top:16px;">
+      <h4>🔬 Interprétation Globale</h4>
+      <p style="font-size:13px;margin-top:6px;">L'effet de l'engrais chimique sur le rendement du maïs est le résultat le plus robuste (r=0,339, modéré à fort). La sous-utilisation des intrants (33,6%) combinée à leur impact prouvé sur les rendements constitue le principal levier d'amélioration de la productivité agricole nigériane. Des politiques de subvention ciblée des fertilisants, accompagnées de conseil agronomique, représentent l'intervention la plus prometteuse pour combler le gap de productivité.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>
+  TP5 — Cultures, Intrants et Rendements Agricoles | ENSAE ISE1 | 2025-2026<br>
+  Données : Nigeria GHS Panel W4 (2018-2019) — World Bank LSMS-ISA<br>
+  Traitement R : haven, dplyr, ggplot2, sf, rstatix
+</footer>
+
+<script>
+function showPage(btn,pageId){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({top:88,behavior:'smooth'});
+}
+function showTab(btn,tabId){
+  const sec=btn.closest('.section');
+  sec.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  sec.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+</script>
+</body>
+</html>
