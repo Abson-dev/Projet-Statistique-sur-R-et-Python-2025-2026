@@ -67,7 +67,7 @@ TP5/
 
 ## Rapport
 
-Consulter `docs/Rqpport.Rmd` pour la présentation détaillée des résultats.
+Consulter `docs/Rapport.Rmd` pour la présentation détaillée des résultats.
 Exécuter `docs/Rapport.R` pour compiler le rapport final Word.
 
 ## Auteur
