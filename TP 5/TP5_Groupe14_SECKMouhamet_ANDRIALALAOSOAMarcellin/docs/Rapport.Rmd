@@ -1,0 +1,306 @@
+---
+title: ""
+date: ""
+output:
+  word_document:
+    reference_docx: template.docx
+    toc: false
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 5,
+  fig.height = 3.5
+)
+library(knitr)
+library(dplyr)
+
+chemin <- "C:/Users/HP/Desktop/ISE1 CL/Semestre2/Projet statistique avec R ou python/Dossier R/TP/TP5"
+```
+
+\newpage
+
+# 1. Introduction
+
+Ce rapport présente les analyses descriptives et les tests statistiques réalisés dans le cadre du TP5, à partir des données de la Nigeria General Household Survey (GHS) Panel -- vague 4 (2018--2019). L'objectif est de décrire les cultures pratiquées par les ménages agricoles nigérians, d'analyser l'utilisation des intrants agricoles (engrais chimiques, organiques et pesticides) selon le milieu de résidence et les États, et d'examiner les rendements à l'hectare du maïs et du millet ainsi que leur relation avec l'utilisation d'engrais chimiques.
+
+# 2. Méthodologie
+
+## 2.1 Données et Variables Clés
+
+Les fichiers suivants ont été utilisés :
+
+- **secta_harvestw4.dta** : 5 025 ménages, poids de sondage (`wt_wave4`).
+
+- **secta1_harvestw4.dta** : 10 961 parcelles, module agriculture -- roster des parcelles cultivées.
+
+- **sect11a1_plantingw4.dta** : 11 076 parcelles, module planting -- superficie des parcelles (`s11aq4a` mesure GPS, `s11aq4b` unité de mesure, `s11aq4c` superficie GPS, `s11aq4aa` superficie déclarée), localisation géographique (`state` État, `sector` milieu).
+
+- **sect11f_plantingw4.dta** : cultures pratiquées sur chaque parcelle (`cropcode` code de la culture).
+
+- **sect11f_plantingw4.dta** (Q25, Q26) : module planting -- cultures pratiquées (`cropcode`).
+
+- **secta3i_harvestw4.dta** : production agricole par culture et parcelle (`sa3iq3` culture présente, `sa3iq6i` quantité récoltée, `sa3iq6ii` unité, `sa3iq6_conv` facteur de conversion en kg).
+
+- **secta11c2_harvestw4.dta** : utilisation des intrants par parcelle (`s11dq1a` engrais inorganique, `s11c2q36_1` NPK, `s11c2q36_2` urée, `s11dq36` engrais organique, `s11c2q1` pesticide).
+
+- **gadm41_NGA_1.shp** : shapefile des frontières des 37 États du Nigéria pour la cartographie.
+
+Les variables clés retenues sont :
+
+- **Cultures** : `cropcode` (codes numériques, recodés en libellés), avec focus particulier sur le maïs (1080) et le millet (1090).
+
+- **Superficie** : calculée à partir de `s11aq4c` (GPS, en m² convertis en hectares) ou `s11aq4aa` (déclarée, avec conversion selon l'unité : acres, hectares, m²).
+
+- **Production** : quantité récoltée en kg après conversion via `sa3iq6_conv`.
+
+- **Rendement** : ratio production (kg) / superficie (ha), calculé pour le maïs et le millet.
+
+- **Intrants** : variables binaires (0/1) pour l'utilisation d'engrais chimique (total), NPK, urée, engrais organique et pesticide.
+
+- **Milieu de résidence** : `sector` (1 = Urbain, 2 = Rural).
+
+- **État** : `state` (codes 1--37, 37 États nigérians).
+
+- **Poids de sondage** : `wt_wave4` (poids coupe transversale, issu de `secta_harvestw4.dta`), propagé au niveau parcelle via `hhid`.
+
+## 2.2 Traitements Effectués
+
+```{r traitements, eval=FALSE, echo=TRUE}
+# Chargement et jointures
+# Left join : sect11f est la table principale pour les cultures (niveau parcelle×culture)
+# secta3i pour la production, jointe par (hhid, plotid, cropcode)
+# sect11a1 pour la superficie, jointe par (hhid, plotid)
+# secta11c2 pour les intrants, jointe par (hhid, plotid)
+# secta pour les poids, jointe par hhid
+# sect11a1 pour la géolocalisation (state, sector)
+
+# Construction des bases analytiques :
+# 1. Table de référence des poids (niveau ménage)
+# 2. Table de référence milieu + état (niveau ménage)
+# 3. Table des superficies par parcelle (GPS prioritaire, sinon déclarée)
+# 4. Table des intrants par parcelle (binaires 0/1)
+# 5. Table de production en kg (culture×parcelle), filtrée sur maïs (1080) et millet (1090)
+# 6. Base analytique principale : rendement = production / superficie
+# 7. Base cultures pour Q25 et Q26
+# 8. Base intrants pour Q27
+
+# Conversion des superficies :
+# - GPS disponible (s11aq4a == 1) : s11aq4c / 10000 (m² -> ha)
+# - GPS non disponible, unité = acres (5) : s11aq4aa * 0.404686
+# - GPS non disponible, unité = hectares (6) : s11aq4aa
+# - GPS non disponible, unité = m² (7) : s11aq4aa / 10000
+
+# Production en kg :
+# - Si conversion disponible : sa3iq6i * sa3iq6_conv
+# - Si unité = kg (sa3iq6ii == 1) : sa3iq6i * 1
+# - Filtrage sur cropcode %in% c(1080, 1090)
+
+# Élimination des outliers (Q28) : méthode IQR × 3 par culture
+# Q1 = quantile(rendement_ha, 0.25), Q3 = quantile(rendement_ha, 0.75)
+# IQR = Q3 - Q1
+# Outliers : rendement < (Q1 - 3*IQR) ou rendement > (Q3 + 3*IQR)
+
+# Tests statistiques sur données brutes (Wilcoxon, Chi-deux) :
+# pas de version pondérée standard disponible en R pour ces tests.
+# Les taux d'utilisation sont calculés avec intervalles de confiance à 95%.
+```
+
+Les traitements réalisés comprennent la jointure des six fichiers avec intégration des poids de sondage, la construction de la base de rendement par fusion des tables de production, superficie, intrants et géolocalisation, le calcul des taux d'utilisation des intrants avec intervalles de confiance par la méthode des proportions, les tests de Wilcoxon pour la comparaison des distributions de rendement et de diversification, le test du Chi-deux avec V de Cramér pour l'association entre milieu et utilisation d'engrais, et la cartographie des taux d'utilisation et des rendements médians par État.
+
+# 3. Résultats
+
+## 3.1 Qualité des Données et Valeurs Manquantes
+
+L'examen des valeurs manquantes révèle une situation contrastée selon les modules. Les poids de sondage (`wt_wave4`) présentent 49 valeurs manquantes (0,98 %), considérées comme MCAR et exclues des analyses pondérées. La géolocalisation est disponible pour 3 915 ménages. Parmi les 9 899 parcelles avec superficie valide, 6 872 (69,4 %) disposent d'une mesure GPS, tandis que 3 027 reposent sur des mesures déclarées converties. La base analytique de rendement finale comprend 2 441 observations (parcelles×cultures) pour le maïs et le millet, dont 2 347 après élimination des outliers (94 observations écartées, soit 3,9 %).
+
+
+## 3.2 Top 15 des Cultures les Plus Fréquentes (Q25)
+
+L'analyse porte sur l'ensemble des parcelles cultivées recensées dans le module planting. Le maïs domine très largement le paysage agricole nigérian avec 4  parcelles (soit  du total des observations), suivi du manioc (4  parcelles) et de la patate douce (2  parcelles). Le millet, culture céréalière de référence pour les zones sahéliennes, occupe la quatrième position (1  parcelles), tandis que le riz (1  parcelles) et l'igname (1  parcelles) complètent le top 6.
+
+La répartition par type de culture met en évidence la prédominance des céréales (maïs, millet, riz, sorgho) et des tubercules (manioc, patate douce, igname, taro, pomme de terre) qui constituent ensemble l'essentiel de l'alimentation de base. Les cultures de rente (cacao, palmier à huile, noix de palme, soja, arachide) sont moins fréquentes en nombre de parcelles mais jouent un rôle économique crucial.
+
+```{r tab_q25}
+q25 <- read.csv(paste0(chemin, "/outputs/tables/q25_top15_cultures.csv"))
+kable(q25,
+      caption = "Top 15 des cultures les plus fréquentes (nombre de parcelles)",
+      digits  = 0,
+      align   = c("l", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 1 : Top 15 des cultures les plus fréquentes par type de culture
+:::
+
+```{r fig_q25}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q25_top15_cultures.png"))
+```
+
+## 3.3 Diversification Culturale par Ménage (Q26)
+
+L'indice de diversification culturale, mesuré par le nombre de cultures distinctes pratiquées par ménage, révèle des différences significatives entre milieux. En milieu rural, les ménages cultivent en moyenne 3,15 cultures distinctes (médiane = 3, écart-type = 1,65), contre 2,87 en milieu urbain (médiane = 2, écart-type = 1,72). Cette différence, bien que modeste en valeur absolue, est statistiquement très significative (test de Wilcoxon : W = 910 228, p = 9,62×10⁻⁷). La taille d'effet (r = 0,083) reste faible, indiquant que le milieu n'explique qu'une fraction limitée de la variance dans la diversification.
+
+La distribution globale montre que la majorité des ménages pratiquent une polyculture limitée : 3 cultures pour le mode, avec une queue de distribution s'étendant jusqu'à 15 cultures pour quelques exploitations très diversifiées. L'histogramme révèle une distribution unimodale légèrement asymétrique à droite.
+
+```{r tab_q26}
+q26 <- read.csv(paste0(chemin, "/outputs/tables/q26_diversif_stats.csv"))
+kable(q26,
+      caption = "Statistiques descriptives de la diversification culturale par milieu",
+      digits  = 2,
+      align   = c("l", "c", "c", "c", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 2 : Distribution du nombre de cultures distinctes par ménage
+:::
+
+```{r fig_q26_hist}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q26_histogramme_diversif.png"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 3 : Distribution de la diversification culturale par milieu (violin + boxplot)
+:::
+
+```{r fig_q26_violin}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q26_violin_diversif.png"))
+```
+
+## 3.4 Utilisation des Intrants par Zone (Q27)
+
+### Taux d'utilisation par milieu
+
+L'analyse des intrants agricoles porte sur les parcelles avec information complète. L'engrais chimique (total) est utilisé sur 34,4 % des parcelles en milieu rural contre 27,9 % en milieu urbain [IC 95 % : 33,3 %--35,5 % vs 25,1 %--30,6 %]. Cette différence est statistiquement significative (χ² = 16,79, ddl = 1, p = 4,18×10⁻⁵), bien que le V de Cramér (0,045) indique une association faible sur le plan pratique.
+
+La décomposition par type d'engrais chimique révèle des patterns contrastés. Le NPK est plus utilisé en milieu urbain (84,5 %) qu'en milieu rural (75,3 %), tandis que l'urée présente des taux comparables (55,6 % rural vs 51,6 % urbain). L'engrais organique est nettement plus répandu en zone rurale (21,0 % vs 10,0 % en urbain), reflétant l'accès plus facile aux ressources organiques (fumier, compost) dans les zones à élevage traditionnel.
+
+Les pesticides sont utilisés sur 12,9 % des parcelles rurales et 14,6 % des parcelles urbaines, une différence non significative qui traduit une exposition comparable aux ravageurs dans les deux milieux.
+
+```{r tab_q27}
+q27 <- read.csv(paste0(chemin, "/outputs/tables/q27_taux_intrants_milieu.csv"))
+kable(q27,
+      caption = "Taux d'utilisation des intrants par milieu de résidence (%)",
+      digits  = 1,
+      align   = c("l", "l", "c", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 4 : Taux d'utilisation des intrants par milieu de résidence
+:::
+
+```{r fig_q27}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q27_taux_intrants_facet.png"))
+```
+
+### Cartographie par État
+
+La cartographie du taux d'utilisation des engrais chimiques par État révèle de fortes disparités géographiques. Les États du Nord-Est et du Nord-Ouest (Borno, Yobe, Bauchi, Jigawa, Kano, Katsina, Zamfara, Sokoto, Kebbi) affichent généralement des taux d'utilisation plus élevés, cohérents avec les programmes de développement agricole ciblant les zones céréalières. À l'inverse, les États du Sud-Sud et du Sud-Est (Rivers, Bayelsa, Akwa Ibom, Cross River) montrent des taux plus faibles, où l'agriculture de subsistance à petite échelle domine.
+
+::: {custom-style="Figure Caption"}
+Figure 5 : Taux d'utilisation des engrais chimiques par État (%)
+:::
+
+```{r fig_q27_carte}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q27_carte_taux_engrais_etat.png"))
+```
+
+## 3.5 Rendements du Maïs et du Millet (Q28)
+
+### Statistiques descriptives
+
+Après élimination des outliers (méthode IQR × 3), la base comprend 2 347 observations. Le maïs présente un rendement médian de 788 kg/ha (moyenne = 1 224 kg/ha, écart-type = 1 261 kg/ha), tandis que le millet affiche un rendement médian de 179 kg/ha (moyenne = 303 kg/ha, écart-type = 325 kg/ha). La différence de rendement entre les deux cultures est considérable : le maïs produit en moyenne 4 fois plus que le millet, bien que la dispersion soit également plus importante pour le maïs.
+
+La distribution du rendement du maïs est fortement asymétrique à droite (Q1 = 325 kg/ha, Q3 = 1 631 kg/ha), avec un maximum à 6 500 kg/ha, reflétant l'hétérogénéité des conditions de culture et des pratiques agronomiques. Le millet, culture des zones plus arides, présente une distribution plus resserrée mais avec des valeurs généralement basses, caractéristique des systèmes de production extensifs à faible intensité d'intrants.
+
+```{r tab_q28}
+q28 <- read.csv(paste0(chemin, "/outputs/tables/q28_stats_rendement.csv"))
+kable(q28,
+      caption = "Statistiques descriptives des rendements (kg/ha) après élimination des outliers",
+      digits  = 0,
+      align   = c("l", "c", "c", "c", "c", "c", "c"))
+```
+
+### Disparités par État
+
+L'analyse par État, limitée aux États disposant d'au moins 10 observations par culture, révèle des disparités marquées. Pour le maïs, les États du Centre-Nord (Niger, Plateau, Benue) et du Sud-Ouest (Oyo, Ogun, Osun) affichent les rendements médians les plus élevés, dépassant souvent 1 500 kg/ha. Le millet, concentré dans les États du Nord-Ouest (Sokoto, Zamfara, Kebbi, Katsina, Kano) et du Nord-Est (Borno, Yobe, Bauchi), montre une plus grande homogénéité inter-États mais à des niveaux généralement inférieurs à 500 kg/ha.
+
+::: {custom-style="Figure Caption"}
+Figure 6 : Rendements du maïs et du millet par État (violin + boxplot)
+:::
+
+```{r fig_q28_violin}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q28_rendement_par_etat_violin.png"))
+```
+
+### Cartographie des rendements médians
+
+La cartographie des rendements médians par État illustre le clivage géographique entre les zones de maïsiculture intensive (Centre, Sud-Ouest) et les zones de miliculture extensive (Nord). Le maïs atteint des rendements médians supérieurs à 1 000 kg/ha dans les États les plus productifs, tandis que le millet peine à dépasser 300 kg/ha dans la plupart des États de culture.
+
+::: {custom-style="Figure Caption"}
+Figure 7 : Rendement médian du maïs à l'hectare par État (kg/ha)
+:::
+
+```{r fig_q28_carte_mais}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q28_carte_rendement_mais.png"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 8 : Rendement médian du millet à l'hectare par État (kg/ha)
+:::
+
+```{r fig_q28_carte_millet}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q28_carte_rendement_millet.png"))
+```
+
+## 3.6 Relation Engrais × Rendement (Q29)
+
+L'analyse de la relation entre l'utilisation d'engrais chimiques et le rendement révèle des résultats contrastés selon la culture. Pour le maïs, l'utilisation d'engrais chimique est associée à un rendement médian significativement supérieur : 1 115 kg/ha avec engrais contre 582 kg/ha sans engrais. Le test de Wilcoxon confirme cette différence (W = 436 741, p < 2,2×10⁻¹⁶) avec une taille d'effet modérée (r = 0,270), indiquant que l'engrais chimique explique une part substantielle de la variance du rendement en maïs.
+
+Pour le millet, en revanche, aucune différence significative n'est détectée (W = 411, p = 0,489, r = 0,079). Le rendement médian avec engrais (152 kg/ha) est même légèrement inférieur à celui sans engrais (184 kg/ha), bien que cette différence ne soit pas significative compte tenu de la faible taille d'échantillon des parcelles de millet avec engrais (n = 11 contre n = 66 sans engrais).
+
+Ces résultats suggèrent que l'efficacité des engrais chimiques dépend fortement du contexte agronomique. Le maïs, culture plus réceptive aux intrants minéraux et souvent cultivée dans des conditions plus favorables (humidité, sols), bénéficie nettement de la fertilisation. Le millet, culture des zones marginales à faible pluviométrie et souvent sur sols pauvres, ne montre pas de réponse significative, peut-être en raison de la limitation hydrique qui rend la fertilisation minérale moins efficace.
+
+```{r tab_q29}
+q29 <- read.csv(paste0(chemin, "/outputs/tables/q29_rendement_engrais.csv"))
+kable(q29,
+      caption = "Rendements selon l'utilisation d'engrais chimique (kg/ha)",
+      digits  = 0,
+      align   = c("l", "l", "c", "c", "c"))
+```
+
+::: {custom-style="Figure Caption"}
+Figure 9 : Relation entre utilisation d'engrais chimique et rendement (boxplot)
+:::
+
+```{r fig_q29}
+knitr::include_graphics(paste0(chemin, "/outputs/graphs/q29_rendement_engrais_boxplot.png"))
+```
+
+# 4. Discussion
+
+Les résultats dressent un portrait de l'agriculture nigériane dominé par la polyculture de subsistance et une utilisation encore limitée des intrants modernes. La prédominance du maïs (première culture en fréquence) et du manioc illustre la dualité entre les zones céréalières du Nord et les zones à tubercules du Sud. La diversification culturale, légèrement plus élevée en milieu rural (3,15 cultures en moyenne contre 2,87 en urbain), traduit une stratégie de sécurisation alimentaire fondée sur la diversification des risques plutôt que sur la spécialisation productive.
+
+L'utilisation des engrais chimiques, bien que non négligeable (34,4 % des parcelles rurales), reste en deçà des potentiels agronomiques du Nigeria. La cartographie révèle un gradient Nord-Sud marqué, avec des taux élevés dans les zones céréalières programmes et des taux faibles dans les zones forestières du Sud. L'association significative mais faible entre milieu et utilisation d'engrais (V de Cramér = 0,045) suggère que d'autres facteurs (accès aux marchés, prix des intrants, extension agricole) jouent un rôle plus déterminant que le seul milieu de résidence.
+
+Les rendements observés (médiane maïs : 788 kg/ha, médiane millet : 179 kg/ha) sont caractéristiques de l'agriculture de subsistance africaine, très en deçà des potentiels génétiques des variétés modernes. L'élimination des outliers (3,9 % des observations) n'a pas modifié l'ordre de grandeur des résultats, confirmant la robustesse des statistiques descriptives. La relation positive et significative entre engrais chimique et rendement en maïs (r = 0,270) confirme les conclusions de la littérature agronomique, tandis que l'absence de relation pour le millet souligne les limites de la "package technologique" dans les zones à contraintes environnementales fortes.
+
+**Limites :**
+
+- Le rendement est calculé sur la base de la production déclarée et de la superficie mesurée ou déclarée, avec un risque de biais de mesure hétérogène selon les parcelles.
+
+- Les tests statistiques (Wilcoxon, Chi-deux) sont appliqués sur données brutes, faute de versions pondérées standard disponibles en R. Les estimations de taux pondérées restent l'indicateur principal pour la représentativité.
+
+- La faible représentation du millet dans l'échantillon (77 observations contre 2 270 pour le maïs) limite la puissance statistique des comparaisons pour cette culture.
+
+- La carte par État est calculée sur données brutes ; le plan de sondage du GHS-Panel n'étant pas conçu pour des estimations représentatives au niveau des États, ces résultats sont fournis à titre indicatif.
+
+- L'analyse ne distingue pas les types d'engrais chimiques (NPK vs urée) dans la relation rendement-engrais, bien que la décomposition Q27 montre des patterns d'utilisation différents.
+
+# 5. Conclusion
+
+Ce travail a permis de décrire les pratiques culturales, l'utilisation des intrants et les rendements agricoles des ménages nigérians à partir de la vague 4 du GHS-Panel. Il met en évidence une agriculture dominée par le maïs et les tubercules, une diversification culturale légèrement plus marquée en milieu rural, une utilisation des engrais chimiques encore marginale malgré des taux élevés de NPK dans certaines zones, et des rendements caractéristiques de l'agriculture de subsistance à faible intensité d'intrants. La relation positive entre engrais et rendement pour le maïs, contrastée avec l'absence de relation pour le millet, souligne la nécessité de recommandations agronomiques différenciées selon les agro-écosystèmes. Ces résultats constituent une base analytique pour l'orientation des politiques agricoles vers une intensification durable tenant compte des spécificités des cultures et des zones géographiques.

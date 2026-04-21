@@ -1,0 +1,12 @@
+$wilcox
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  n_cultures by milieu_lib
+W = 910228, p-value = 9.622e-07
+alternative hypothesis: true location shift is not equal to 0
+
+
+$taille_effet_r
+[1] 0.08291839
+

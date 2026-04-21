@@ -1,0 +1,24 @@
+$mais
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  rendement_ha by engrais_inorg
+W = 436741, p-value < 2.2e-16
+alternative hypothesis: true location shift is not equal to 0
+
+
+$r_mais
+[1] 0.2696074
+
+$millet
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  rendement_ha by engrais_inorg
+W = 411, p-value = 0.4893
+alternative hypothesis: true location shift is not equal to 0
+
+
+$r_millet
+[1] 0.07879998
+

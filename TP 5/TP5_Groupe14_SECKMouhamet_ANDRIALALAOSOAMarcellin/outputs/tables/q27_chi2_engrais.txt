@@ -1,0 +1,11 @@
+$chi2
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  tab_chi2
+X-squared = 16.788, df = 1, p-value = 4.179e-05
+
+
+$cramer_v
+[1] 0.04499613
+
