@@ -1,6 +1,6 @@
 # README — Analyse 5 : Consommation et valorisation des produits agricole
 
-Ce dépôt contient l’ensemble du code et des fonctions nécessaires à la réalisation de **l’Analyse 5** du projet statistique ENSAE ISE 1, consacrée à l’étude de la **consommation des produits laitiers**, à leur **valorisation monétaire** et à la **construction d’indicateurs synthétiques** à partir de données d’enquête ménages.
+Ce dépôt contient l’ensemble du code et des fonctions nécessaires à la réalisation de **l’Analyse 5** du projet statistique ENSAE ISE 1, consacrée à l’étude de la **consommation des produits agricoles**, à leur **valorisation monétaire** et à la **construction d’indicateurs synthétiques** à partir de données d’enquête ménages.
 
 L’objectif principal de cette analyse est de produire une lecture cohérente et reproductible des comportements de consommation laitière, en tenant compte des contraintes classiques des données d’enquête : hétérogénéité des unités, valeurs manquantes, incohérences déclaratives et nécessité de pondération.
 
@@ -29,7 +29,6 @@ La troisième étape consiste en la **standardisation des variables**. Les quant
 Enfin, l’analyse statistique proprement dite est réalisée. Elle inclut :
 
 * l’exploration des produits les plus consommés,
-* le calcul des valeurs unitaires (prix implicites),
 * l’étude des disparités selon les régions et le milieu de résidence,
 * la production de graphiques et tableaux interprétables.
 
@@ -37,7 +36,7 @@ Enfin, l’analyse statistique proprement dite est réalisée. Elle inclut :
 
 L’analyse permet de dégager plusieurs types de résultats :
 
-* une meilleure compréhension de la structure de la consommation laitière,
+* une meilleure compréhension de la structure de la consommation,
 * l’identification des produits dominants,
 * une estimation des dépenses associées,
 * une mise en évidence des différences entre zones géographiques et milieux (urbain/rural).
@@ -47,11 +46,10 @@ Ces résultats peuvent être mobilisés à des fins académiques, mais aussi pou
 ## Reproductibilité
 
 Le projet est conçu pour être entièrement reproductible. En exécutant les scripts dans l’ordre logique (importation, nettoyage, analyse), il est possible de reconstruire l’ensemble des résultats à partir des données initiales.
-
 L’utilisation de fonctions dédiées permet également de réappliquer facilement la même méthodologie à d’autres bases de données similaires.
 
 ## Remarques finales
 
 Ce travail s’inscrit dans une démarche pédagogique visant à maîtriser les outils de traitement de données sous R, tout en appliquant des méthodes rigoureuses d’analyse statistique. L’accent est mis sur la clarté du code, la cohérence des transformations et la qualité des résultats produits.
 
-Le projet peut être enrichi par l’ajout de nouvelles visualisations, d’analyses complémentaires ou d’une intégration dans une application interactive (par exemple via Shiny), afin de faciliter l’exploration des données.
+Le projet peut être enrichi par l’ajout de nouvelles visualisations, d’analyses complémentaires ou d’une intégration dans une application interactive, afin de faciliter l’exploration des données.
