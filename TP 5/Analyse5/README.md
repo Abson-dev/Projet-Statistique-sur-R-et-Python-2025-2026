@@ -1,4 +1,4 @@
-# README — Analyse 5 : Consommation et valorisation des produits laitiers
+# README — Analyse 5 : Consommation et valorisation des produits agricole
 
 Ce dépôt contient l’ensemble du code et des fonctions nécessaires à la réalisation de **l’Analyse 5** du projet statistique ENSAE ISE 1, consacrée à l’étude de la **consommation des produits laitiers**, à leur **valorisation monétaire** et à la **construction d’indicateurs synthétiques** à partir de données d’enquête ménages.
 
