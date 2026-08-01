@@ -1,0 +1,81 @@
+---
+title: "Vulnerabilite aux chocs et securite alimentaire des menages"
+author: "Mareme DIOP"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    reference_docx: reference.docx
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 9
+    fig_height: 6
+    df_print: kable
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  #fig.align = "center",
+  dpi     = 300
+)
+#source("R/script1.R")
+proj_root <- rprojroot::find_rstudio_root_file()
+fig_dir <- file.path("proj_root", "outputs", "figures")
+
+```
+
+## Section 1 :Import, structuration et nettoyage 
+
+Cette section renseigne les préliminaires nécessaires pour travailler sur une base propre.
+
+Après importation des données (5bases de données au total), une base ménage a été constituée  et enrichie par les caractéristiques du chef de ménage (à partir de la base `individus`) et par la consommation du ùménage sur certains produits (avec la base `consommation`).
+
+En tout 3540 ménages uniques ont été identifiés.
+Une correction des libellés a été opérée pour faire corerspondre les colonnes de régions dans notre base d'étude et celle dans la base spatiale.
+
+
+
+Les valeurs manquantes ont été identifiées dans les colonnes suivantes (seulement des NA standards, il n'a pas été identifié de NA taggés).
+
+```{r vis-miss, fig.cap="Carte des valeurs manquantes pour les variables clés (W4)", out.width="85%"}
+knitr::include_graphics( "C:/Users/SURFACE LAPTOP 2/Desktop/ENSAE/ISEP3/ISEP3/sem6_Mareme/projet_stat_sousR/Nouveau dossier/outputs/figures/valeurs_manquantes_variables.png")
+
+```
+
+
+
+Les données d'enquêtes africaines présentent souvent des taux de valeurs manquantes 
+élevés pour certaines variables sensibles (comme le revenu).Ici pour le revenu, comme c'est sensible en Afrique, les individus parfois sont réticents donc les 10% de valeurs manquantes sur le revenu sont MNAR (manquant non aléatoirement).
+
+
+
+Pour un traitement général, nous avons appliqué  une imputation multiple par équations chaînées avec mice.
+
+
+
+
+
+## Section 2 & 3 : Statistiques descriptives pondérées et indices composites
+
+
+Score de diversité alimentaire des ménages (HDDS) et la classification FAO associée
+
+
+
+```{r carte, fig.cap="Carte cloropèthe du score de diversité", out.width="85%"}
+knitr::include_graphics( "C:/Users/SURFACE LAPTOP 2/Desktop/ENSAE/ISEP3/ISEP3/sem6_Mareme/projet_stat_sousR/Nouveau dossier/outputs/figures/carte_hhds_etat.png")
+
+```
+
+
+
+
+Indice de Gini
+
+L' échantillon montre que la distribution des revenus par tête est inégalitaire, le Gini est compris entre 0.438 et 0.465 à 95%.
+
+
