@@ -1,0 +1,2209 @@
+marche,region,produit,mois,prix_fcfa_kg
+Ati,Batha,Mil,2024-08-01,248.5
+Ati,Batha,Mil,2024-09-01,268.5
+Ati,Batha,Mil,2024-10-01,268.0
+Ati,Batha,Mil,2024-11-01,266.9
+Ati,Batha,Mil,2024-12-01,293.3
+Ati,Batha,Mil,2025-01-01,338.4
+Ati,Batha,Mil,2025-02-01,327.4
+Ati,Batha,Mil,2025-03-01,325.9
+Ati,Batha,Mil,2025-04-01,334.2
+Ati,Batha,Mil,2025-05-01,499.3
+Ati,Batha,Mil,2025-06-01,440.7
+Ati,Batha,Mil,2025-07-01,399.7
+Ati,Batha,Mil,2025-08-01,402.3
+Ati,Batha,Mil,2025-09-01,392.3
+Ati,Batha,Mil,2025-10-01,397.6
+Ati,Batha,Mil,2025-11-01,395.2
+Ati,Batha,Mil,2025-12-01,420.1
+Ati,Batha,Mil,2026-01-01,445.9
+Ati,Batha,Mil,2026-02-01,452.1
+Ati,Batha,Mil,2026-03-01,477.1
+Ati,Batha,Mil,2026-04-01,523.1
+Ati,Batha,Mil,2026-05-01,434.2
+Ati,Batha,Mil,2026-06-01,437.3
+Ati,Batha,Mil,2026-07-01,419.2
+Ati,Batha,Sorgho,2024-08-01,262.6
+Ati,Batha,Sorgho,2024-09-01,218.3
+Ati,Batha,Sorgho,2024-10-01,263.8
+Ati,Batha,Sorgho,2024-11-01,251.1
+Ati,Batha,Sorgho,2024-12-01,266.4
+Ati,Batha,Sorgho,2025-01-01,273.0
+Ati,Batha,Sorgho,2025-02-01,321.3
+Ati,Batha,Sorgho,2025-03-01,301.7
+Ati,Batha,Sorgho,2025-04-01,308.5
+Ati,Batha,Sorgho,2025-05-01,374.7
+Ati,Batha,Sorgho,2025-06-01,400.0
+Ati,Batha,Sorgho,2025-07-01,369.5
+Ati,Batha,Sorgho,2025-08-01,374.5
+Ati,Batha,Sorgho,2025-09-01,342.2
+Ati,Batha,Sorgho,2025-10-01,358.1
+Ati,Batha,Sorgho,2025-11-01,378.2
+Ati,Batha,Sorgho,2025-12-01,408.5
+Ati,Batha,Sorgho,2026-01-01,475.6
+Ati,Batha,Sorgho,2026-02-01,470.4
+Ati,Batha,Sorgho,2026-03-01,434.8
+Ati,Batha,Sorgho,2026-04-01,411.8
+Ati,Batha,Sorgho,2026-05-01,412.1
+Ati,Batha,Sorgho,2026-06-01,403.6
+Ati,Batha,Sorgho,2026-07-01,436.0
+Ati,Batha,Mais,2024-08-01,231.4
+Ati,Batha,Mais,2024-09-01,220.1
+Ati,Batha,Mais,2024-10-01,232.6
+Ati,Batha,Mais,2024-11-01,220.4
+Ati,Batha,Mais,2024-12-01,245.2
+Ati,Batha,Mais,2025-01-01,288.2
+Ati,Batha,Mais,2025-02-01,265.0
+Ati,Batha,Mais,2025-03-01,282.7
+Ati,Batha,Mais,2025-04-01,296.4
+Ati,Batha,Mais,2025-05-01,371.1
+Ati,Batha,Mais,2025-06-01,392.0
+Ati,Batha,Mais,2025-07-01,322.7
+Ati,Batha,Mais,2025-08-01,318.3
+Ati,Batha,Mais,2025-09-01,336.1
+Ati,Batha,Mais,2025-10-01,311.6
+Ati,Batha,Mais,2025-11-01,356.3
+Ati,Batha,Mais,2025-12-01,340.3
+Ati,Batha,Mais,2026-01-01,413.2
+Ati,Batha,Mais,2026-02-01,424.6
+Ati,Batha,Mais,2026-03-01,433.2
+Ati,Batha,Mais,2026-04-01,438.7
+Ati,Batha,Mais,2026-05-01,411.2
+Ati,Batha,Mais,2026-06-01,388.6
+Ati,Batha,Mais,2026-07-01,372.6
+Ati,Batha,Riz_importe,2024-08-01,409.1
+Ati,Batha,Riz_importe,2024-09-01,351.1
+Ati,Batha,Riz_importe,2024-10-01,394.5
+Ati,Batha,Riz_importe,2024-11-01,427.6
+Ati,Batha,Riz_importe,2024-12-01,427.2
+Ati,Batha,Riz_importe,2025-01-01,532.9
+Ati,Batha,Riz_importe,2025-02-01,510.8
+Ati,Batha,Riz_importe,2025-03-01,522.5
+Ati,Batha,Riz_importe,2025-04-01,504.5
+Ati,Batha,Riz_importe,2025-05-01,693.6
+Ati,Batha,Riz_importe,2025-06-01,543.6
+Ati,Batha,Riz_importe,2025-07-01,636.7
+Ati,Batha,Riz_importe,2025-08-01,557.7
+Ati,Batha,Riz_importe,2025-09-01,596.3
+Ati,Batha,Riz_importe,2025-10-01,563.2
+Ati,Batha,Riz_importe,2025-11-01,605.3
+Ati,Batha,Riz_importe,2025-12-01,585.7
+Ati,Batha,Riz_importe,2026-01-01,725.8
+Ati,Batha,Riz_importe,2026-02-01,754.8
+Ati,Batha,Riz_importe,2026-03-01,738.9
+Ati,Batha,Riz_importe,2026-04-01,721.3
+Ati,Batha,Riz_importe,2026-05-01,655.3
+Ati,Batha,Riz_importe,2026-06-01,670.6
+Ati,Batha,Riz_importe,2026-07-01,638.8
+Faya-Largeau,Borkou,Mil,2024-08-01,266.6
+Faya-Largeau,Borkou,Mil,2024-09-01,264.0
+Faya-Largeau,Borkou,Mil,2024-10-01,271.9
+Faya-Largeau,Borkou,Mil,2024-11-01,284.9
+Faya-Largeau,Borkou,Mil,2024-12-01,282.8
+Faya-Largeau,Borkou,Mil,2025-01-01,339.3
+Faya-Largeau,Borkou,Mil,2025-02-01,330.1
+Faya-Largeau,Borkou,Mil,2025-03-01,357.9
+Faya-Largeau,Borkou,Mil,2025-04-01,374.8
+Faya-Largeau,Borkou,Mil,2025-05-01,429.9
+Faya-Largeau,Borkou,Mil,2025-06-01,419.4
+Faya-Largeau,Borkou,Mil,2025-07-01,384.1
+Faya-Largeau,Borkou,Mil,2025-08-01,409.0
+Faya-Largeau,Borkou,Mil,2025-09-01,377.0
+Faya-Largeau,Borkou,Mil,2025-10-01,428.9
+Faya-Largeau,Borkou,Mil,2025-11-01,407.3
+Faya-Largeau,Borkou,Mil,2025-12-01,422.4
+Faya-Largeau,Borkou,Mil,2026-01-01,493.0
+Faya-Largeau,Borkou,Mil,2026-02-01,507.5
+Faya-Largeau,Borkou,Mil,2026-03-01,495.3
+Faya-Largeau,Borkou,Mil,2026-04-01,490.1
+Faya-Largeau,Borkou,Mil,2026-05-01,497.7
+Faya-Largeau,Borkou,Mil,2026-06-01,466.2
+Faya-Largeau,Borkou,Mil,2026-07-01,438.2
+Faya-Largeau,Borkou,Sorgho,2024-08-01,259.4
+Faya-Largeau,Borkou,Sorgho,2024-09-01,236.9
+Faya-Largeau,Borkou,Sorgho,2024-10-01,246.2
+Faya-Largeau,Borkou,Sorgho,2024-11-01,245.1
+Faya-Largeau,Borkou,Sorgho,2024-12-01,270.5
+Faya-Largeau,Borkou,Sorgho,2025-01-01,341.5
+Faya-Largeau,Borkou,Sorgho,2025-02-01,321.7
+Faya-Largeau,Borkou,Sorgho,2025-03-01,319.3
+Faya-Largeau,Borkou,Sorgho,2025-04-01,309.3
+Faya-Largeau,Borkou,Sorgho,2025-05-01,425.4
+Faya-Largeau,Borkou,Sorgho,2025-06-01,365.8
+Faya-Largeau,Borkou,Sorgho,2025-07-01,356.5
+Faya-Largeau,Borkou,Sorgho,2025-08-01,366.6
+Faya-Largeau,Borkou,Sorgho,2025-09-01,345.4
+Faya-Largeau,Borkou,Sorgho,2025-10-01,372.0
+Faya-Largeau,Borkou,Sorgho,2025-11-01,386.0
+Faya-Largeau,Borkou,Sorgho,2025-12-01,338.6
+Faya-Largeau,Borkou,Sorgho,2026-01-01,444.6
+Faya-Largeau,Borkou,Sorgho,2026-02-01,485.8
+Faya-Largeau,Borkou,Sorgho,2026-03-01,482.3
+Faya-Largeau,Borkou,Sorgho,2026-04-01,467.5
+Faya-Largeau,Borkou,Sorgho,2026-05-01,473.6
+Faya-Largeau,Borkou,Sorgho,2026-06-01,409.7
+Faya-Largeau,Borkou,Sorgho,2026-07-01,447.9
+Faya-Largeau,Borkou,Mais,2024-08-01,224.1
+Faya-Largeau,Borkou,Mais,2024-09-01,230.8
+Faya-Largeau,Borkou,Mais,2024-10-01,236.0
+Faya-Largeau,Borkou,Mais,2024-11-01,221.5
+Faya-Largeau,Borkou,Mais,2024-12-01,241.3
+Faya-Largeau,Borkou,Mais,2025-01-01,274.1
+Faya-Largeau,Borkou,Mais,2025-02-01,267.0
+Faya-Largeau,Borkou,Mais,2025-03-01,325.3
+Faya-Largeau,Borkou,Mais,2025-04-01,316.2
+Faya-Largeau,Borkou,Mais,2025-05-01,385.6
+Faya-Largeau,Borkou,Mais,2025-06-01,352.1
+Faya-Largeau,Borkou,Mais,2025-07-01,326.3
+Faya-Largeau,Borkou,Mais,2025-08-01,324.6
+Faya-Largeau,Borkou,Mais,2025-09-01,336.3
+Faya-Largeau,Borkou,Mais,2025-10-01,312.5
+Faya-Largeau,Borkou,Mais,2025-11-01,363.4
+Faya-Largeau,Borkou,Mais,2025-12-01,397.8
+Faya-Largeau,Borkou,Mais,2026-01-01,398.1
+Faya-Largeau,Borkou,Mais,2026-02-01,424.4
+Faya-Largeau,Borkou,Mais,2026-03-01,425.4
+Faya-Largeau,Borkou,Mais,2026-04-01,374.4
+Faya-Largeau,Borkou,Mais,2026-05-01,421.5
+Faya-Largeau,Borkou,Mais,2026-06-01,422.0
+Faya-Largeau,Borkou,Mais,2026-07-01,366.1
+Faya-Largeau,Borkou,Riz_importe,2024-08-01,425.6
+Faya-Largeau,Borkou,Riz_importe,2024-09-01,391.4
+Faya-Largeau,Borkou,Riz_importe,2024-10-01,388.9
+Faya-Largeau,Borkou,Riz_importe,2024-11-01,396.0
+Faya-Largeau,Borkou,Riz_importe,2024-12-01,425.1
+Faya-Largeau,Borkou,Riz_importe,2025-01-01,532.8
+Faya-Largeau,Borkou,Riz_importe,2025-02-01,504.3
+Faya-Largeau,Borkou,Riz_importe,2025-03-01,555.4
+Faya-Largeau,Borkou,Riz_importe,2025-04-01,516.4
+Faya-Largeau,Borkou,Riz_importe,2025-05-01,652.0
+Faya-Largeau,Borkou,Riz_importe,2025-06-01,631.3
+Faya-Largeau,Borkou,Riz_importe,2025-07-01,650.7
+Faya-Largeau,Borkou,Riz_importe,2025-08-01,571.2
+Faya-Largeau,Borkou,Riz_importe,2025-09-01,570.8
+Faya-Largeau,Borkou,Riz_importe,2025-10-01,600.2
+Faya-Largeau,Borkou,Riz_importe,2025-11-01,648.6
+Faya-Largeau,Borkou,Riz_importe,2025-12-01,623.1
+Faya-Largeau,Borkou,Riz_importe,2026-01-01,740.2
+Faya-Largeau,Borkou,Riz_importe,2026-02-01,741.5
+Faya-Largeau,Borkou,Riz_importe,2026-03-01,760.8
+Faya-Largeau,Borkou,Riz_importe,2026-04-01,720.5
+Faya-Largeau,Borkou,Riz_importe,2026-05-01,761.9
+Faya-Largeau,Borkou,Riz_importe,2026-06-01,757.4
+Faya-Largeau,Borkou,Riz_importe,2026-07-01,687.5
+Massenya,Chari Baguirmi,Mil,2024-08-01,313.1
+Massenya,Chari Baguirmi,Mil,2024-09-01,261.0
+Massenya,Chari Baguirmi,Mil,2024-10-01,268.6
+Massenya,Chari Baguirmi,Mil,2024-11-01,292.6
+Massenya,Chari Baguirmi,Mil,2024-12-01,283.0
+Massenya,Chari Baguirmi,Mil,2025-01-01,308.3
+Massenya,Chari Baguirmi,Mil,2025-02-01,314.6
+Massenya,Chari Baguirmi,Mil,2025-03-01,353.4
+Massenya,Chari Baguirmi,Mil,2025-04-01,321.1
+Massenya,Chari Baguirmi,Mil,2025-05-01,436.8
+Massenya,Chari Baguirmi,Mil,2025-06-01,409.5
+Massenya,Chari Baguirmi,Mil,2025-07-01,428.7
+Massenya,Chari Baguirmi,Mil,2025-08-01,379.5
+Massenya,Chari Baguirmi,Mil,2025-09-01,409.3
+Massenya,Chari Baguirmi,Mil,2025-10-01,382.1
+Massenya,Chari Baguirmi,Mil,2025-11-01,387.2
+Massenya,Chari Baguirmi,Mil,2025-12-01,430.2
+Massenya,Chari Baguirmi,Mil,2026-01-01,469.5
+Massenya,Chari Baguirmi,Mil,2026-02-01,517.5
+Massenya,Chari Baguirmi,Mil,2026-03-01,511.4
+Massenya,Chari Baguirmi,Mil,2026-04-01,451.7
+Massenya,Chari Baguirmi,Mil,2026-05-01,505.0
+Massenya,Chari Baguirmi,Mil,2026-06-01,417.8
+Massenya,Chari Baguirmi,Mil,2026-07-01,406.0
+Massenya,Chari Baguirmi,Sorgho,2024-08-01,262.5
+Massenya,Chari Baguirmi,Sorgho,2024-09-01,237.3
+Massenya,Chari Baguirmi,Sorgho,2024-10-01,255.8
+Massenya,Chari Baguirmi,Sorgho,2024-11-01,252.2
+Massenya,Chari Baguirmi,Sorgho,2024-12-01,268.6
+Massenya,Chari Baguirmi,Sorgho,2025-01-01,271.5
+Massenya,Chari Baguirmi,Sorgho,2025-02-01,268.7
+Massenya,Chari Baguirmi,Sorgho,2025-03-01,311.1
+Massenya,Chari Baguirmi,Sorgho,2025-04-01,328.6
+Massenya,Chari Baguirmi,Sorgho,2025-05-01,411.7
+Massenya,Chari Baguirmi,Sorgho,2025-06-01,370.1
+Massenya,Chari Baguirmi,Sorgho,2025-07-01,361.8
+Massenya,Chari Baguirmi,Sorgho,2025-08-01,338.8
+Massenya,Chari Baguirmi,Sorgho,2025-09-01,350.5
+Massenya,Chari Baguirmi,Sorgho,2025-10-01,334.0
+Massenya,Chari Baguirmi,Sorgho,2025-11-01,359.6
+Massenya,Chari Baguirmi,Sorgho,2025-12-01,403.2
+Massenya,Chari Baguirmi,Sorgho,2026-01-01,425.1
+Massenya,Chari Baguirmi,Sorgho,2026-02-01,469.7
+Massenya,Chari Baguirmi,Sorgho,2026-03-01,430.6
+Massenya,Chari Baguirmi,Sorgho,2026-04-01,422.3
+Massenya,Chari Baguirmi,Sorgho,2026-05-01,430.1
+Massenya,Chari Baguirmi,Sorgho,2026-06-01,408.1
+Massenya,Chari Baguirmi,Sorgho,2026-07-01,409.8
+Massenya,Chari Baguirmi,Mais,2024-08-01,226.8
+Massenya,Chari Baguirmi,Mais,2024-09-01,233.3
+Massenya,Chari Baguirmi,Mais,2024-10-01,237.9
+Massenya,Chari Baguirmi,Mais,2024-11-01,211.1
+Massenya,Chari Baguirmi,Mais,2024-12-01,219.9
+Massenya,Chari Baguirmi,Mais,2025-01-01,258.1
+Massenya,Chari Baguirmi,Mais,2025-02-01,284.9
+Massenya,Chari Baguirmi,Mais,2025-03-01,305.4
+Massenya,Chari Baguirmi,Mais,2025-04-01,280.8
+Massenya,Chari Baguirmi,Mais,2025-05-01,356.3
+Massenya,Chari Baguirmi,Mais,2025-06-01,355.9
+Massenya,Chari Baguirmi,Mais,2025-07-01,356.1
+Massenya,Chari Baguirmi,Mais,2025-08-01,321.0
+Massenya,Chari Baguirmi,Mais,2025-09-01,320.2
+Massenya,Chari Baguirmi,Mais,2025-10-01,317.9
+Massenya,Chari Baguirmi,Mais,2025-11-01,347.5
+Massenya,Chari Baguirmi,Mais,2025-12-01,340.0
+Massenya,Chari Baguirmi,Mais,2026-01-01,406.0
+Massenya,Chari Baguirmi,Mais,2026-02-01,433.5
+Massenya,Chari Baguirmi,Mais,2026-03-01,395.9
+Massenya,Chari Baguirmi,Mais,2026-04-01,388.7
+Massenya,Chari Baguirmi,Mais,2026-05-01,378.9
+Massenya,Chari Baguirmi,Mais,2026-06-01,383.1
+Massenya,Chari Baguirmi,Mais,2026-07-01,324.9
+Massenya,Chari Baguirmi,Riz_importe,2024-08-01,438.7
+Massenya,Chari Baguirmi,Riz_importe,2024-09-01,406.3
+Massenya,Chari Baguirmi,Riz_importe,2024-10-01,419.2
+Massenya,Chari Baguirmi,Riz_importe,2024-11-01,395.0
+Massenya,Chari Baguirmi,Riz_importe,2024-12-01,449.5
+Massenya,Chari Baguirmi,Riz_importe,2025-01-01,463.0
+Massenya,Chari Baguirmi,Riz_importe,2025-02-01,478.7
+Massenya,Chari Baguirmi,Riz_importe,2025-03-01,479.1
+Massenya,Chari Baguirmi,Riz_importe,2025-04-01,501.4
+Massenya,Chari Baguirmi,Riz_importe,2025-05-01,608.4
+Massenya,Chari Baguirmi,Riz_importe,2025-06-01,596.4
+Massenya,Chari Baguirmi,Riz_importe,2025-07-01,607.9
+Massenya,Chari Baguirmi,Riz_importe,2025-08-01,534.2
+Massenya,Chari Baguirmi,Riz_importe,2025-09-01,556.5
+Massenya,Chari Baguirmi,Riz_importe,2025-10-01,568.5
+Massenya,Chari Baguirmi,Riz_importe,2025-11-01,593.4
+Massenya,Chari Baguirmi,Riz_importe,2025-12-01,610.1
+Massenya,Chari Baguirmi,Riz_importe,2026-01-01,673.5
+Massenya,Chari Baguirmi,Riz_importe,2026-02-01,756.2
+Massenya,Chari Baguirmi,Riz_importe,2026-03-01,727.5
+Massenya,Chari Baguirmi,Riz_importe,2026-04-01,675.7
+Massenya,Chari Baguirmi,Riz_importe,2026-05-01,660.0
+Massenya,Chari Baguirmi,Riz_importe,2026-06-01,639.3
+Massenya,Chari Baguirmi,Riz_importe,2026-07-01,603.8
+Am-Djarass,Ennedi Est,Mil,2024-08-01,279.7
+Am-Djarass,Ennedi Est,Mil,2024-09-01,261.6
+Am-Djarass,Ennedi Est,Mil,2024-10-01,270.0
+Am-Djarass,Ennedi Est,Mil,2024-11-01,262.7
+Am-Djarass,Ennedi Est,Mil,2024-12-01,312.1
+Am-Djarass,Ennedi Est,Mil,2025-01-01,323.2
+Am-Djarass,Ennedi Est,Mil,2025-02-01,327.3
+Am-Djarass,Ennedi Est,Mil,2025-03-01,338.2
+Am-Djarass,Ennedi Est,Mil,2025-04-01,360.9
+Am-Djarass,Ennedi Est,Mil,2025-05-01,433.5
+Am-Djarass,Ennedi Est,Mil,2025-06-01,432.3
+Am-Djarass,Ennedi Est,Mil,2025-07-01,400.0
+Am-Djarass,Ennedi Est,Mil,2025-08-01,377.0
+Am-Djarass,Ennedi Est,Mil,2025-09-01,371.2
+Am-Djarass,Ennedi Est,Mil,2025-10-01,414.2
+Am-Djarass,Ennedi Est,Mil,2025-11-01,385.3
+Am-Djarass,Ennedi Est,Mil,2025-12-01,434.0
+Am-Djarass,Ennedi Est,Mil,2026-01-01,498.1
+Am-Djarass,Ennedi Est,Mil,2026-02-01,497.6
+Am-Djarass,Ennedi Est,Mil,2026-03-01,528.3
+Am-Djarass,Ennedi Est,Mil,2026-04-01,553.1
+Am-Djarass,Ennedi Est,Mil,2026-05-01,457.2
+Am-Djarass,Ennedi Est,Mil,2026-06-01,469.6
+Am-Djarass,Ennedi Est,Mil,2026-07-01,442.7
+Am-Djarass,Ennedi Est,Sorgho,2024-08-01,266.2
+Am-Djarass,Ennedi Est,Sorgho,2024-09-01,232.9
+Am-Djarass,Ennedi Est,Sorgho,2024-10-01,248.5
+Am-Djarass,Ennedi Est,Sorgho,2024-11-01,281.9
+Am-Djarass,Ennedi Est,Sorgho,2024-12-01,261.3
+Am-Djarass,Ennedi Est,Sorgho,2025-01-01,290.6
+Am-Djarass,Ennedi Est,Sorgho,2025-02-01,296.6
+Am-Djarass,Ennedi Est,Sorgho,2025-03-01,302.3
+Am-Djarass,Ennedi Est,Sorgho,2025-04-01,311.9
+Am-Djarass,Ennedi Est,Sorgho,2025-05-01,394.6
+Am-Djarass,Ennedi Est,Sorgho,2025-06-01,399.4
+Am-Djarass,Ennedi Est,Sorgho,2025-07-01,361.4
+Am-Djarass,Ennedi Est,Sorgho,2025-08-01,395.3
+Am-Djarass,Ennedi Est,Sorgho,2025-09-01,339.7
+Am-Djarass,Ennedi Est,Sorgho,2025-10-01,348.7
+Am-Djarass,Ennedi Est,Sorgho,2025-11-01,319.5
+Am-Djarass,Ennedi Est,Sorgho,2025-12-01,411.2
+Am-Djarass,Ennedi Est,Sorgho,2026-01-01,465.9
+Am-Djarass,Ennedi Est,Sorgho,2026-02-01,447.2
+Am-Djarass,Ennedi Est,Sorgho,2026-03-01,443.7
+Am-Djarass,Ennedi Est,Sorgho,2026-04-01,486.8
+Am-Djarass,Ennedi Est,Sorgho,2026-05-01,417.9
+Am-Djarass,Ennedi Est,Sorgho,2026-06-01,425.1
+Am-Djarass,Ennedi Est,Sorgho,2026-07-01,414.8
+Am-Djarass,Ennedi Est,Mais,2024-08-01,221.9
+Am-Djarass,Ennedi Est,Mais,2024-09-01,221.3
+Am-Djarass,Ennedi Est,Mais,2024-10-01,233.3
+Am-Djarass,Ennedi Est,Mais,2024-11-01,255.1
+Am-Djarass,Ennedi Est,Mais,2024-12-01,245.8
+Am-Djarass,Ennedi Est,Mais,2025-01-01,288.7
+Am-Djarass,Ennedi Est,Mais,2025-02-01,297.9
+Am-Djarass,Ennedi Est,Mais,2025-03-01,294.4
+Am-Djarass,Ennedi Est,Mais,2025-04-01,292.4
+Am-Djarass,Ennedi Est,Mais,2025-05-01,331.6
+Am-Djarass,Ennedi Est,Mais,2025-06-01,408.2
+Am-Djarass,Ennedi Est,Mais,2025-07-01,348.8
+Am-Djarass,Ennedi Est,Mais,2025-08-01,347.7
+Am-Djarass,Ennedi Est,Mais,2025-09-01,344.0
+Am-Djarass,Ennedi Est,Mais,2025-10-01,311.7
+Am-Djarass,Ennedi Est,Mais,2025-11-01,354.8
+Am-Djarass,Ennedi Est,Mais,2025-12-01,386.3
+Am-Djarass,Ennedi Est,Mais,2026-01-01,410.4
+Am-Djarass,Ennedi Est,Mais,2026-02-01,350.1
+Am-Djarass,Ennedi Est,Mais,2026-03-01,434.2
+Am-Djarass,Ennedi Est,Mais,2026-04-01,406.7
+Am-Djarass,Ennedi Est,Mais,2026-05-01,430.3
+Am-Djarass,Ennedi Est,Mais,2026-06-01,399.5
+Am-Djarass,Ennedi Est,Mais,2026-07-01,363.8
+Am-Djarass,Ennedi Est,Riz_importe,2024-08-01,412.9
+Am-Djarass,Ennedi Est,Riz_importe,2024-09-01,367.7
+Am-Djarass,Ennedi Est,Riz_importe,2024-10-01,390.4
+Am-Djarass,Ennedi Est,Riz_importe,2024-11-01,397.6
+Am-Djarass,Ennedi Est,Riz_importe,2024-12-01,423.9
+Am-Djarass,Ennedi Est,Riz_importe,2025-01-01,482.7
+Am-Djarass,Ennedi Est,Riz_importe,2025-02-01,542.1
+Am-Djarass,Ennedi Est,Riz_importe,2025-03-01,524.2
+Am-Djarass,Ennedi Est,Riz_importe,2025-04-01,440.9
+Am-Djarass,Ennedi Est,Riz_importe,2025-05-01,654.0
+Am-Djarass,Ennedi Est,Riz_importe,2025-06-01,676.8
+Am-Djarass,Ennedi Est,Riz_importe,2025-07-01,591.6
+Am-Djarass,Ennedi Est,Riz_importe,2025-08-01,558.7
+Am-Djarass,Ennedi Est,Riz_importe,2025-09-01,636.1
+Am-Djarass,Ennedi Est,Riz_importe,2025-10-01,580.2
+Am-Djarass,Ennedi Est,Riz_importe,2025-11-01,662.7
+Am-Djarass,Ennedi Est,Riz_importe,2025-12-01,660.9
+Am-Djarass,Ennedi Est,Riz_importe,2026-01-01,738.1
+Am-Djarass,Ennedi Est,Riz_importe,2026-02-01,692.3
+Am-Djarass,Ennedi Est,Riz_importe,2026-03-01,756.4
+Am-Djarass,Ennedi Est,Riz_importe,2026-04-01,750.6
+Am-Djarass,Ennedi Est,Riz_importe,2026-05-01,716.3
+Am-Djarass,Ennedi Est,Riz_importe,2026-06-01,709.1
+Am-Djarass,Ennedi Est,Riz_importe,2026-07-01,599.9
+Fada,Ennedi Ouest,Mil,2024-08-01,260.7
+Fada,Ennedi Ouest,Mil,2024-09-01,280.6
+Fada,Ennedi Ouest,Mil,2024-10-01,278.5
+Fada,Ennedi Ouest,Mil,2024-11-01,290.8
+Fada,Ennedi Ouest,Mil,2024-12-01,290.0
+Fada,Ennedi Ouest,Mil,2025-01-01,342.1
+Fada,Ennedi Ouest,Mil,2025-02-01,360.3
+Fada,Ennedi Ouest,Mil,2025-03-01,334.1
+Fada,Ennedi Ouest,Mil,2025-04-01,319.9
+Fada,Ennedi Ouest,Mil,2025-05-01,440.3
+Fada,Ennedi Ouest,Mil,2025-06-01,437.5
+Fada,Ennedi Ouest,Mil,2025-07-01,438.0
+Fada,Ennedi Ouest,Mil,2025-08-01,386.2
+Fada,Ennedi Ouest,Mil,2025-09-01,399.4
+Fada,Ennedi Ouest,Mil,2025-10-01,397.5
+Fada,Ennedi Ouest,Mil,2025-11-01,404.5
+Fada,Ennedi Ouest,Mil,2025-12-01,407.2
+Fada,Ennedi Ouest,Mil,2026-01-01,490.0
+Fada,Ennedi Ouest,Mil,2026-02-01,501.9
+Fada,Ennedi Ouest,Mil,2026-03-01,549.5
+Fada,Ennedi Ouest,Mil,2026-04-01,469.3
+Fada,Ennedi Ouest,Mil,2026-05-01,479.2
+Fada,Ennedi Ouest,Mil,2026-06-01,473.0
+Fada,Ennedi Ouest,Mil,2026-07-01,407.7
+Fada,Ennedi Ouest,Sorgho,2024-08-01,257.9
+Fada,Ennedi Ouest,Sorgho,2024-09-01,228.1
+Fada,Ennedi Ouest,Sorgho,2024-10-01,266.8
+Fada,Ennedi Ouest,Sorgho,2024-11-01,261.8
+Fada,Ennedi Ouest,Sorgho,2024-12-01,261.1
+Fada,Ennedi Ouest,Sorgho,2025-01-01,306.3
+Fada,Ennedi Ouest,Sorgho,2025-02-01,306.6
+Fada,Ennedi Ouest,Sorgho,2025-03-01,294.7
+Fada,Ennedi Ouest,Sorgho,2025-04-01,321.6
+Fada,Ennedi Ouest,Sorgho,2025-05-01,377.9
+Fada,Ennedi Ouest,Sorgho,2025-06-01,390.9
+Fada,Ennedi Ouest,Sorgho,2025-07-01,402.0
+Fada,Ennedi Ouest,Sorgho,2025-08-01,365.4
+Fada,Ennedi Ouest,Sorgho,2025-09-01,344.7
+Fada,Ennedi Ouest,Sorgho,2025-10-01,378.4
+Fada,Ennedi Ouest,Sorgho,2025-11-01,374.1
+Fada,Ennedi Ouest,Sorgho,2025-12-01,379.7
+Fada,Ennedi Ouest,Sorgho,2026-01-01,448.6
+Fada,Ennedi Ouest,Sorgho,2026-02-01,450.9
+Fada,Ennedi Ouest,Sorgho,2026-03-01,475.2
+Fada,Ennedi Ouest,Sorgho,2026-04-01,454.4
+Fada,Ennedi Ouest,Sorgho,2026-05-01,445.4
+Fada,Ennedi Ouest,Sorgho,2026-06-01,438.8
+Fada,Ennedi Ouest,Sorgho,2026-07-01,424.0
+Fada,Ennedi Ouest,Mais,2024-08-01,216.4
+Fada,Ennedi Ouest,Mais,2024-09-01,220.1
+Fada,Ennedi Ouest,Mais,2024-10-01,238.2
+Fada,Ennedi Ouest,Mais,2024-11-01,237.4
+Fada,Ennedi Ouest,Mais,2024-12-01,261.6
+Fada,Ennedi Ouest,Mais,2025-01-01,284.7
+Fada,Ennedi Ouest,Mais,2025-02-01,289.3
+Fada,Ennedi Ouest,Mais,2025-03-01,315.3
+Fada,Ennedi Ouest,Mais,2025-04-01,279.5
+Fada,Ennedi Ouest,Mais,2025-05-01,335.0
+Fada,Ennedi Ouest,Mais,2025-06-01,385.1
+Fada,Ennedi Ouest,Mais,2025-07-01,380.3
+Fada,Ennedi Ouest,Mais,2025-08-01,344.3
+Fada,Ennedi Ouest,Mais,2025-09-01,322.0
+Fada,Ennedi Ouest,Mais,2025-10-01,329.9
+Fada,Ennedi Ouest,Mais,2025-11-01,362.8
+Fada,Ennedi Ouest,Mais,2025-12-01,366.6
+Fada,Ennedi Ouest,Mais,2026-01-01,393.6
+Fada,Ennedi Ouest,Mais,2026-02-01,426.9
+Fada,Ennedi Ouest,Mais,2026-03-01,423.4
+Fada,Ennedi Ouest,Mais,2026-04-01,395.7
+Fada,Ennedi Ouest,Mais,2026-05-01,419.7
+Fada,Ennedi Ouest,Mais,2026-06-01,380.0
+Fada,Ennedi Ouest,Mais,2026-07-01,390.7
+Fada,Ennedi Ouest,Riz_importe,2024-08-01,397.4
+Fada,Ennedi Ouest,Riz_importe,2024-09-01,397.3
+Fada,Ennedi Ouest,Riz_importe,2024-10-01,385.1
+Fada,Ennedi Ouest,Riz_importe,2024-11-01,410.1
+Fada,Ennedi Ouest,Riz_importe,2024-12-01,478.9
+Fada,Ennedi Ouest,Riz_importe,2025-01-01,529.7
+Fada,Ennedi Ouest,Riz_importe,2025-02-01,507.3
+Fada,Ennedi Ouest,Riz_importe,2025-03-01,500.8
+Fada,Ennedi Ouest,Riz_importe,2025-04-01,514.2
+Fada,Ennedi Ouest,Riz_importe,2025-05-01,624.4
+Fada,Ennedi Ouest,Riz_importe,2025-06-01,636.7
+Fada,Ennedi Ouest,Riz_importe,2025-07-01,555.5
+Fada,Ennedi Ouest,Riz_importe,2025-08-01,633.9
+Fada,Ennedi Ouest,Riz_importe,2025-09-01,577.9
+Fada,Ennedi Ouest,Riz_importe,2025-10-01,565.1
+Fada,Ennedi Ouest,Riz_importe,2025-11-01,519.8
+Fada,Ennedi Ouest,Riz_importe,2025-12-01,587.0
+Fada,Ennedi Ouest,Riz_importe,2026-01-01,694.1
+Fada,Ennedi Ouest,Riz_importe,2026-02-01,693.1
+Fada,Ennedi Ouest,Riz_importe,2026-03-01,730.9
+Fada,Ennedi Ouest,Riz_importe,2026-04-01,754.2
+Fada,Ennedi Ouest,Riz_importe,2026-05-01,664.7
+Fada,Ennedi Ouest,Riz_importe,2026-06-01,701.6
+Fada,Ennedi Ouest,Riz_importe,2026-07-01,674.1
+Mongo,Guéra,Mil,2024-08-01,260.8
+Mongo,Guéra,Mil,2024-09-01,266.0
+Mongo,Guéra,Mil,2024-10-01,273.6
+Mongo,Guéra,Mil,2024-11-01,279.4
+Mongo,Guéra,Mil,2024-12-01,269.1
+Mongo,Guéra,Mil,2025-01-01,319.0
+Mongo,Guéra,Mil,2025-02-01,329.8
+Mongo,Guéra,Mil,2025-03-01,357.0
+Mongo,Guéra,Mil,2025-04-01,298.0
+Mongo,Guéra,Mil,2025-05-01,407.5
+Mongo,Guéra,Mil,2025-06-01,394.7
+Mongo,Guéra,Mil,2025-07-01,391.5
+Mongo,Guéra,Mil,2025-08-01,412.5
+Mongo,Guéra,Mil,2025-09-01,368.0
+Mongo,Guéra,Mil,2025-10-01,385.6
+Mongo,Guéra,Mil,2025-11-01,373.3
+Mongo,Guéra,Mil,2025-12-01,393.8
+Mongo,Guéra,Mil,2026-01-01,443.6
+Mongo,Guéra,Mil,2026-02-01,459.0
+Mongo,Guéra,Mil,2026-03-01,526.4
+Mongo,Guéra,Mil,2026-04-01,476.5
+Mongo,Guéra,Mil,2026-05-01,477.6
+Mongo,Guéra,Mil,2026-06-01,444.6
+Mongo,Guéra,Mil,2026-07-01,431.5
+Mongo,Guéra,Sorgho,2024-08-01,265.7
+Mongo,Guéra,Sorgho,2024-09-01,228.2
+Mongo,Guéra,Sorgho,2024-10-01,261.2
+Mongo,Guéra,Sorgho,2024-11-01,249.8
+Mongo,Guéra,Sorgho,2024-12-01,282.6
+Mongo,Guéra,Sorgho,2025-01-01,330.6
+Mongo,Guéra,Sorgho,2025-02-01,321.0
+Mongo,Guéra,Sorgho,2025-03-01,302.1
+Mongo,Guéra,Sorgho,2025-04-01,312.3
+Mongo,Guéra,Sorgho,2025-05-01,418.2
+Mongo,Guéra,Sorgho,2025-06-01,357.7
+Mongo,Guéra,Sorgho,2025-07-01,358.6
+Mongo,Guéra,Sorgho,2025-08-01,382.9
+Mongo,Guéra,Sorgho,2025-09-01,333.2
+Mongo,Guéra,Sorgho,2025-10-01,371.2
+Mongo,Guéra,Sorgho,2025-11-01,370.9
+Mongo,Guéra,Sorgho,2025-12-01,367.7
+Mongo,Guéra,Sorgho,2026-01-01,433.0
+Mongo,Guéra,Sorgho,2026-02-01,468.4
+Mongo,Guéra,Sorgho,2026-03-01,430.9
+Mongo,Guéra,Sorgho,2026-04-01,438.5
+Mongo,Guéra,Sorgho,2026-05-01,418.3
+Mongo,Guéra,Sorgho,2026-06-01,429.8
+Mongo,Guéra,Sorgho,2026-07-01,394.2
+Mongo,Guéra,Mais,2024-08-01,230.4
+Mongo,Guéra,Mais,2024-09-01,224.8
+Mongo,Guéra,Mais,2024-10-01,235.8
+Mongo,Guéra,Mais,2024-11-01,241.8
+Mongo,Guéra,Mais,2024-12-01,268.7
+Mongo,Guéra,Mais,2025-01-01,274.6
+Mongo,Guéra,Mais,2025-02-01,289.8
+Mongo,Guéra,Mais,2025-03-01,293.8
+Mongo,Guéra,Mais,2025-04-01,296.7
+Mongo,Guéra,Mais,2025-05-01,355.5
+Mongo,Guéra,Mais,2025-06-01,331.4
+Mongo,Guéra,Mais,2025-07-01,333.1
+Mongo,Guéra,Mais,2025-08-01,326.0
+Mongo,Guéra,Mais,2025-09-01,341.0
+Mongo,Guéra,Mais,2025-10-01,298.0
+Mongo,Guéra,Mais,2025-11-01,351.6
+Mongo,Guéra,Mais,2025-12-01,354.7
+Mongo,Guéra,Mais,2026-01-01,407.0
+Mongo,Guéra,Mais,2026-02-01,383.3
+Mongo,Guéra,Mais,2026-03-01,407.2
+Mongo,Guéra,Mais,2026-04-01,365.4
+Mongo,Guéra,Mais,2026-05-01,373.7
+Mongo,Guéra,Mais,2026-06-01,392.2
+Mongo,Guéra,Mais,2026-07-01,368.9
+Mongo,Guéra,Riz_importe,2024-08-01,413.9
+Mongo,Guéra,Riz_importe,2024-09-01,372.9
+Mongo,Guéra,Riz_importe,2024-10-01,416.9
+Mongo,Guéra,Riz_importe,2024-11-01,474.3
+Mongo,Guéra,Riz_importe,2024-12-01,490.2
+Mongo,Guéra,Riz_importe,2025-01-01,502.1
+Mongo,Guéra,Riz_importe,2025-02-01,469.5
+Mongo,Guéra,Riz_importe,2025-03-01,514.9
+Mongo,Guéra,Riz_importe,2025-04-01,512.1
+Mongo,Guéra,Riz_importe,2025-05-01,662.8
+Mongo,Guéra,Riz_importe,2025-06-01,614.2
+Mongo,Guéra,Riz_importe,2025-07-01,564.5
+Mongo,Guéra,Riz_importe,2025-08-01,551.8
+Mongo,Guéra,Riz_importe,2025-09-01,575.5
+Mongo,Guéra,Riz_importe,2025-10-01,583.7
+Mongo,Guéra,Riz_importe,2025-11-01,596.9
+Mongo,Guéra,Riz_importe,2025-12-01,630.9
+Mongo,Guéra,Riz_importe,2026-01-01,591.7
+Mongo,Guéra,Riz_importe,2026-02-01,733.9
+Mongo,Guéra,Riz_importe,2026-03-01,699.6
+Mongo,Guéra,Riz_importe,2026-04-01,705.4
+Mongo,Guéra,Riz_importe,2026-05-01,729.8
+Mongo,Guéra,Riz_importe,2026-06-01,684.9
+Mongo,Guéra,Riz_importe,2026-07-01,641.3
+Massakory,Hadjer Lamis,Mil,2024-08-01,264.5
+Massakory,Hadjer Lamis,Mil,2024-09-01,297.0
+Massakory,Hadjer Lamis,Mil,2024-10-01,257.2
+Massakory,Hadjer Lamis,Mil,2024-11-01,263.9
+Massakory,Hadjer Lamis,Mil,2024-12-01,319.4
+Massakory,Hadjer Lamis,Mil,2025-01-01,330.4
+Massakory,Hadjer Lamis,Mil,2025-02-01,335.7
+Massakory,Hadjer Lamis,Mil,2025-03-01,341.7
+Massakory,Hadjer Lamis,Mil,2025-04-01,376.1
+Massakory,Hadjer Lamis,Mil,2025-05-01,455.2
+Massakory,Hadjer Lamis,Mil,2025-06-01,439.4
+Massakory,Hadjer Lamis,Mil,2025-07-01,405.4
+Massakory,Hadjer Lamis,Mil,2025-08-01,406.8
+Massakory,Hadjer Lamis,Mil,2025-09-01,404.9
+Massakory,Hadjer Lamis,Mil,2025-10-01,412.1
+Massakory,Hadjer Lamis,Mil,2025-11-01,381.2
+Massakory,Hadjer Lamis,Mil,2025-12-01,400.0
+Massakory,Hadjer Lamis,Mil,2026-01-01,503.0
+Massakory,Hadjer Lamis,Mil,2026-02-01,444.1
+Massakory,Hadjer Lamis,Mil,2026-03-01,524.3
+Massakory,Hadjer Lamis,Mil,2026-04-01,506.0
+Massakory,Hadjer Lamis,Mil,2026-05-01,482.2
+Massakory,Hadjer Lamis,Mil,2026-06-01,445.6
+Massakory,Hadjer Lamis,Mil,2026-07-01,434.4
+Massakory,Hadjer Lamis,Sorgho,2024-08-01,233.6
+Massakory,Hadjer Lamis,Sorgho,2024-09-01,239.3
+Massakory,Hadjer Lamis,Sorgho,2024-10-01,246.7
+Massakory,Hadjer Lamis,Sorgho,2024-11-01,261.3
+Massakory,Hadjer Lamis,Sorgho,2024-12-01,279.5
+Massakory,Hadjer Lamis,Sorgho,2025-01-01,289.4
+Massakory,Hadjer Lamis,Sorgho,2025-02-01,309.9
+Massakory,Hadjer Lamis,Sorgho,2025-03-01,329.1
+Massakory,Hadjer Lamis,Sorgho,2025-04-01,307.4
+Massakory,Hadjer Lamis,Sorgho,2025-05-01,427.4
+Massakory,Hadjer Lamis,Sorgho,2025-06-01,347.1
+Massakory,Hadjer Lamis,Sorgho,2025-07-01,403.7
+Massakory,Hadjer Lamis,Sorgho,2025-08-01,359.2
+Massakory,Hadjer Lamis,Sorgho,2025-09-01,342.1
+Massakory,Hadjer Lamis,Sorgho,2025-10-01,396.3
+Massakory,Hadjer Lamis,Sorgho,2025-11-01,338.3
+Massakory,Hadjer Lamis,Sorgho,2025-12-01,379.6
+Massakory,Hadjer Lamis,Sorgho,2026-01-01,432.1
+Massakory,Hadjer Lamis,Sorgho,2026-02-01,449.2
+Massakory,Hadjer Lamis,Sorgho,2026-03-01,434.8
+Massakory,Hadjer Lamis,Sorgho,2026-04-01,445.6
+Massakory,Hadjer Lamis,Sorgho,2026-05-01,442.5
+Massakory,Hadjer Lamis,Sorgho,2026-06-01,405.1
+Massakory,Hadjer Lamis,Sorgho,2026-07-01,350.9
+Massakory,Hadjer Lamis,Mais,2024-08-01,221.4
+Massakory,Hadjer Lamis,Mais,2024-09-01,220.5
+Massakory,Hadjer Lamis,Mais,2024-10-01,218.2
+Massakory,Hadjer Lamis,Mais,2024-11-01,265.6
+Massakory,Hadjer Lamis,Mais,2024-12-01,249.3
+Massakory,Hadjer Lamis,Mais,2025-01-01,293.3
+Massakory,Hadjer Lamis,Mais,2025-02-01,267.1
+Massakory,Hadjer Lamis,Mais,2025-03-01,291.6
+Massakory,Hadjer Lamis,Mais,2025-04-01,260.4
+Massakory,Hadjer Lamis,Mais,2025-05-01,353.5
+Massakory,Hadjer Lamis,Mais,2025-06-01,380.9
+Massakory,Hadjer Lamis,Mais,2025-07-01,337.8
+Massakory,Hadjer Lamis,Mais,2025-08-01,328.5
+Massakory,Hadjer Lamis,Mais,2025-09-01,327.5
+Massakory,Hadjer Lamis,Mais,2025-10-01,320.9
+Massakory,Hadjer Lamis,Mais,2025-11-01,335.2
+Massakory,Hadjer Lamis,Mais,2025-12-01,350.8
+Massakory,Hadjer Lamis,Mais,2026-01-01,398.6
+Massakory,Hadjer Lamis,Mais,2026-02-01,422.8
+Massakory,Hadjer Lamis,Mais,2026-03-01,415.4
+Massakory,Hadjer Lamis,Mais,2026-04-01,411.5
+Massakory,Hadjer Lamis,Mais,2026-05-01,384.1
+Massakory,Hadjer Lamis,Mais,2026-06-01,389.4
+Massakory,Hadjer Lamis,Mais,2026-07-01,397.7
+Massakory,Hadjer Lamis,Riz_importe,2024-08-01,387.3
+Massakory,Hadjer Lamis,Riz_importe,2024-09-01,364.8
+Massakory,Hadjer Lamis,Riz_importe,2024-10-01,431.8
+Massakory,Hadjer Lamis,Riz_importe,2024-11-01,454.7
+Massakory,Hadjer Lamis,Riz_importe,2024-12-01,405.2
+Massakory,Hadjer Lamis,Riz_importe,2025-01-01,491.9
+Massakory,Hadjer Lamis,Riz_importe,2025-02-01,478.8
+Massakory,Hadjer Lamis,Riz_importe,2025-03-01,519.2
+Massakory,Hadjer Lamis,Riz_importe,2025-04-01,541.0
+Massakory,Hadjer Lamis,Riz_importe,2025-05-01,624.7
+Massakory,Hadjer Lamis,Riz_importe,2025-06-01,567.3
+Massakory,Hadjer Lamis,Riz_importe,2025-07-01,588.9
+Massakory,Hadjer Lamis,Riz_importe,2025-08-01,608.4
+Massakory,Hadjer Lamis,Riz_importe,2025-09-01,583.0
+Massakory,Hadjer Lamis,Riz_importe,2025-10-01,639.0
+Massakory,Hadjer Lamis,Riz_importe,2025-11-01,602.3
+Massakory,Hadjer Lamis,Riz_importe,2025-12-01,609.2
+Massakory,Hadjer Lamis,Riz_importe,2026-01-01,711.8
+Massakory,Hadjer Lamis,Riz_importe,2026-02-01,765.8
+Massakory,Hadjer Lamis,Riz_importe,2026-03-01,706.9
+Massakory,Hadjer Lamis,Riz_importe,2026-04-01,722.5
+Massakory,Hadjer Lamis,Riz_importe,2026-05-01,712.3
+Massakory,Hadjer Lamis,Riz_importe,2026-06-01,603.7
+Massakory,Hadjer Lamis,Riz_importe,2026-07-01,696.1
+Mao,Kanem,Mil,2024-08-01,277.9
+Mao,Kanem,Mil,2024-09-01,250.0
+Mao,Kanem,Mil,2024-10-01,270.0
+Mao,Kanem,Mil,2024-11-01,303.3
+Mao,Kanem,Mil,2024-12-01,286.8
+Mao,Kanem,Mil,2025-01-01,330.9
+Mao,Kanem,Mil,2025-02-01,321.8
+Mao,Kanem,Mil,2025-03-01,340.6
+Mao,Kanem,Mil,2025-04-01,308.7
+Mao,Kanem,Mil,2025-05-01,440.8
+Mao,Kanem,Mil,2025-06-01,397.9
+Mao,Kanem,Mil,2025-07-01,375.5
+Mao,Kanem,Mil,2025-08-01,415.6
+Mao,Kanem,Mil,2025-09-01,426.3
+Mao,Kanem,Mil,2025-10-01,373.7
+Mao,Kanem,Mil,2025-11-01,378.7
+Mao,Kanem,Mil,2025-12-01,429.8
+Mao,Kanem,Mil,2026-01-01,488.5
+Mao,Kanem,Mil,2026-02-01,512.5
+Mao,Kanem,Mil,2026-03-01,523.8
+Mao,Kanem,Mil,2026-04-01,465.0
+Mao,Kanem,Mil,2026-05-01,471.1
+Mao,Kanem,Mil,2026-06-01,458.9
+Mao,Kanem,Mil,2026-07-01,426.0
+Mao,Kanem,Sorgho,2024-08-01,232.2
+Mao,Kanem,Sorgho,2024-09-01,253.6
+Mao,Kanem,Sorgho,2024-10-01,266.2
+Mao,Kanem,Sorgho,2024-11-01,270.4
+Mao,Kanem,Sorgho,2024-12-01,278.1
+Mao,Kanem,Sorgho,2025-01-01,288.6
+Mao,Kanem,Sorgho,2025-02-01,330.3
+Mao,Kanem,Sorgho,2025-03-01,304.4
+Mao,Kanem,Sorgho,2025-04-01,314.2
+Mao,Kanem,Sorgho,2025-05-01,382.6
+Mao,Kanem,Sorgho,2025-06-01,422.0
+Mao,Kanem,Sorgho,2025-07-01,366.0
+Mao,Kanem,Sorgho,2025-08-01,351.4
+Mao,Kanem,Sorgho,2025-09-01,344.1
+Mao,Kanem,Sorgho,2025-10-01,336.3
+Mao,Kanem,Sorgho,2025-11-01,363.1
+Mao,Kanem,Sorgho,2025-12-01,387.1
+Mao,Kanem,Sorgho,2026-01-01,477.5
+Mao,Kanem,Sorgho,2026-02-01,480.2
+Mao,Kanem,Sorgho,2026-03-01,448.9
+Mao,Kanem,Sorgho,2026-04-01,446.1
+Mao,Kanem,Sorgho,2026-05-01,429.0
+Mao,Kanem,Sorgho,2026-06-01,449.1
+Mao,Kanem,Sorgho,2026-07-01,420.9
+Mao,Kanem,Mais,2024-08-01,220.9
+Mao,Kanem,Mais,2024-09-01,226.3
+Mao,Kanem,Mais,2024-10-01,236.6
+Mao,Kanem,Mais,2024-11-01,230.1
+Mao,Kanem,Mais,2024-12-01,237.2
+Mao,Kanem,Mais,2025-01-01,266.7
+Mao,Kanem,Mais,2025-02-01,267.4
+Mao,Kanem,Mais,2025-03-01,306.9
+Mao,Kanem,Mais,2025-04-01,257.2
+Mao,Kanem,Mais,2025-05-01,367.0
+Mao,Kanem,Mais,2025-06-01,343.1
+Mao,Kanem,Mais,2025-07-01,335.1
+Mao,Kanem,Mais,2025-08-01,332.3
+Mao,Kanem,Mais,2025-09-01,311.6
+Mao,Kanem,Mais,2025-10-01,340.3
+Mao,Kanem,Mais,2025-11-01,336.2
+Mao,Kanem,Mais,2025-12-01,361.9
+Mao,Kanem,Mais,2026-01-01,411.0
+Mao,Kanem,Mais,2026-02-01,429.1
+Mao,Kanem,Mais,2026-03-01,380.4
+Mao,Kanem,Mais,2026-04-01,369.9
+Mao,Kanem,Mais,2026-05-01,409.3
+Mao,Kanem,Mais,2026-06-01,384.3
+Mao,Kanem,Mais,2026-07-01,380.3
+Mao,Kanem,Riz_importe,2024-08-01,387.3
+Mao,Kanem,Riz_importe,2024-09-01,356.6
+Mao,Kanem,Riz_importe,2024-10-01,390.2
+Mao,Kanem,Riz_importe,2024-11-01,424.2
+Mao,Kanem,Riz_importe,2024-12-01,409.5
+Mao,Kanem,Riz_importe,2025-01-01,514.6
+Mao,Kanem,Riz_importe,2025-02-01,540.9
+Mao,Kanem,Riz_importe,2025-03-01,514.5
+Mao,Kanem,Riz_importe,2025-04-01,540.1
+Mao,Kanem,Riz_importe,2025-05-01,689.9
+Mao,Kanem,Riz_importe,2025-06-01,621.9
+Mao,Kanem,Riz_importe,2025-07-01,588.1
+Mao,Kanem,Riz_importe,2025-08-01,620.1
+Mao,Kanem,Riz_importe,2025-09-01,648.6
+Mao,Kanem,Riz_importe,2025-10-01,581.6
+Mao,Kanem,Riz_importe,2025-11-01,596.7
+Mao,Kanem,Riz_importe,2025-12-01,656.6
+Mao,Kanem,Riz_importe,2026-01-01,719.2
+Mao,Kanem,Riz_importe,2026-02-01,683.5
+Mao,Kanem,Riz_importe,2026-03-01,746.2
+Mao,Kanem,Riz_importe,2026-04-01,757.5
+Mao,Kanem,Riz_importe,2026-05-01,744.1
+Mao,Kanem,Riz_importe,2026-06-01,640.7
+Mao,Kanem,Riz_importe,2026-07-01,600.1
+Bol,Lac,Mil,2024-08-01,256.7
+Bol,Lac,Mil,2024-09-01,271.3
+Bol,Lac,Mil,2024-10-01,269.0
+Bol,Lac,Mil,2024-11-01,267.6
+Bol,Lac,Mil,2024-12-01,286.7
+Bol,Lac,Mil,2025-01-01,344.1
+Bol,Lac,Mil,2025-02-01,323.7
+Bol,Lac,Mil,2025-03-01,326.7
+Bol,Lac,Mil,2025-04-01,335.5
+Bol,Lac,Mil,2025-05-01,425.8
+Bol,Lac,Mil,2025-06-01,408.6
+Bol,Lac,Mil,2025-07-01,391.1
+Bol,Lac,Mil,2025-08-01,394.9
+Bol,Lac,Mil,2025-09-01,399.6
+Bol,Lac,Mil,2025-10-01,389.2
+Bol,Lac,Mil,2025-11-01,405.1
+Bol,Lac,Mil,2025-12-01,427.1
+Bol,Lac,Mil,2026-01-01,491.7
+Bol,Lac,Mil,2026-02-01,512.7
+Bol,Lac,Mil,2026-03-01,479.5
+Bol,Lac,Mil,2026-04-01,451.5
+Bol,Lac,Mil,2026-05-01,474.6
+Bol,Lac,Mil,2026-06-01,444.8
+Bol,Lac,Mil,2026-07-01,434.4
+Bol,Lac,Sorgho,2024-08-01,258.6
+Bol,Lac,Sorgho,2024-09-01,232.8
+Bol,Lac,Sorgho,2024-10-01,235.8
+Bol,Lac,Sorgho,2024-11-01,285.9
+Bol,Lac,Sorgho,2024-12-01,258.5
+Bol,Lac,Sorgho,2025-01-01,278.2
+Bol,Lac,Sorgho,2025-02-01,328.4
+Bol,Lac,Sorgho,2025-03-01,280.1
+Bol,Lac,Sorgho,2025-04-01,274.4
+Bol,Lac,Sorgho,2025-05-01,357.9
+Bol,Lac,Sorgho,2025-06-01,369.0
+Bol,Lac,Sorgho,2025-07-01,363.1
+Bol,Lac,Sorgho,2025-08-01,364.7
+Bol,Lac,Sorgho,2025-09-01,347.4
+Bol,Lac,Sorgho,2025-10-01,307.4
+Bol,Lac,Sorgho,2025-11-01,373.6
+Bol,Lac,Sorgho,2025-12-01,397.9
+Bol,Lac,Sorgho,2026-01-01,439.4
+Bol,Lac,Sorgho,2026-02-01,433.7
+Bol,Lac,Sorgho,2026-03-01,409.2
+Bol,Lac,Sorgho,2026-04-01,429.3
+Bol,Lac,Sorgho,2026-05-01,374.3
+Bol,Lac,Sorgho,2026-06-01,433.3
+Bol,Lac,Sorgho,2026-07-01,347.3
+Bol,Lac,Mais,2024-08-01,237.9
+Bol,Lac,Mais,2024-09-01,221.8
+Bol,Lac,Mais,2024-10-01,218.7
+Bol,Lac,Mais,2024-11-01,252.0
+Bol,Lac,Mais,2024-12-01,236.6
+Bol,Lac,Mais,2025-01-01,263.6
+Bol,Lac,Mais,2025-02-01,277.4
+Bol,Lac,Mais,2025-03-01,286.3
+Bol,Lac,Mais,2025-04-01,257.5
+Bol,Lac,Mais,2025-05-01,390.1
+Bol,Lac,Mais,2025-06-01,356.0
+Bol,Lac,Mais,2025-07-01,337.3
+Bol,Lac,Mais,2025-08-01,323.5
+Bol,Lac,Mais,2025-09-01,348.8
+Bol,Lac,Mais,2025-10-01,336.4
+Bol,Lac,Mais,2025-11-01,336.1
+Bol,Lac,Mais,2025-12-01,333.7
+Bol,Lac,Mais,2026-01-01,404.3
+Bol,Lac,Mais,2026-02-01,405.7
+Bol,Lac,Mais,2026-03-01,379.8
+Bol,Lac,Mais,2026-04-01,386.2
+Bol,Lac,Mais,2026-05-01,398.4
+Bol,Lac,Mais,2026-06-01,354.6
+Bol,Lac,Mais,2026-07-01,359.0
+Bol,Lac,Riz_importe,2024-08-01,399.6
+Bol,Lac,Riz_importe,2024-09-01,383.1
+Bol,Lac,Riz_importe,2024-10-01,431.1
+Bol,Lac,Riz_importe,2024-11-01,417.9
+Bol,Lac,Riz_importe,2024-12-01,410.2
+Bol,Lac,Riz_importe,2025-01-01,449.3
+Bol,Lac,Riz_importe,2025-02-01,483.8
+Bol,Lac,Riz_importe,2025-03-01,499.7
+Bol,Lac,Riz_importe,2025-04-01,488.0
+Bol,Lac,Riz_importe,2025-05-01,642.6
+Bol,Lac,Riz_importe,2025-06-01,620.0
+Bol,Lac,Riz_importe,2025-07-01,582.4
+Bol,Lac,Riz_importe,2025-08-01,573.6
+Bol,Lac,Riz_importe,2025-09-01,510.6
+Bol,Lac,Riz_importe,2025-10-01,610.7
+Bol,Lac,Riz_importe,2025-11-01,576.3
+Bol,Lac,Riz_importe,2025-12-01,618.6
+Bol,Lac,Riz_importe,2026-01-01,670.8
+Bol,Lac,Riz_importe,2026-02-01,754.2
+Bol,Lac,Riz_importe,2026-03-01,702.6
+Bol,Lac,Riz_importe,2026-04-01,696.3
+Bol,Lac,Riz_importe,2026-05-01,700.0
+Bol,Lac,Riz_importe,2026-06-01,645.4
+Bol,Lac,Riz_importe,2026-07-01,635.2
+Moundou,Logone Occidental,Mil,2024-08-01,261.0
+Moundou,Logone Occidental,Mil,2024-09-01,264.7
+Moundou,Logone Occidental,Mil,2024-10-01,256.3
+Moundou,Logone Occidental,Mil,2024-11-01,291.9
+Moundou,Logone Occidental,Mil,2024-12-01,258.2
+Moundou,Logone Occidental,Mil,2025-01-01,301.0
+Moundou,Logone Occidental,Mil,2025-02-01,302.3
+Moundou,Logone Occidental,Mil,2025-03-01,326.3
+Moundou,Logone Occidental,Mil,2025-04-01,312.3
+Moundou,Logone Occidental,Mil,2025-05-01,441.0
+Moundou,Logone Occidental,Mil,2025-06-01,353.6
+Moundou,Logone Occidental,Mil,2025-07-01,372.0
+Moundou,Logone Occidental,Mil,2025-08-01,346.3
+Moundou,Logone Occidental,Mil,2025-09-01,372.0
+Moundou,Logone Occidental,Mil,2025-10-01,393.4
+Moundou,Logone Occidental,Mil,2025-11-01,352.7
+Moundou,Logone Occidental,Mil,2025-12-01,390.2
+Moundou,Logone Occidental,Mil,2026-01-01,415.4
+Moundou,Logone Occidental,Mil,2026-02-01,443.9
+Moundou,Logone Occidental,Mil,2026-03-01,450.7
+Moundou,Logone Occidental,Mil,2026-04-01,438.3
+Moundou,Logone Occidental,Mil,2026-05-01,427.6
+Moundou,Logone Occidental,Mil,2026-06-01,393.2
+Moundou,Logone Occidental,Mil,2026-07-01,372.5
+Moundou,Logone Occidental,Sorgho,2024-08-01,248.8
+Moundou,Logone Occidental,Sorgho,2024-09-01,247.6
+Moundou,Logone Occidental,Sorgho,2024-10-01,234.8
+Moundou,Logone Occidental,Sorgho,2024-11-01,247.7
+Moundou,Logone Occidental,Sorgho,2024-12-01,252.1
+Moundou,Logone Occidental,Sorgho,2025-01-01,274.0
+Moundou,Logone Occidental,Sorgho,2025-02-01,290.9
+Moundou,Logone Occidental,Sorgho,2025-03-01,298.2
+Moundou,Logone Occidental,Sorgho,2025-04-01,265.1
+Moundou,Logone Occidental,Sorgho,2025-05-01,343.2
+Moundou,Logone Occidental,Sorgho,2025-06-01,390.3
+Moundou,Logone Occidental,Sorgho,2025-07-01,363.2
+Moundou,Logone Occidental,Sorgho,2025-08-01,340.8
+Moundou,Logone Occidental,Sorgho,2025-09-01,364.2
+Moundou,Logone Occidental,Sorgho,2025-10-01,351.1
+Moundou,Logone Occidental,Sorgho,2025-11-01,325.7
+Moundou,Logone Occidental,Sorgho,2025-12-01,392.6
+Moundou,Logone Occidental,Sorgho,2026-01-01,397.1
+Moundou,Logone Occidental,Sorgho,2026-02-01,412.5
+Moundou,Logone Occidental,Sorgho,2026-03-01,417.6
+Moundou,Logone Occidental,Sorgho,2026-04-01,394.5
+Moundou,Logone Occidental,Sorgho,2026-05-01,390.0
+Moundou,Logone Occidental,Sorgho,2026-06-01,368.8
+Moundou,Logone Occidental,Sorgho,2026-07-01,355.7
+Moundou,Logone Occidental,Mais,2024-08-01,249.7
+Moundou,Logone Occidental,Mais,2024-09-01,215.3
+Moundou,Logone Occidental,Mais,2024-10-01,238.4
+Moundou,Logone Occidental,Mais,2024-11-01,240.0
+Moundou,Logone Occidental,Mais,2024-12-01,254.0
+Moundou,Logone Occidental,Mais,2025-01-01,269.9
+Moundou,Logone Occidental,Mais,2025-02-01,260.4
+Moundou,Logone Occidental,Mais,2025-03-01,277.8
+Moundou,Logone Occidental,Mais,2025-04-01,276.2
+Moundou,Logone Occidental,Mais,2025-05-01,325.0
+Moundou,Logone Occidental,Mais,2025-06-01,352.5
+Moundou,Logone Occidental,Mais,2025-07-01,335.8
+Moundou,Logone Occidental,Mais,2025-08-01,305.8
+Moundou,Logone Occidental,Mais,2025-09-01,294.6
+Moundou,Logone Occidental,Mais,2025-10-01,337.5
+Moundou,Logone Occidental,Mais,2025-11-01,306.1
+Moundou,Logone Occidental,Mais,2025-12-01,348.1
+Moundou,Logone Occidental,Mais,2026-01-01,348.7
+Moundou,Logone Occidental,Mais,2026-02-01,347.6
+Moundou,Logone Occidental,Mais,2026-03-01,372.5
+Moundou,Logone Occidental,Mais,2026-04-01,376.3
+Moundou,Logone Occidental,Mais,2026-05-01,370.2
+Moundou,Logone Occidental,Mais,2026-06-01,371.7
+Moundou,Logone Occidental,Mais,2026-07-01,319.6
+Moundou,Logone Occidental,Riz_importe,2024-08-01,426.4
+Moundou,Logone Occidental,Riz_importe,2024-09-01,372.1
+Moundou,Logone Occidental,Riz_importe,2024-10-01,387.0
+Moundou,Logone Occidental,Riz_importe,2024-11-01,384.0
+Moundou,Logone Occidental,Riz_importe,2024-12-01,413.3
+Moundou,Logone Occidental,Riz_importe,2025-01-01,489.8
+Moundou,Logone Occidental,Riz_importe,2025-02-01,518.5
+Moundou,Logone Occidental,Riz_importe,2025-03-01,452.6
+Moundou,Logone Occidental,Riz_importe,2025-04-01,482.3
+Moundou,Logone Occidental,Riz_importe,2025-05-01,628.0
+Moundou,Logone Occidental,Riz_importe,2025-06-01,565.0
+Moundou,Logone Occidental,Riz_importe,2025-07-01,575.6
+Moundou,Logone Occidental,Riz_importe,2025-08-01,549.2
+Moundou,Logone Occidental,Riz_importe,2025-09-01,581.6
+Moundou,Logone Occidental,Riz_importe,2025-10-01,564.0
+Moundou,Logone Occidental,Riz_importe,2025-11-01,570.9
+Moundou,Logone Occidental,Riz_importe,2025-12-01,601.7
+Moundou,Logone Occidental,Riz_importe,2026-01-01,651.0
+Moundou,Logone Occidental,Riz_importe,2026-02-01,640.1
+Moundou,Logone Occidental,Riz_importe,2026-03-01,624.5
+Moundou,Logone Occidental,Riz_importe,2026-04-01,689.3
+Moundou,Logone Occidental,Riz_importe,2026-05-01,600.6
+Moundou,Logone Occidental,Riz_importe,2026-06-01,606.4
+Moundou,Logone Occidental,Riz_importe,2026-07-01,472.2
+Doba,Logone Oriental,Mil,2024-08-01,277.1
+Doba,Logone Oriental,Mil,2024-09-01,263.6
+Doba,Logone Oriental,Mil,2024-10-01,272.8
+Doba,Logone Oriental,Mil,2024-11-01,276.1
+Doba,Logone Oriental,Mil,2024-12-01,282.2
+Doba,Logone Oriental,Mil,2025-01-01,290.2
+Doba,Logone Oriental,Mil,2025-02-01,322.2
+Doba,Logone Oriental,Mil,2025-03-01,331.1
+Doba,Logone Oriental,Mil,2025-04-01,291.8
+Doba,Logone Oriental,Mil,2025-05-01,419.7
+Doba,Logone Oriental,Mil,2025-06-01,401.7
+Doba,Logone Oriental,Mil,2025-07-01,395.4
+Doba,Logone Oriental,Mil,2025-08-01,361.5
+Doba,Logone Oriental,Mil,2025-09-01,388.3
+Doba,Logone Oriental,Mil,2025-10-01,377.6
+Doba,Logone Oriental,Mil,2025-11-01,392.7
+Doba,Logone Oriental,Mil,2025-12-01,374.2
+Doba,Logone Oriental,Mil,2026-01-01,426.1
+Doba,Logone Oriental,Mil,2026-02-01,459.4
+Doba,Logone Oriental,Mil,2026-03-01,426.1
+Doba,Logone Oriental,Mil,2026-04-01,463.5
+Doba,Logone Oriental,Mil,2026-05-01,433.2
+Doba,Logone Oriental,Mil,2026-06-01,425.6
+Doba,Logone Oriental,Mil,2026-07-01,382.4
+Doba,Logone Oriental,Sorgho,2024-08-01,231.3
+Doba,Logone Oriental,Sorgho,2024-09-01,231.6
+Doba,Logone Oriental,Sorgho,2024-10-01,231.9
+Doba,Logone Oriental,Sorgho,2024-11-01,265.9
+Doba,Logone Oriental,Sorgho,2024-12-01,277.7
+Doba,Logone Oriental,Sorgho,2025-01-01,277.0
+Doba,Logone Oriental,Sorgho,2025-02-01,269.1
+Doba,Logone Oriental,Sorgho,2025-03-01,295.1
+Doba,Logone Oriental,Sorgho,2025-04-01,290.9
+Doba,Logone Oriental,Sorgho,2025-05-01,394.4
+Doba,Logone Oriental,Sorgho,2025-06-01,374.5
+Doba,Logone Oriental,Sorgho,2025-07-01,345.8
+Doba,Logone Oriental,Sorgho,2025-08-01,343.3
+Doba,Logone Oriental,Sorgho,2025-09-01,367.0
+Doba,Logone Oriental,Sorgho,2025-10-01,358.7
+Doba,Logone Oriental,Sorgho,2025-11-01,349.9
+Doba,Logone Oriental,Sorgho,2025-12-01,366.8
+Doba,Logone Oriental,Sorgho,2026-01-01,395.2
+Doba,Logone Oriental,Sorgho,2026-02-01,404.6
+Doba,Logone Oriental,Sorgho,2026-03-01,436.8
+Doba,Logone Oriental,Sorgho,2026-04-01,400.8
+Doba,Logone Oriental,Sorgho,2026-05-01,414.6
+Doba,Logone Oriental,Sorgho,2026-06-01,380.1
+Doba,Logone Oriental,Sorgho,2026-07-01,372.2
+Doba,Logone Oriental,Mais,2024-08-01,207.8
+Doba,Logone Oriental,Mais,2024-09-01,239.9
+Doba,Logone Oriental,Mais,2024-10-01,230.8
+Doba,Logone Oriental,Mais,2024-11-01,232.1
+Doba,Logone Oriental,Mais,2024-12-01,236.5
+Doba,Logone Oriental,Mais,2025-01-01,262.2
+Doba,Logone Oriental,Mais,2025-02-01,278.7
+Doba,Logone Oriental,Mais,2025-03-01,272.2
+Doba,Logone Oriental,Mais,2025-04-01,272.7
+Doba,Logone Oriental,Mais,2025-05-01,375.1
+Doba,Logone Oriental,Mais,2025-06-01,334.2
+Doba,Logone Oriental,Mais,2025-07-01,321.9
+Doba,Logone Oriental,Mais,2025-08-01,356.4
+Doba,Logone Oriental,Mais,2025-09-01,331.0
+Doba,Logone Oriental,Mais,2025-10-01,320.9
+Doba,Logone Oriental,Mais,2025-11-01,348.3
+Doba,Logone Oriental,Mais,2025-12-01,333.6
+Doba,Logone Oriental,Mais,2026-01-01,380.3
+Doba,Logone Oriental,Mais,2026-02-01,379.2
+Doba,Logone Oriental,Mais,2026-03-01,437.8
+Doba,Logone Oriental,Mais,2026-04-01,358.1
+Doba,Logone Oriental,Mais,2026-05-01,388.6
+Doba,Logone Oriental,Mais,2026-06-01,354.9
+Doba,Logone Oriental,Mais,2026-07-01,334.3
+Doba,Logone Oriental,Riz_importe,2024-08-01,417.9
+Doba,Logone Oriental,Riz_importe,2024-09-01,391.2
+Doba,Logone Oriental,Riz_importe,2024-10-01,412.5
+Doba,Logone Oriental,Riz_importe,2024-11-01,441.6
+Doba,Logone Oriental,Riz_importe,2024-12-01,440.9
+Doba,Logone Oriental,Riz_importe,2025-01-01,473.5
+Doba,Logone Oriental,Riz_importe,2025-02-01,444.1
+Doba,Logone Oriental,Riz_importe,2025-03-01,501.9
+Doba,Logone Oriental,Riz_importe,2025-04-01,505.9
+Doba,Logone Oriental,Riz_importe,2025-05-01,634.2
+Doba,Logone Oriental,Riz_importe,2025-06-01,609.9
+Doba,Logone Oriental,Riz_importe,2025-07-01,609.2
+Doba,Logone Oriental,Riz_importe,2025-08-01,565.5
+Doba,Logone Oriental,Riz_importe,2025-09-01,590.4
+Doba,Logone Oriental,Riz_importe,2025-10-01,554.0
+Doba,Logone Oriental,Riz_importe,2025-11-01,606.5
+Doba,Logone Oriental,Riz_importe,2025-12-01,574.9
+Doba,Logone Oriental,Riz_importe,2026-01-01,631.1
+Doba,Logone Oriental,Riz_importe,2026-02-01,650.8
+Doba,Logone Oriental,Riz_importe,2026-03-01,647.9
+Doba,Logone Oriental,Riz_importe,2026-04-01,692.9
+Doba,Logone Oriental,Riz_importe,2026-05-01,625.7
+Doba,Logone Oriental,Riz_importe,2026-06-01,595.6
+Doba,Logone Oriental,Riz_importe,2026-07-01,556.7
+Koumra,Mandoul,Mil,2024-08-01,276.8
+Koumra,Mandoul,Mil,2024-09-01,297.6
+Koumra,Mandoul,Mil,2024-10-01,286.2
+Koumra,Mandoul,Mil,2024-11-01,286.3
+Koumra,Mandoul,Mil,2024-12-01,281.0
+Koumra,Mandoul,Mil,2025-01-01,317.7
+Koumra,Mandoul,Mil,2025-02-01,350.3
+Koumra,Mandoul,Mil,2025-03-01,342.1
+Koumra,Mandoul,Mil,2025-04-01,344.9
+Koumra,Mandoul,Mil,2025-05-01,419.5
+Koumra,Mandoul,Mil,2025-06-01,401.8
+Koumra,Mandoul,Mil,2025-07-01,370.5
+Koumra,Mandoul,Mil,2025-08-01,364.6
+Koumra,Mandoul,Mil,2025-09-01,389.5
+Koumra,Mandoul,Mil,2025-10-01,403.3
+Koumra,Mandoul,Mil,2025-11-01,409.8
+Koumra,Mandoul,Mil,2025-12-01,389.5
+Koumra,Mandoul,Mil,2026-01-01,457.8
+Koumra,Mandoul,Mil,2026-02-01,427.5
+Koumra,Mandoul,Mil,2026-03-01,480.8
+Koumra,Mandoul,Mil,2026-04-01,457.3
+Koumra,Mandoul,Mil,2026-05-01,434.7
+Koumra,Mandoul,Mil,2026-06-01,418.5
+Koumra,Mandoul,Mil,2026-07-01,344.8
+Koumra,Mandoul,Sorgho,2024-08-01,250.4
+Koumra,Mandoul,Sorgho,2024-09-01,242.9
+Koumra,Mandoul,Sorgho,2024-10-01,269.2
+Koumra,Mandoul,Sorgho,2024-11-01,256.5
+Koumra,Mandoul,Sorgho,2024-12-01,256.0
+Koumra,Mandoul,Sorgho,2025-01-01,266.2
+Koumra,Mandoul,Sorgho,2025-02-01,281.1
+Koumra,Mandoul,Sorgho,2025-03-01,281.4
+Koumra,Mandoul,Sorgho,2025-04-01,300.1
+Koumra,Mandoul,Sorgho,2025-05-01,408.5
+Koumra,Mandoul,Sorgho,2025-06-01,365.4
+Koumra,Mandoul,Sorgho,2025-07-01,337.8
+Koumra,Mandoul,Sorgho,2025-08-01,330.6
+Koumra,Mandoul,Sorgho,2025-09-01,324.4
+Koumra,Mandoul,Sorgho,2025-10-01,334.5
+Koumra,Mandoul,Sorgho,2025-11-01,349.3
+Koumra,Mandoul,Sorgho,2025-12-01,390.6
+Koumra,Mandoul,Sorgho,2026-01-01,389.6
+Koumra,Mandoul,Sorgho,2026-02-01,406.6
+Koumra,Mandoul,Sorgho,2026-03-01,379.2
+Koumra,Mandoul,Sorgho,2026-04-01,430.9
+Koumra,Mandoul,Sorgho,2026-05-01,373.8
+Koumra,Mandoul,Sorgho,2026-06-01,383.1
+Koumra,Mandoul,Sorgho,2026-07-01,370.7
+Koumra,Mandoul,Mais,2024-08-01,222.8
+Koumra,Mandoul,Mais,2024-09-01,242.3
+Koumra,Mandoul,Mais,2024-10-01,229.4
+Koumra,Mandoul,Mais,2024-11-01,250.1
+Koumra,Mandoul,Mais,2024-12-01,223.4
+Koumra,Mandoul,Mais,2025-01-01,261.1
+Koumra,Mandoul,Mais,2025-02-01,271.5
+Koumra,Mandoul,Mais,2025-03-01,260.2
+Koumra,Mandoul,Mais,2025-04-01,260.3
+Koumra,Mandoul,Mais,2025-05-01,389.2
+Koumra,Mandoul,Mais,2025-06-01,321.8
+Koumra,Mandoul,Mais,2025-07-01,292.1
+Koumra,Mandoul,Mais,2025-08-01,330.8
+Koumra,Mandoul,Mais,2025-09-01,296.3
+Koumra,Mandoul,Mais,2025-10-01,312.8
+Koumra,Mandoul,Mais,2025-11-01,334.6
+Koumra,Mandoul,Mais,2025-12-01,357.1
+Koumra,Mandoul,Mais,2026-01-01,360.4
+Koumra,Mandoul,Mais,2026-02-01,378.5
+Koumra,Mandoul,Mais,2026-03-01,379.2
+Koumra,Mandoul,Mais,2026-04-01,320.5
+Koumra,Mandoul,Mais,2026-05-01,355.6
+Koumra,Mandoul,Mais,2026-06-01,344.7
+Koumra,Mandoul,Mais,2026-07-01,334.4
+Koumra,Mandoul,Riz_importe,2024-08-01,373.3
+Koumra,Mandoul,Riz_importe,2024-09-01,434.7
+Koumra,Mandoul,Riz_importe,2024-10-01,406.8
+Koumra,Mandoul,Riz_importe,2024-11-01,404.6
+Koumra,Mandoul,Riz_importe,2024-12-01,428.2
+Koumra,Mandoul,Riz_importe,2025-01-01,458.7
+Koumra,Mandoul,Riz_importe,2025-02-01,458.6
+Koumra,Mandoul,Riz_importe,2025-03-01,482.7
+Koumra,Mandoul,Riz_importe,2025-04-01,473.8
+Koumra,Mandoul,Riz_importe,2025-05-01,606.7
+Koumra,Mandoul,Riz_importe,2025-06-01,543.2
+Koumra,Mandoul,Riz_importe,2025-07-01,597.1
+Koumra,Mandoul,Riz_importe,2025-08-01,573.0
+Koumra,Mandoul,Riz_importe,2025-09-01,490.6
+Koumra,Mandoul,Riz_importe,2025-10-01,553.1
+Koumra,Mandoul,Riz_importe,2025-11-01,557.7
+Koumra,Mandoul,Riz_importe,2025-12-01,605.0
+Koumra,Mandoul,Riz_importe,2026-01-01,609.8
+Koumra,Mandoul,Riz_importe,2026-02-01,615.9
+Koumra,Mandoul,Riz_importe,2026-03-01,622.5
+Koumra,Mandoul,Riz_importe,2026-04-01,593.5
+Koumra,Mandoul,Riz_importe,2026-05-01,646.3
+Koumra,Mandoul,Riz_importe,2026-06-01,606.8
+Koumra,Mandoul,Riz_importe,2026-07-01,613.5
+Bongor,Mayo Kebbi Est,Mil,2024-08-01,269.2
+Bongor,Mayo Kebbi Est,Mil,2024-09-01,273.4
+Bongor,Mayo Kebbi Est,Mil,2024-10-01,291.7
+Bongor,Mayo Kebbi Est,Mil,2024-11-01,280.0
+Bongor,Mayo Kebbi Est,Mil,2024-12-01,279.5
+Bongor,Mayo Kebbi Est,Mil,2025-01-01,318.0
+Bongor,Mayo Kebbi Est,Mil,2025-02-01,312.9
+Bongor,Mayo Kebbi Est,Mil,2025-03-01,305.2
+Bongor,Mayo Kebbi Est,Mil,2025-04-01,306.7
+Bongor,Mayo Kebbi Est,Mil,2025-05-01,413.6
+Bongor,Mayo Kebbi Est,Mil,2025-06-01,396.0
+Bongor,Mayo Kebbi Est,Mil,2025-07-01,401.8
+Bongor,Mayo Kebbi Est,Mil,2025-08-01,359.2
+Bongor,Mayo Kebbi Est,Mil,2025-09-01,345.2
+Bongor,Mayo Kebbi Est,Mil,2025-10-01,389.9
+Bongor,Mayo Kebbi Est,Mil,2025-11-01,357.9
+Bongor,Mayo Kebbi Est,Mil,2025-12-01,387.1
+Bongor,Mayo Kebbi Est,Mil,2026-01-01,411.0
+Bongor,Mayo Kebbi Est,Mil,2026-02-01,431.0
+Bongor,Mayo Kebbi Est,Mil,2026-03-01,423.6
+Bongor,Mayo Kebbi Est,Mil,2026-04-01,436.3
+Bongor,Mayo Kebbi Est,Mil,2026-05-01,451.3
+Bongor,Mayo Kebbi Est,Mil,2026-06-01,397.6
+Bongor,Mayo Kebbi Est,Mil,2026-07-01,383.5
+Bongor,Mayo Kebbi Est,Sorgho,2024-08-01,238.7
+Bongor,Mayo Kebbi Est,Sorgho,2024-09-01,231.7
+Bongor,Mayo Kebbi Est,Sorgho,2024-10-01,247.9
+Bongor,Mayo Kebbi Est,Sorgho,2024-11-01,241.3
+Bongor,Mayo Kebbi Est,Sorgho,2024-12-01,281.0
+Bongor,Mayo Kebbi Est,Sorgho,2025-01-01,270.7
+Bongor,Mayo Kebbi Est,Sorgho,2025-02-01,276.9
+Bongor,Mayo Kebbi Est,Sorgho,2025-03-01,322.6
+Bongor,Mayo Kebbi Est,Sorgho,2025-04-01,300.7
+Bongor,Mayo Kebbi Est,Sorgho,2025-05-01,374.7
+Bongor,Mayo Kebbi Est,Sorgho,2025-06-01,370.5
+Bongor,Mayo Kebbi Est,Sorgho,2025-07-01,380.2
+Bongor,Mayo Kebbi Est,Sorgho,2025-08-01,315.1
+Bongor,Mayo Kebbi Est,Sorgho,2025-09-01,324.2
+Bongor,Mayo Kebbi Est,Sorgho,2025-10-01,333.8
+Bongor,Mayo Kebbi Est,Sorgho,2025-11-01,362.3
+Bongor,Mayo Kebbi Est,Sorgho,2025-12-01,359.0
+Bongor,Mayo Kebbi Est,Sorgho,2026-01-01,381.0
+Bongor,Mayo Kebbi Est,Sorgho,2026-02-01,366.6
+Bongor,Mayo Kebbi Est,Sorgho,2026-03-01,385.4
+Bongor,Mayo Kebbi Est,Sorgho,2026-04-01,393.0
+Bongor,Mayo Kebbi Est,Sorgho,2026-05-01,371.7
+Bongor,Mayo Kebbi Est,Sorgho,2026-06-01,359.5
+Bongor,Mayo Kebbi Est,Sorgho,2026-07-01,350.7
+Bongor,Mayo Kebbi Est,Mais,2024-08-01,234.7
+Bongor,Mayo Kebbi Est,Mais,2024-09-01,226.2
+Bongor,Mayo Kebbi Est,Mais,2024-10-01,229.9
+Bongor,Mayo Kebbi Est,Mais,2024-11-01,245.9
+Bongor,Mayo Kebbi Est,Mais,2024-12-01,256.5
+Bongor,Mayo Kebbi Est,Mais,2025-01-01,259.7
+Bongor,Mayo Kebbi Est,Mais,2025-02-01,269.0
+Bongor,Mayo Kebbi Est,Mais,2025-03-01,291.5
+Bongor,Mayo Kebbi Est,Mais,2025-04-01,253.0
+Bongor,Mayo Kebbi Est,Mais,2025-05-01,327.0
+Bongor,Mayo Kebbi Est,Mais,2025-06-01,366.4
+Bongor,Mayo Kebbi Est,Mais,2025-07-01,302.3
+Bongor,Mayo Kebbi Est,Mais,2025-08-01,309.7
+Bongor,Mayo Kebbi Est,Mais,2025-09-01,312.3
+Bongor,Mayo Kebbi Est,Mais,2025-10-01,333.9
+Bongor,Mayo Kebbi Est,Mais,2025-11-01,328.0
+Bongor,Mayo Kebbi Est,Mais,2025-12-01,351.5
+Bongor,Mayo Kebbi Est,Mais,2026-01-01,367.5
+Bongor,Mayo Kebbi Est,Mais,2026-02-01,398.5
+Bongor,Mayo Kebbi Est,Mais,2026-03-01,354.6
+Bongor,Mayo Kebbi Est,Mais,2026-04-01,357.2
+Bongor,Mayo Kebbi Est,Mais,2026-05-01,382.8
+Bongor,Mayo Kebbi Est,Mais,2026-06-01,351.1
+Bongor,Mayo Kebbi Est,Mais,2026-07-01,326.3
+Bongor,Mayo Kebbi Est,Riz_importe,2024-08-01,391.8
+Bongor,Mayo Kebbi Est,Riz_importe,2024-09-01,403.0
+Bongor,Mayo Kebbi Est,Riz_importe,2024-10-01,394.0
+Bongor,Mayo Kebbi Est,Riz_importe,2024-11-01,424.3
+Bongor,Mayo Kebbi Est,Riz_importe,2024-12-01,411.0
+Bongor,Mayo Kebbi Est,Riz_importe,2025-01-01,438.9
+Bongor,Mayo Kebbi Est,Riz_importe,2025-02-01,511.7
+Bongor,Mayo Kebbi Est,Riz_importe,2025-03-01,460.0
+Bongor,Mayo Kebbi Est,Riz_importe,2025-04-01,452.0
+Bongor,Mayo Kebbi Est,Riz_importe,2025-05-01,630.1
+Bongor,Mayo Kebbi Est,Riz_importe,2025-06-01,598.8
+Bongor,Mayo Kebbi Est,Riz_importe,2025-07-01,544.4
+Bongor,Mayo Kebbi Est,Riz_importe,2025-08-01,537.1
+Bongor,Mayo Kebbi Est,Riz_importe,2025-09-01,567.6
+Bongor,Mayo Kebbi Est,Riz_importe,2025-10-01,568.2
+Bongor,Mayo Kebbi Est,Riz_importe,2025-11-01,562.9
+Bongor,Mayo Kebbi Est,Riz_importe,2025-12-01,575.0
+Bongor,Mayo Kebbi Est,Riz_importe,2026-01-01,686.2
+Bongor,Mayo Kebbi Est,Riz_importe,2026-02-01,662.3
+Bongor,Mayo Kebbi Est,Riz_importe,2026-03-01,613.3
+Bongor,Mayo Kebbi Est,Riz_importe,2026-04-01,693.8
+Bongor,Mayo Kebbi Est,Riz_importe,2026-05-01,623.9
+Bongor,Mayo Kebbi Est,Riz_importe,2026-06-01,587.0
+Bongor,Mayo Kebbi Est,Riz_importe,2026-07-01,568.6
+Pala,Mayo Kebbi Ouest,Mil,2024-08-01,267.7
+Pala,Mayo Kebbi Ouest,Mil,2024-09-01,265.1
+Pala,Mayo Kebbi Ouest,Mil,2024-10-01,265.1
+Pala,Mayo Kebbi Ouest,Mil,2024-11-01,274.6
+Pala,Mayo Kebbi Ouest,Mil,2024-12-01,281.8
+Pala,Mayo Kebbi Ouest,Mil,2025-01-01,315.9
+Pala,Mayo Kebbi Ouest,Mil,2025-02-01,321.3
+Pala,Mayo Kebbi Ouest,Mil,2025-03-01,351.6
+Pala,Mayo Kebbi Ouest,Mil,2025-04-01,305.4
+Pala,Mayo Kebbi Ouest,Mil,2025-05-01,415.4
+Pala,Mayo Kebbi Ouest,Mil,2025-06-01,422.0
+Pala,Mayo Kebbi Ouest,Mil,2025-07-01,373.7
+Pala,Mayo Kebbi Ouest,Mil,2025-08-01,378.2
+Pala,Mayo Kebbi Ouest,Mil,2025-09-01,364.4
+Pala,Mayo Kebbi Ouest,Mil,2025-10-01,386.8
+Pala,Mayo Kebbi Ouest,Mil,2025-11-01,400.4
+Pala,Mayo Kebbi Ouest,Mil,2025-12-01,412.7
+Pala,Mayo Kebbi Ouest,Mil,2026-01-01,449.6
+Pala,Mayo Kebbi Ouest,Mil,2026-02-01,439.7
+Pala,Mayo Kebbi Ouest,Mil,2026-03-01,429.9
+Pala,Mayo Kebbi Ouest,Mil,2026-04-01,446.7
+Pala,Mayo Kebbi Ouest,Mil,2026-05-01,477.4
+Pala,Mayo Kebbi Ouest,Mil,2026-06-01,421.4
+Pala,Mayo Kebbi Ouest,Mil,2026-07-01,396.3
+Pala,Mayo Kebbi Ouest,Sorgho,2024-08-01,250.5
+Pala,Mayo Kebbi Ouest,Sorgho,2024-09-01,244.3
+Pala,Mayo Kebbi Ouest,Sorgho,2024-10-01,248.4
+Pala,Mayo Kebbi Ouest,Sorgho,2024-11-01,247.3
+Pala,Mayo Kebbi Ouest,Sorgho,2024-12-01,261.1
+Pala,Mayo Kebbi Ouest,Sorgho,2025-01-01,292.2
+Pala,Mayo Kebbi Ouest,Sorgho,2025-02-01,287.4
+Pala,Mayo Kebbi Ouest,Sorgho,2025-03-01,314.0
+Pala,Mayo Kebbi Ouest,Sorgho,2025-04-01,277.1
+Pala,Mayo Kebbi Ouest,Sorgho,2025-05-01,386.8
+Pala,Mayo Kebbi Ouest,Sorgho,2025-06-01,392.2
+Pala,Mayo Kebbi Ouest,Sorgho,2025-07-01,337.9
+Pala,Mayo Kebbi Ouest,Sorgho,2025-08-01,358.0
+Pala,Mayo Kebbi Ouest,Sorgho,2025-09-01,345.6
+Pala,Mayo Kebbi Ouest,Sorgho,2025-10-01,362.0
+Pala,Mayo Kebbi Ouest,Sorgho,2025-11-01,350.7
+Pala,Mayo Kebbi Ouest,Sorgho,2025-12-01,377.7
+Pala,Mayo Kebbi Ouest,Sorgho,2026-01-01,417.8
+Pala,Mayo Kebbi Ouest,Sorgho,2026-02-01,403.5
+Pala,Mayo Kebbi Ouest,Sorgho,2026-03-01,395.7
+Pala,Mayo Kebbi Ouest,Sorgho,2026-04-01,380.2
+Pala,Mayo Kebbi Ouest,Sorgho,2026-05-01,382.0
+Pala,Mayo Kebbi Ouest,Sorgho,2026-06-01,415.4
+Pala,Mayo Kebbi Ouest,Sorgho,2026-07-01,388.4
+Pala,Mayo Kebbi Ouest,Mais,2024-08-01,222.6
+Pala,Mayo Kebbi Ouest,Mais,2024-09-01,237.8
+Pala,Mayo Kebbi Ouest,Mais,2024-10-01,236.3
+Pala,Mayo Kebbi Ouest,Mais,2024-11-01,233.5
+Pala,Mayo Kebbi Ouest,Mais,2024-12-01,240.1
+Pala,Mayo Kebbi Ouest,Mais,2025-01-01,250.5
+Pala,Mayo Kebbi Ouest,Mais,2025-02-01,260.5
+Pala,Mayo Kebbi Ouest,Mais,2025-03-01,288.4
+Pala,Mayo Kebbi Ouest,Mais,2025-04-01,274.6
+Pala,Mayo Kebbi Ouest,Mais,2025-05-01,377.0
+Pala,Mayo Kebbi Ouest,Mais,2025-06-01,333.2
+Pala,Mayo Kebbi Ouest,Mais,2025-07-01,301.0
+Pala,Mayo Kebbi Ouest,Mais,2025-08-01,305.4
+Pala,Mayo Kebbi Ouest,Mais,2025-09-01,293.5
+Pala,Mayo Kebbi Ouest,Mais,2025-10-01,305.4
+Pala,Mayo Kebbi Ouest,Mais,2025-11-01,311.2
+Pala,Mayo Kebbi Ouest,Mais,2025-12-01,311.6
+Pala,Mayo Kebbi Ouest,Mais,2026-01-01,332.9
+Pala,Mayo Kebbi Ouest,Mais,2026-02-01,397.0
+Pala,Mayo Kebbi Ouest,Mais,2026-03-01,383.1
+Pala,Mayo Kebbi Ouest,Mais,2026-04-01,371.8
+Pala,Mayo Kebbi Ouest,Mais,2026-05-01,343.5
+Pala,Mayo Kebbi Ouest,Mais,2026-06-01,369.2
+Pala,Mayo Kebbi Ouest,Mais,2026-07-01,319.6
+Pala,Mayo Kebbi Ouest,Riz_importe,2024-08-01,392.3
+Pala,Mayo Kebbi Ouest,Riz_importe,2024-09-01,416.4
+Pala,Mayo Kebbi Ouest,Riz_importe,2024-10-01,391.7
+Pala,Mayo Kebbi Ouest,Riz_importe,2024-11-01,432.5
+Pala,Mayo Kebbi Ouest,Riz_importe,2024-12-01,416.8
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-01-01,441.3
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-02-01,471.1
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-03-01,445.0
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-04-01,504.3
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-05-01,607.6
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-06-01,603.1
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-07-01,532.5
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-08-01,573.9
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-09-01,572.4
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-10-01,526.6
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-11-01,592.8
+Pala,Mayo Kebbi Ouest,Riz_importe,2025-12-01,545.7
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-01-01,602.3
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-02-01,587.0
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-03-01,666.8
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-04-01,641.2
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-05-01,646.5
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-06-01,630.7
+Pala,Mayo Kebbi Ouest,Riz_importe,2026-07-01,600.4
+Sarh,Moyen Chari,Mil,2024-08-01,277.3
+Sarh,Moyen Chari,Mil,2024-09-01,256.8
+Sarh,Moyen Chari,Mil,2024-10-01,257.4
+Sarh,Moyen Chari,Mil,2024-11-01,282.0
+Sarh,Moyen Chari,Mil,2024-12-01,310.2
+Sarh,Moyen Chari,Mil,2025-01-01,297.3
+Sarh,Moyen Chari,Mil,2025-02-01,314.6
+Sarh,Moyen Chari,Mil,2025-03-01,324.7
+Sarh,Moyen Chari,Mil,2025-04-01,330.4
+Sarh,Moyen Chari,Mil,2025-05-01,411.3
+Sarh,Moyen Chari,Mil,2025-06-01,421.7
+Sarh,Moyen Chari,Mil,2025-07-01,393.4
+Sarh,Moyen Chari,Mil,2025-08-01,345.5
+Sarh,Moyen Chari,Mil,2025-09-01,369.7
+Sarh,Moyen Chari,Mil,2025-10-01,371.5
+Sarh,Moyen Chari,Mil,2025-11-01,360.7
+Sarh,Moyen Chari,Mil,2025-12-01,371.7
+Sarh,Moyen Chari,Mil,2026-01-01,443.0
+Sarh,Moyen Chari,Mil,2026-02-01,451.3
+Sarh,Moyen Chari,Mil,2026-03-01,454.0
+Sarh,Moyen Chari,Mil,2026-04-01,441.3
+Sarh,Moyen Chari,Mil,2026-05-01,398.7
+Sarh,Moyen Chari,Mil,2026-06-01,376.2
+Sarh,Moyen Chari,Mil,2026-07-01,385.1
+Sarh,Moyen Chari,Sorgho,2024-08-01,252.9
+Sarh,Moyen Chari,Sorgho,2024-09-01,245.0
+Sarh,Moyen Chari,Sorgho,2024-10-01,240.5
+Sarh,Moyen Chari,Sorgho,2024-11-01,236.4
+Sarh,Moyen Chari,Sorgho,2024-12-01,282.1
+Sarh,Moyen Chari,Sorgho,2025-01-01,283.1
+Sarh,Moyen Chari,Sorgho,2025-02-01,269.5
+Sarh,Moyen Chari,Sorgho,2025-03-01,317.5
+Sarh,Moyen Chari,Sorgho,2025-04-01,290.7
+Sarh,Moyen Chari,Sorgho,2025-05-01,358.3
+Sarh,Moyen Chari,Sorgho,2025-06-01,362.5
+Sarh,Moyen Chari,Sorgho,2025-07-01,321.3
+Sarh,Moyen Chari,Sorgho,2025-08-01,355.7
+Sarh,Moyen Chari,Sorgho,2025-09-01,307.7
+Sarh,Moyen Chari,Sorgho,2025-10-01,349.4
+Sarh,Moyen Chari,Sorgho,2025-11-01,345.7
+Sarh,Moyen Chari,Sorgho,2025-12-01,395.7
+Sarh,Moyen Chari,Sorgho,2026-01-01,420.9
+Sarh,Moyen Chari,Sorgho,2026-02-01,391.5
+Sarh,Moyen Chari,Sorgho,2026-03-01,402.9
+Sarh,Moyen Chari,Sorgho,2026-04-01,392.0
+Sarh,Moyen Chari,Sorgho,2026-05-01,402.7
+Sarh,Moyen Chari,Sorgho,2026-06-01,382.9
+Sarh,Moyen Chari,Sorgho,2026-07-01,353.0
+Sarh,Moyen Chari,Mais,2024-08-01,235.7
+Sarh,Moyen Chari,Mais,2024-09-01,219.2
+Sarh,Moyen Chari,Mais,2024-10-01,225.0
+Sarh,Moyen Chari,Mais,2024-11-01,223.6
+Sarh,Moyen Chari,Mais,2024-12-01,246.3
+Sarh,Moyen Chari,Mais,2025-01-01,262.7
+Sarh,Moyen Chari,Mais,2025-02-01,271.6
+Sarh,Moyen Chari,Mais,2025-03-01,264.0
+Sarh,Moyen Chari,Mais,2025-04-01,242.1
+Sarh,Moyen Chari,Mais,2025-05-01,354.0
+Sarh,Moyen Chari,Mais,2025-06-01,329.5
+Sarh,Moyen Chari,Mais,2025-07-01,307.5
+Sarh,Moyen Chari,Mais,2025-08-01,323.9
+Sarh,Moyen Chari,Mais,2025-09-01,289.7
+Sarh,Moyen Chari,Mais,2025-10-01,313.9
+Sarh,Moyen Chari,Mais,2025-11-01,300.8
+Sarh,Moyen Chari,Mais,2025-12-01,343.2
+Sarh,Moyen Chari,Mais,2026-01-01,369.4
+Sarh,Moyen Chari,Mais,2026-02-01,368.0
+Sarh,Moyen Chari,Mais,2026-03-01,364.2
+Sarh,Moyen Chari,Mais,2026-04-01,405.6
+Sarh,Moyen Chari,Mais,2026-05-01,377.4
+Sarh,Moyen Chari,Mais,2026-06-01,334.7
+Sarh,Moyen Chari,Mais,2026-07-01,328.4
+Sarh,Moyen Chari,Riz_importe,2024-08-01,412.6
+Sarh,Moyen Chari,Riz_importe,2024-09-01,407.0
+Sarh,Moyen Chari,Riz_importe,2024-10-01,421.3
+Sarh,Moyen Chari,Riz_importe,2024-11-01,424.4
+Sarh,Moyen Chari,Riz_importe,2024-12-01,451.3
+Sarh,Moyen Chari,Riz_importe,2025-01-01,469.6
+Sarh,Moyen Chari,Riz_importe,2025-02-01,431.3
+Sarh,Moyen Chari,Riz_importe,2025-03-01,449.9
+Sarh,Moyen Chari,Riz_importe,2025-04-01,457.7
+Sarh,Moyen Chari,Riz_importe,2025-05-01,607.0
+Sarh,Moyen Chari,Riz_importe,2025-06-01,594.1
+Sarh,Moyen Chari,Riz_importe,2025-07-01,545.3
+Sarh,Moyen Chari,Riz_importe,2025-08-01,579.8
+Sarh,Moyen Chari,Riz_importe,2025-09-01,568.8
+Sarh,Moyen Chari,Riz_importe,2025-10-01,601.2
+Sarh,Moyen Chari,Riz_importe,2025-11-01,595.5
+Sarh,Moyen Chari,Riz_importe,2025-12-01,616.5
+Sarh,Moyen Chari,Riz_importe,2026-01-01,681.5
+Sarh,Moyen Chari,Riz_importe,2026-02-01,599.5
+Sarh,Moyen Chari,Riz_importe,2026-03-01,682.4
+Sarh,Moyen Chari,Riz_importe,2026-04-01,584.9
+Sarh,Moyen Chari,Riz_importe,2026-05-01,639.8
+Sarh,Moyen Chari,Riz_importe,2026-06-01,592.6
+Sarh,Moyen Chari,Riz_importe,2026-07-01,559.8
+Abeche,Ouaddaï,Mil,2024-08-01,266.0
+Abeche,Ouaddaï,Mil,2024-09-01,285.5
+Abeche,Ouaddaï,Mil,2024-10-01,272.4
+Abeche,Ouaddaï,Mil,2024-11-01,271.4
+Abeche,Ouaddaï,Mil,2024-12-01,300.4
+Abeche,Ouaddaï,Mil,2025-01-01,347.1
+Abeche,Ouaddaï,Mil,2025-02-01,336.2
+Abeche,Ouaddaï,Mil,2025-03-01,328.7
+Abeche,Ouaddaï,Mil,2025-04-01,315.2
+Abeche,Ouaddaï,Mil,2025-05-01,451.4
+Abeche,Ouaddaï,Mil,2025-06-01,401.2
+Abeche,Ouaddaï,Mil,2025-07-01,393.5
+Abeche,Ouaddaï,Mil,2025-08-01,373.9
+Abeche,Ouaddaï,Mil,2025-09-01,391.2
+Abeche,Ouaddaï,Mil,2025-10-01,388.0
+Abeche,Ouaddaï,Mil,2025-11-01,392.1
+Abeche,Ouaddaï,Mil,2025-12-01,405.1
+Abeche,Ouaddaï,Mil,2026-01-01,473.9
+Abeche,Ouaddaï,Mil,2026-02-01,440.4
+Abeche,Ouaddaï,Mil,2026-03-01,498.7
+Abeche,Ouaddaï,Mil,2026-04-01,477.6
+Abeche,Ouaddaï,Mil,2026-05-01,459.0
+Abeche,Ouaddaï,Mil,2026-06-01,426.6
+Abeche,Ouaddaï,Mil,2026-07-01,456.1
+Abeche,Ouaddaï,Sorgho,2024-08-01,229.7
+Abeche,Ouaddaï,Sorgho,2024-09-01,214.5
+Abeche,Ouaddaï,Sorgho,2024-10-01,247.1
+Abeche,Ouaddaï,Sorgho,2024-11-01,266.4
+Abeche,Ouaddaï,Sorgho,2024-12-01,238.9
+Abeche,Ouaddaï,Sorgho,2025-01-01,282.2
+Abeche,Ouaddaï,Sorgho,2025-02-01,299.3
+Abeche,Ouaddaï,Sorgho,2025-03-01,287.3
+Abeche,Ouaddaï,Sorgho,2025-04-01,305.6
+Abeche,Ouaddaï,Sorgho,2025-05-01,402.7
+Abeche,Ouaddaï,Sorgho,2025-06-01,353.6
+Abeche,Ouaddaï,Sorgho,2025-07-01,380.7
+Abeche,Ouaddaï,Sorgho,2025-08-01,378.1
+Abeche,Ouaddaï,Sorgho,2025-09-01,343.3
+Abeche,Ouaddaï,Sorgho,2025-10-01,359.4
+Abeche,Ouaddaï,Sorgho,2025-11-01,384.1
+Abeche,Ouaddaï,Sorgho,2025-12-01,382.1
+Abeche,Ouaddaï,Sorgho,2026-01-01,406.9
+Abeche,Ouaddaï,Sorgho,2026-02-01,409.4
+Abeche,Ouaddaï,Sorgho,2026-03-01,417.4
+Abeche,Ouaddaï,Sorgho,2026-04-01,476.9
+Abeche,Ouaddaï,Sorgho,2026-05-01,400.8
+Abeche,Ouaddaï,Sorgho,2026-06-01,395.1
+Abeche,Ouaddaï,Sorgho,2026-07-01,413.0
+Abeche,Ouaddaï,Mais,2024-08-01,207.4
+Abeche,Ouaddaï,Mais,2024-09-01,229.6
+Abeche,Ouaddaï,Mais,2024-10-01,237.5
+Abeche,Ouaddaï,Mais,2024-11-01,243.6
+Abeche,Ouaddaï,Mais,2024-12-01,252.4
+Abeche,Ouaddaï,Mais,2025-01-01,252.3
+Abeche,Ouaddaï,Mais,2025-02-01,314.9
+Abeche,Ouaddaï,Mais,2025-03-01,274.1
+Abeche,Ouaddaï,Mais,2025-04-01,290.6
+Abeche,Ouaddaï,Mais,2025-05-01,391.8
+Abeche,Ouaddaï,Mais,2025-06-01,342.0
+Abeche,Ouaddaï,Mais,2025-07-01,300.2
+Abeche,Ouaddaï,Mais,2025-08-01,330.1
+Abeche,Ouaddaï,Mais,2025-09-01,319.0
+Abeche,Ouaddaï,Mais,2025-10-01,312.0
+Abeche,Ouaddaï,Mais,2025-11-01,341.2
+Abeche,Ouaddaï,Mais,2025-12-01,359.0
+Abeche,Ouaddaï,Mais,2026-01-01,369.7
+Abeche,Ouaddaï,Mais,2026-02-01,430.4
+Abeche,Ouaddaï,Mais,2026-03-01,361.3
+Abeche,Ouaddaï,Mais,2026-04-01,369.2
+Abeche,Ouaddaï,Mais,2026-05-01,400.8
+Abeche,Ouaddaï,Mais,2026-06-01,377.7
+Abeche,Ouaddaï,Mais,2026-07-01,341.9
+Abeche,Ouaddaï,Riz_importe,2024-08-01,421.2
+Abeche,Ouaddaï,Riz_importe,2024-09-01,375.6
+Abeche,Ouaddaï,Riz_importe,2024-10-01,432.5
+Abeche,Ouaddaï,Riz_importe,2024-11-01,421.2
+Abeche,Ouaddaï,Riz_importe,2024-12-01,419.1
+Abeche,Ouaddaï,Riz_importe,2025-01-01,450.0
+Abeche,Ouaddaï,Riz_importe,2025-02-01,484.2
+Abeche,Ouaddaï,Riz_importe,2025-03-01,503.6
+Abeche,Ouaddaï,Riz_importe,2025-04-01,473.3
+Abeche,Ouaddaï,Riz_importe,2025-05-01,657.2
+Abeche,Ouaddaï,Riz_importe,2025-06-01,691.2
+Abeche,Ouaddaï,Riz_importe,2025-07-01,574.6
+Abeche,Ouaddaï,Riz_importe,2025-08-01,588.3
+Abeche,Ouaddaï,Riz_importe,2025-09-01,579.6
+Abeche,Ouaddaï,Riz_importe,2025-10-01,551.5
+Abeche,Ouaddaï,Riz_importe,2025-11-01,629.2
+Abeche,Ouaddaï,Riz_importe,2025-12-01,660.0
+Abeche,Ouaddaï,Riz_importe,2026-01-01,621.7
+Abeche,Ouaddaï,Riz_importe,2026-02-01,723.7
+Abeche,Ouaddaï,Riz_importe,2026-03-01,717.8
+Abeche,Ouaddaï,Riz_importe,2026-04-01,730.2
+Abeche,Ouaddaï,Riz_importe,2026-05-01,671.5
+Abeche,Ouaddaï,Riz_importe,2026-06-01,761.2
+Abeche,Ouaddaï,Riz_importe,2026-07-01,619.3
+Am-Timan,Salamat,Mil,2024-08-01,284.6
+Am-Timan,Salamat,Mil,2024-09-01,273.8
+Am-Timan,Salamat,Mil,2024-10-01,230.9
+Am-Timan,Salamat,Mil,2024-11-01,269.7
+Am-Timan,Salamat,Mil,2024-12-01,259.7
+Am-Timan,Salamat,Mil,2025-01-01,315.1
+Am-Timan,Salamat,Mil,2025-02-01,320.9
+Am-Timan,Salamat,Mil,2025-03-01,327.5
+Am-Timan,Salamat,Mil,2025-04-01,316.4
+Am-Timan,Salamat,Mil,2025-05-01,444.8
+Am-Timan,Salamat,Mil,2025-06-01,417.2
+Am-Timan,Salamat,Mil,2025-07-01,431.3
+Am-Timan,Salamat,Mil,2025-08-01,394.2
+Am-Timan,Salamat,Mil,2025-09-01,346.5
+Am-Timan,Salamat,Mil,2025-10-01,381.8
+Am-Timan,Salamat,Mil,2025-11-01,380.6
+Am-Timan,Salamat,Mil,2025-12-01,430.3
+Am-Timan,Salamat,Mil,2026-01-01,442.2
+Am-Timan,Salamat,Mil,2026-02-01,473.7
+Am-Timan,Salamat,Mil,2026-03-01,492.6
+Am-Timan,Salamat,Mil,2026-04-01,439.1
+Am-Timan,Salamat,Mil,2026-05-01,451.7
+Am-Timan,Salamat,Mil,2026-06-01,461.1
+Am-Timan,Salamat,Mil,2026-07-01,384.5
+Am-Timan,Salamat,Sorgho,2024-08-01,271.3
+Am-Timan,Salamat,Sorgho,2024-09-01,233.0
+Am-Timan,Salamat,Sorgho,2024-10-01,244.8
+Am-Timan,Salamat,Sorgho,2024-11-01,268.5
+Am-Timan,Salamat,Sorgho,2024-12-01,258.3
+Am-Timan,Salamat,Sorgho,2025-01-01,304.6
+Am-Timan,Salamat,Sorgho,2025-02-01,301.3
+Am-Timan,Salamat,Sorgho,2025-03-01,301.3
+Am-Timan,Salamat,Sorgho,2025-04-01,299.1
+Am-Timan,Salamat,Sorgho,2025-05-01,389.0
+Am-Timan,Salamat,Sorgho,2025-06-01,386.9
+Am-Timan,Salamat,Sorgho,2025-07-01,358.1
+Am-Timan,Salamat,Sorgho,2025-08-01,336.3
+Am-Timan,Salamat,Sorgho,2025-09-01,358.0
+Am-Timan,Salamat,Sorgho,2025-10-01,346.7
+Am-Timan,Salamat,Sorgho,2025-11-01,363.6
+Am-Timan,Salamat,Sorgho,2025-12-01,360.5
+Am-Timan,Salamat,Sorgho,2026-01-01,386.6
+Am-Timan,Salamat,Sorgho,2026-02-01,400.9
+Am-Timan,Salamat,Sorgho,2026-03-01,426.5
+Am-Timan,Salamat,Sorgho,2026-04-01,436.4
+Am-Timan,Salamat,Sorgho,2026-05-01,422.9
+Am-Timan,Salamat,Sorgho,2026-06-01,398.0
+Am-Timan,Salamat,Sorgho,2026-07-01,381.1
+Am-Timan,Salamat,Mais,2024-08-01,233.2
+Am-Timan,Salamat,Mais,2024-09-01,218.3
+Am-Timan,Salamat,Mais,2024-10-01,234.5
+Am-Timan,Salamat,Mais,2024-11-01,228.2
+Am-Timan,Salamat,Mais,2024-12-01,258.2
+Am-Timan,Salamat,Mais,2025-01-01,257.0
+Am-Timan,Salamat,Mais,2025-02-01,246.9
+Am-Timan,Salamat,Mais,2025-03-01,278.0
+Am-Timan,Salamat,Mais,2025-04-01,282.7
+Am-Timan,Salamat,Mais,2025-05-01,375.0
+Am-Timan,Salamat,Mais,2025-06-01,332.4
+Am-Timan,Salamat,Mais,2025-07-01,344.2
+Am-Timan,Salamat,Mais,2025-08-01,329.4
+Am-Timan,Salamat,Mais,2025-09-01,334.3
+Am-Timan,Salamat,Mais,2025-10-01,324.7
+Am-Timan,Salamat,Mais,2025-11-01,322.9
+Am-Timan,Salamat,Mais,2025-12-01,323.4
+Am-Timan,Salamat,Mais,2026-01-01,380.9
+Am-Timan,Salamat,Mais,2026-02-01,373.5
+Am-Timan,Salamat,Mais,2026-03-01,385.4
+Am-Timan,Salamat,Mais,2026-04-01,380.7
+Am-Timan,Salamat,Mais,2026-05-01,381.0
+Am-Timan,Salamat,Mais,2026-06-01,375.1
+Am-Timan,Salamat,Mais,2026-07-01,339.1
+Am-Timan,Salamat,Riz_importe,2024-08-01,390.5
+Am-Timan,Salamat,Riz_importe,2024-09-01,389.8
+Am-Timan,Salamat,Riz_importe,2024-10-01,435.6
+Am-Timan,Salamat,Riz_importe,2024-11-01,353.6
+Am-Timan,Salamat,Riz_importe,2024-12-01,434.4
+Am-Timan,Salamat,Riz_importe,2025-01-01,421.2
+Am-Timan,Salamat,Riz_importe,2025-02-01,508.8
+Am-Timan,Salamat,Riz_importe,2025-03-01,477.4
+Am-Timan,Salamat,Riz_importe,2025-04-01,478.9
+Am-Timan,Salamat,Riz_importe,2025-05-01,671.9
+Am-Timan,Salamat,Riz_importe,2025-06-01,627.4
+Am-Timan,Salamat,Riz_importe,2025-07-01,611.1
+Am-Timan,Salamat,Riz_importe,2025-08-01,531.7
+Am-Timan,Salamat,Riz_importe,2025-09-01,634.9
+Am-Timan,Salamat,Riz_importe,2025-10-01,578.0
+Am-Timan,Salamat,Riz_importe,2025-11-01,580.6
+Am-Timan,Salamat,Riz_importe,2025-12-01,578.0
+Am-Timan,Salamat,Riz_importe,2026-01-01,640.2
+Am-Timan,Salamat,Riz_importe,2026-02-01,640.9
+Am-Timan,Salamat,Riz_importe,2026-03-01,645.0
+Am-Timan,Salamat,Riz_importe,2026-04-01,689.4
+Am-Timan,Salamat,Riz_importe,2026-05-01,695.6
+Am-Timan,Salamat,Riz_importe,2026-06-01,641.6
+Am-Timan,Salamat,Riz_importe,2026-07-01,591.2
+Goz Beida,Sila,Mil,2024-08-01,272.6
+Goz Beida,Sila,Mil,2024-09-01,260.4
+Goz Beida,Sila,Mil,2024-10-01,279.8
+Goz Beida,Sila,Mil,2024-11-01,263.9
+Goz Beida,Sila,Mil,2024-12-01,283.9
+Goz Beida,Sila,Mil,2025-01-01,293.9
+Goz Beida,Sila,Mil,2025-02-01,292.4
+Goz Beida,Sila,Mil,2025-03-01,328.3
+Goz Beida,Sila,Mil,2025-04-01,315.3
+Goz Beida,Sila,Mil,2025-05-01,450.5
+Goz Beida,Sila,Mil,2025-06-01,457.8
+Goz Beida,Sila,Mil,2025-07-01,431.0
+Goz Beida,Sila,Mil,2025-08-01,414.5
+Goz Beida,Sila,Mil,2025-09-01,347.2
+Goz Beida,Sila,Mil,2025-10-01,368.7
+Goz Beida,Sila,Mil,2025-11-01,362.0
+Goz Beida,Sila,Mil,2025-12-01,423.1
+Goz Beida,Sila,Mil,2026-01-01,438.5
+Goz Beida,Sila,Mil,2026-02-01,492.8
+Goz Beida,Sila,Mil,2026-03-01,472.7
+Goz Beida,Sila,Mil,2026-04-01,459.0
+Goz Beida,Sila,Mil,2026-05-01,465.3
+Goz Beida,Sila,Mil,2026-06-01,455.6
+Goz Beida,Sila,Mil,2026-07-01,394.1
+Goz Beida,Sila,Sorgho,2024-08-01,242.7
+Goz Beida,Sila,Sorgho,2024-09-01,261.7
+Goz Beida,Sila,Sorgho,2024-10-01,247.6
+Goz Beida,Sila,Sorgho,2024-11-01,275.2
+Goz Beida,Sila,Sorgho,2024-12-01,289.9
+Goz Beida,Sila,Sorgho,2025-01-01,282.8
+Goz Beida,Sila,Sorgho,2025-02-01,292.6
+Goz Beida,Sila,Sorgho,2025-03-01,320.6
+Goz Beida,Sila,Sorgho,2025-04-01,310.4
+Goz Beida,Sila,Sorgho,2025-05-01,387.8
+Goz Beida,Sila,Sorgho,2025-06-01,396.3
+Goz Beida,Sila,Sorgho,2025-07-01,347.5
+Goz Beida,Sila,Sorgho,2025-08-01,349.6
+Goz Beida,Sila,Sorgho,2025-09-01,376.3
+Goz Beida,Sila,Sorgho,2025-10-01,351.7
+Goz Beida,Sila,Sorgho,2025-11-01,380.7
+Goz Beida,Sila,Sorgho,2025-12-01,389.3
+Goz Beida,Sila,Sorgho,2026-01-01,410.2
+Goz Beida,Sila,Sorgho,2026-02-01,434.6
+Goz Beida,Sila,Sorgho,2026-03-01,443.6
+Goz Beida,Sila,Sorgho,2026-04-01,435.2
+Goz Beida,Sila,Sorgho,2026-05-01,431.7
+Goz Beida,Sila,Sorgho,2026-06-01,402.4
+Goz Beida,Sila,Sorgho,2026-07-01,404.7
+Goz Beida,Sila,Mais,2024-08-01,246.2
+Goz Beida,Sila,Mais,2024-09-01,225.4
+Goz Beida,Sila,Mais,2024-10-01,212.6
+Goz Beida,Sila,Mais,2024-11-01,243.8
+Goz Beida,Sila,Mais,2024-12-01,243.3
+Goz Beida,Sila,Mais,2025-01-01,252.5
+Goz Beida,Sila,Mais,2025-02-01,284.1
+Goz Beida,Sila,Mais,2025-03-01,254.7
+Goz Beida,Sila,Mais,2025-04-01,275.3
+Goz Beida,Sila,Mais,2025-05-01,379.9
+Goz Beida,Sila,Mais,2025-06-01,334.3
+Goz Beida,Sila,Mais,2025-07-01,310.1
+Goz Beida,Sila,Mais,2025-08-01,317.3
+Goz Beida,Sila,Mais,2025-09-01,321.5
+Goz Beida,Sila,Mais,2025-10-01,332.9
+Goz Beida,Sila,Mais,2025-11-01,317.6
+Goz Beida,Sila,Mais,2025-12-01,324.2
+Goz Beida,Sila,Mais,2026-01-01,391.9
+Goz Beida,Sila,Mais,2026-02-01,377.7
+Goz Beida,Sila,Mais,2026-03-01,354.9
+Goz Beida,Sila,Mais,2026-04-01,390.0
+Goz Beida,Sila,Mais,2026-05-01,381.6
+Goz Beida,Sila,Mais,2026-06-01,370.6
+Goz Beida,Sila,Mais,2026-07-01,393.4
+Goz Beida,Sila,Riz_importe,2024-08-01,368.5
+Goz Beida,Sila,Riz_importe,2024-09-01,384.0
+Goz Beida,Sila,Riz_importe,2024-10-01,421.6
+Goz Beida,Sila,Riz_importe,2024-11-01,397.1
+Goz Beida,Sila,Riz_importe,2024-12-01,401.3
+Goz Beida,Sila,Riz_importe,2025-01-01,473.1
+Goz Beida,Sila,Riz_importe,2025-02-01,494.5
+Goz Beida,Sila,Riz_importe,2025-03-01,461.9
+Goz Beida,Sila,Riz_importe,2025-04-01,463.7
+Goz Beida,Sila,Riz_importe,2025-05-01,664.7
+Goz Beida,Sila,Riz_importe,2025-06-01,616.7
+Goz Beida,Sila,Riz_importe,2025-07-01,600.0
+Goz Beida,Sila,Riz_importe,2025-08-01,562.7
+Goz Beida,Sila,Riz_importe,2025-09-01,583.0
+Goz Beida,Sila,Riz_importe,2025-10-01,534.6
+Goz Beida,Sila,Riz_importe,2025-11-01,604.7
+Goz Beida,Sila,Riz_importe,2025-12-01,631.7
+Goz Beida,Sila,Riz_importe,2026-01-01,671.6
+Goz Beida,Sila,Riz_importe,2026-02-01,667.9
+Goz Beida,Sila,Riz_importe,2026-03-01,678.9
+Goz Beida,Sila,Riz_importe,2026-04-01,639.6
+Goz Beida,Sila,Riz_importe,2026-05-01,615.1
+Goz Beida,Sila,Riz_importe,2026-06-01,630.8
+Goz Beida,Sila,Riz_importe,2026-07-01,670.5
+Lai,Tandjilé,Mil,2024-08-01,284.6
+Lai,Tandjilé,Mil,2024-09-01,273.0
+Lai,Tandjilé,Mil,2024-10-01,246.5
+Lai,Tandjilé,Mil,2024-11-01,272.6
+Lai,Tandjilé,Mil,2024-12-01,295.2
+Lai,Tandjilé,Mil,2025-01-01,285.9
+Lai,Tandjilé,Mil,2025-02-01,317.1
+Lai,Tandjilé,Mil,2025-03-01,351.1
+Lai,Tandjilé,Mil,2025-04-01,314.1
+Lai,Tandjilé,Mil,2025-05-01,377.5
+Lai,Tandjilé,Mil,2025-06-01,393.8
+Lai,Tandjilé,Mil,2025-07-01,371.9
+Lai,Tandjilé,Mil,2025-08-01,373.9
+Lai,Tandjilé,Mil,2025-09-01,381.4
+Lai,Tandjilé,Mil,2025-10-01,328.4
+Lai,Tandjilé,Mil,2025-11-01,391.9
+Lai,Tandjilé,Mil,2025-12-01,408.3
+Lai,Tandjilé,Mil,2026-01-01,401.6
+Lai,Tandjilé,Mil,2026-02-01,419.1
+Lai,Tandjilé,Mil,2026-03-01,461.0
+Lai,Tandjilé,Mil,2026-04-01,414.8
+Lai,Tandjilé,Mil,2026-05-01,403.2
+Lai,Tandjilé,Mil,2026-06-01,430.9
+Lai,Tandjilé,Mil,2026-07-01,374.1
+Lai,Tandjilé,Sorgho,2024-08-01,237.7
+Lai,Tandjilé,Sorgho,2024-09-01,240.9
+Lai,Tandjilé,Sorgho,2024-10-01,250.7
+Lai,Tandjilé,Sorgho,2024-11-01,244.9
+Lai,Tandjilé,Sorgho,2024-12-01,260.5
+Lai,Tandjilé,Sorgho,2025-01-01,264.9
+Lai,Tandjilé,Sorgho,2025-02-01,299.3
+Lai,Tandjilé,Sorgho,2025-03-01,281.4
+Lai,Tandjilé,Sorgho,2025-04-01,274.3
+Lai,Tandjilé,Sorgho,2025-05-01,402.0
+Lai,Tandjilé,Sorgho,2025-06-01,369.3
+Lai,Tandjilé,Sorgho,2025-07-01,367.9
+Lai,Tandjilé,Sorgho,2025-08-01,341.4
+Lai,Tandjilé,Sorgho,2025-09-01,339.0
+Lai,Tandjilé,Sorgho,2025-10-01,326.5
+Lai,Tandjilé,Sorgho,2025-11-01,329.5
+Lai,Tandjilé,Sorgho,2025-12-01,393.6
+Lai,Tandjilé,Sorgho,2026-01-01,381.7
+Lai,Tandjilé,Sorgho,2026-02-01,376.9
+Lai,Tandjilé,Sorgho,2026-03-01,401.4
+Lai,Tandjilé,Sorgho,2026-04-01,416.5
+Lai,Tandjilé,Sorgho,2026-05-01,368.0
+Lai,Tandjilé,Sorgho,2026-06-01,352.1
+Lai,Tandjilé,Sorgho,2026-07-01,317.1
+Lai,Tandjilé,Mais,2024-08-01,234.0
+Lai,Tandjilé,Mais,2024-09-01,232.3
+Lai,Tandjilé,Mais,2024-10-01,241.2
+Lai,Tandjilé,Mais,2024-11-01,234.2
+Lai,Tandjilé,Mais,2024-12-01,225.4
+Lai,Tandjilé,Mais,2025-01-01,282.2
+Lai,Tandjilé,Mais,2025-02-01,279.6
+Lai,Tandjilé,Mais,2025-03-01,264.3
+Lai,Tandjilé,Mais,2025-04-01,270.7
+Lai,Tandjilé,Mais,2025-05-01,337.9
+Lai,Tandjilé,Mais,2025-06-01,349.3
+Lai,Tandjilé,Mais,2025-07-01,335.5
+Lai,Tandjilé,Mais,2025-08-01,313.3
+Lai,Tandjilé,Mais,2025-09-01,339.6
+Lai,Tandjilé,Mais,2025-10-01,313.0
+Lai,Tandjilé,Mais,2025-11-01,339.4
+Lai,Tandjilé,Mais,2025-12-01,372.1
+Lai,Tandjilé,Mais,2026-01-01,349.5
+Lai,Tandjilé,Mais,2026-02-01,388.5
+Lai,Tandjilé,Mais,2026-03-01,391.6
+Lai,Tandjilé,Mais,2026-04-01,376.4
+Lai,Tandjilé,Mais,2026-05-01,367.5
+Lai,Tandjilé,Mais,2026-06-01,348.8
+Lai,Tandjilé,Mais,2026-07-01,349.6
+Lai,Tandjilé,Riz_importe,2024-08-01,382.1
+Lai,Tandjilé,Riz_importe,2024-09-01,367.6
+Lai,Tandjilé,Riz_importe,2024-10-01,379.3
+Lai,Tandjilé,Riz_importe,2024-11-01,400.0
+Lai,Tandjilé,Riz_importe,2024-12-01,403.1
+Lai,Tandjilé,Riz_importe,2025-01-01,451.5
+Lai,Tandjilé,Riz_importe,2025-02-01,475.9
+Lai,Tandjilé,Riz_importe,2025-03-01,446.8
+Lai,Tandjilé,Riz_importe,2025-04-01,498.7
+Lai,Tandjilé,Riz_importe,2025-05-01,656.4
+Lai,Tandjilé,Riz_importe,2025-06-01,596.0
+Lai,Tandjilé,Riz_importe,2025-07-01,554.5
+Lai,Tandjilé,Riz_importe,2025-08-01,581.5
+Lai,Tandjilé,Riz_importe,2025-09-01,561.6
+Lai,Tandjilé,Riz_importe,2025-10-01,529.0
+Lai,Tandjilé,Riz_importe,2025-11-01,533.3
+Lai,Tandjilé,Riz_importe,2025-12-01,627.3
+Lai,Tandjilé,Riz_importe,2026-01-01,682.8
+Lai,Tandjilé,Riz_importe,2026-02-01,649.0
+Lai,Tandjilé,Riz_importe,2026-03-01,585.9
+Lai,Tandjilé,Riz_importe,2026-04-01,619.5
+Lai,Tandjilé,Riz_importe,2026-05-01,649.7
+Lai,Tandjilé,Riz_importe,2026-06-01,621.0
+Lai,Tandjilé,Riz_importe,2026-07-01,582.7
+Bardai,Tibesti,Mil,2024-08-01,281.5
+Bardai,Tibesti,Mil,2024-09-01,281.0
+Bardai,Tibesti,Mil,2024-10-01,264.7
+Bardai,Tibesti,Mil,2024-11-01,294.9
+Bardai,Tibesti,Mil,2024-12-01,260.8
+Bardai,Tibesti,Mil,2025-01-01,333.2
+Bardai,Tibesti,Mil,2025-02-01,355.9
+Bardai,Tibesti,Mil,2025-03-01,363.7
+Bardai,Tibesti,Mil,2025-04-01,349.7
+Bardai,Tibesti,Mil,2025-05-01,493.4
+Bardai,Tibesti,Mil,2025-06-01,451.9
+Bardai,Tibesti,Mil,2025-07-01,390.2
+Bardai,Tibesti,Mil,2025-08-01,393.8
+Bardai,Tibesti,Mil,2025-09-01,375.4
+Bardai,Tibesti,Mil,2025-10-01,418.1
+Bardai,Tibesti,Mil,2025-11-01,392.8
+Bardai,Tibesti,Mil,2025-12-01,416.9
+Bardai,Tibesti,Mil,2026-01-01,477.3
+Bardai,Tibesti,Mil,2026-02-01,476.5
+Bardai,Tibesti,Mil,2026-03-01,494.1
+Bardai,Tibesti,Mil,2026-04-01,519.2
+Bardai,Tibesti,Mil,2026-05-01,496.6
+Bardai,Tibesti,Mil,2026-06-01,475.6
+Bardai,Tibesti,Mil,2026-07-01,483.8
+Bardai,Tibesti,Sorgho,2024-08-01,259.0
+Bardai,Tibesti,Sorgho,2024-09-01,238.3
+Bardai,Tibesti,Sorgho,2024-10-01,259.2
+Bardai,Tibesti,Sorgho,2024-11-01,227.4
+Bardai,Tibesti,Sorgho,2024-12-01,249.9
+Bardai,Tibesti,Sorgho,2025-01-01,295.4
+Bardai,Tibesti,Sorgho,2025-02-01,311.7
+Bardai,Tibesti,Sorgho,2025-03-01,316.0
+Bardai,Tibesti,Sorgho,2025-04-01,331.1
+Bardai,Tibesti,Sorgho,2025-05-01,434.3
+Bardai,Tibesti,Sorgho,2025-06-01,364.8
+Bardai,Tibesti,Sorgho,2025-07-01,382.6
+Bardai,Tibesti,Sorgho,2025-08-01,370.4
+Bardai,Tibesti,Sorgho,2025-09-01,372.7
+Bardai,Tibesti,Sorgho,2025-10-01,373.0
+Bardai,Tibesti,Sorgho,2025-11-01,362.5
+Bardai,Tibesti,Sorgho,2025-12-01,421.3
+Bardai,Tibesti,Sorgho,2026-01-01,413.0
+Bardai,Tibesti,Sorgho,2026-02-01,456.7
+Bardai,Tibesti,Sorgho,2026-03-01,448.2
+Bardai,Tibesti,Sorgho,2026-04-01,412.6
+Bardai,Tibesti,Sorgho,2026-05-01,460.4
+Bardai,Tibesti,Sorgho,2026-06-01,396.4
+Bardai,Tibesti,Sorgho,2026-07-01,393.2
+Bardai,Tibesti,Mais,2024-08-01,233.2
+Bardai,Tibesti,Mais,2024-09-01,227.7
+Bardai,Tibesti,Mais,2024-10-01,228.1
+Bardai,Tibesti,Mais,2024-11-01,252.8
+Bardai,Tibesti,Mais,2024-12-01,235.6
+Bardai,Tibesti,Mais,2025-01-01,271.4
+Bardai,Tibesti,Mais,2025-02-01,284.2
+Bardai,Tibesti,Mais,2025-03-01,278.1
+Bardai,Tibesti,Mais,2025-04-01,267.7
+Bardai,Tibesti,Mais,2025-05-01,380.7
+Bardai,Tibesti,Mais,2025-06-01,390.3
+Bardai,Tibesti,Mais,2025-07-01,360.5
+Bardai,Tibesti,Mais,2025-08-01,371.8
+Bardai,Tibesti,Mais,2025-09-01,304.1
+Bardai,Tibesti,Mais,2025-10-01,319.2
+Bardai,Tibesti,Mais,2025-11-01,316.4
+Bardai,Tibesti,Mais,2025-12-01,334.5
+Bardai,Tibesti,Mais,2026-01-01,401.9
+Bardai,Tibesti,Mais,2026-02-01,455.6
+Bardai,Tibesti,Mais,2026-03-01,389.1
+Bardai,Tibesti,Mais,2026-04-01,418.0
+Bardai,Tibesti,Mais,2026-05-01,394.4
+Bardai,Tibesti,Mais,2026-06-01,346.8
+Bardai,Tibesti,Mais,2026-07-01,401.6
+Bardai,Tibesti,Riz_importe,2024-08-01,374.1
+Bardai,Tibesti,Riz_importe,2024-09-01,387.2
+Bardai,Tibesti,Riz_importe,2024-10-01,391.9
+Bardai,Tibesti,Riz_importe,2024-11-01,407.5
+Bardai,Tibesti,Riz_importe,2024-12-01,412.8
+Bardai,Tibesti,Riz_importe,2025-01-01,472.2
+Bardai,Tibesti,Riz_importe,2025-02-01,444.0
+Bardai,Tibesti,Riz_importe,2025-03-01,537.2
+Bardai,Tibesti,Riz_importe,2025-04-01,494.9
+Bardai,Tibesti,Riz_importe,2025-05-01,665.2
+Bardai,Tibesti,Riz_importe,2025-06-01,612.3
+Bardai,Tibesti,Riz_importe,2025-07-01,615.8
+Bardai,Tibesti,Riz_importe,2025-08-01,582.3
+Bardai,Tibesti,Riz_importe,2025-09-01,574.3
+Bardai,Tibesti,Riz_importe,2025-10-01,580.2
+Bardai,Tibesti,Riz_importe,2025-11-01,595.9
+Bardai,Tibesti,Riz_importe,2025-12-01,643.0
+Bardai,Tibesti,Riz_importe,2026-01-01,756.7
+Bardai,Tibesti,Riz_importe,2026-02-01,698.5
+Bardai,Tibesti,Riz_importe,2026-03-01,706.0
+Bardai,Tibesti,Riz_importe,2026-04-01,719.5
+Bardai,Tibesti,Riz_importe,2026-05-01,705.6
+Bardai,Tibesti,Riz_importe,2026-06-01,713.7
+Bardai,Tibesti,Riz_importe,2026-07-01,664.5
+Biltine,Wadi Fira,Mil,2024-08-01,275.3
+Biltine,Wadi Fira,Mil,2024-09-01,278.5
+Biltine,Wadi Fira,Mil,2024-10-01,256.2
+Biltine,Wadi Fira,Mil,2024-11-01,289.8
+Biltine,Wadi Fira,Mil,2024-12-01,303.5
+Biltine,Wadi Fira,Mil,2025-01-01,331.3
+Biltine,Wadi Fira,Mil,2025-02-01,330.0
+Biltine,Wadi Fira,Mil,2025-03-01,354.8
+Biltine,Wadi Fira,Mil,2025-04-01,297.7
+Biltine,Wadi Fira,Mil,2025-05-01,469.4
+Biltine,Wadi Fira,Mil,2025-06-01,453.3
+Biltine,Wadi Fira,Mil,2025-07-01,384.4
+Biltine,Wadi Fira,Mil,2025-08-01,407.3
+Biltine,Wadi Fira,Mil,2025-09-01,398.2
+Biltine,Wadi Fira,Mil,2025-10-01,422.3
+Biltine,Wadi Fira,Mil,2025-11-01,413.0
+Biltine,Wadi Fira,Mil,2025-12-01,439.6
+Biltine,Wadi Fira,Mil,2026-01-01,514.8
+Biltine,Wadi Fira,Mil,2026-02-01,465.6
+Biltine,Wadi Fira,Mil,2026-03-01,487.6
+Biltine,Wadi Fira,Mil,2026-04-01,480.6
+Biltine,Wadi Fira,Mil,2026-05-01,448.2
+Biltine,Wadi Fira,Mil,2026-06-01,432.0
+Biltine,Wadi Fira,Mil,2026-07-01,429.3
+Biltine,Wadi Fira,Sorgho,2024-08-01,249.1
+Biltine,Wadi Fira,Sorgho,2024-09-01,246.9
+Biltine,Wadi Fira,Sorgho,2024-10-01,230.8
+Biltine,Wadi Fira,Sorgho,2024-11-01,242.9
+Biltine,Wadi Fira,Sorgho,2024-12-01,259.6
+Biltine,Wadi Fira,Sorgho,2025-01-01,287.0
+Biltine,Wadi Fira,Sorgho,2025-02-01,337.3
+Biltine,Wadi Fira,Sorgho,2025-03-01,319.1
+Biltine,Wadi Fira,Sorgho,2025-04-01,320.5
+Biltine,Wadi Fira,Sorgho,2025-05-01,384.6
+Biltine,Wadi Fira,Sorgho,2025-06-01,383.2
+Biltine,Wadi Fira,Sorgho,2025-07-01,372.2
+Biltine,Wadi Fira,Sorgho,2025-08-01,345.5
+Biltine,Wadi Fira,Sorgho,2025-09-01,380.7
+Biltine,Wadi Fira,Sorgho,2025-10-01,399.9
+Biltine,Wadi Fira,Sorgho,2025-11-01,393.7
+Biltine,Wadi Fira,Sorgho,2025-12-01,424.1
+Biltine,Wadi Fira,Sorgho,2026-01-01,461.5
+Biltine,Wadi Fira,Sorgho,2026-02-01,472.5
+Biltine,Wadi Fira,Sorgho,2026-03-01,444.4
+Biltine,Wadi Fira,Sorgho,2026-04-01,484.8
+Biltine,Wadi Fira,Sorgho,2026-05-01,433.8
+Biltine,Wadi Fira,Sorgho,2026-06-01,387.8
+Biltine,Wadi Fira,Sorgho,2026-07-01,421.7
+Biltine,Wadi Fira,Mais,2024-08-01,227.6
+Biltine,Wadi Fira,Mais,2024-09-01,206.0
+Biltine,Wadi Fira,Mais,2024-10-01,245.9
+Biltine,Wadi Fira,Mais,2024-11-01,224.6
+Biltine,Wadi Fira,Mais,2024-12-01,240.5
+Biltine,Wadi Fira,Mais,2025-01-01,308.9
+Biltine,Wadi Fira,Mais,2025-02-01,297.9
+Biltine,Wadi Fira,Mais,2025-03-01,294.7
+Biltine,Wadi Fira,Mais,2025-04-01,292.4
+Biltine,Wadi Fira,Mais,2025-05-01,360.9
+Biltine,Wadi Fira,Mais,2025-06-01,358.3
+Biltine,Wadi Fira,Mais,2025-07-01,361.8
+Biltine,Wadi Fira,Mais,2025-08-01,343.2
+Biltine,Wadi Fira,Mais,2025-09-01,349.0
+Biltine,Wadi Fira,Mais,2025-10-01,351.1
+Biltine,Wadi Fira,Mais,2025-11-01,322.5
+Biltine,Wadi Fira,Mais,2025-12-01,355.7
+Biltine,Wadi Fira,Mais,2026-01-01,392.7
+Biltine,Wadi Fira,Mais,2026-02-01,421.7
+Biltine,Wadi Fira,Mais,2026-03-01,386.3
+Biltine,Wadi Fira,Mais,2026-04-01,416.1
+Biltine,Wadi Fira,Mais,2026-05-01,366.6
+Biltine,Wadi Fira,Mais,2026-06-01,395.0
+Biltine,Wadi Fira,Mais,2026-07-01,396.7
+Biltine,Wadi Fira,Riz_importe,2024-08-01,388.4
+Biltine,Wadi Fira,Riz_importe,2024-09-01,373.0
+Biltine,Wadi Fira,Riz_importe,2024-10-01,398.5
+Biltine,Wadi Fira,Riz_importe,2024-11-01,403.6
+Biltine,Wadi Fira,Riz_importe,2024-12-01,431.9
+Biltine,Wadi Fira,Riz_importe,2025-01-01,496.6
+Biltine,Wadi Fira,Riz_importe,2025-02-01,490.4
+Biltine,Wadi Fira,Riz_importe,2025-03-01,519.5
+Biltine,Wadi Fira,Riz_importe,2025-04-01,471.7
+Biltine,Wadi Fira,Riz_importe,2025-05-01,653.2
+Biltine,Wadi Fira,Riz_importe,2025-06-01,649.6
+Biltine,Wadi Fira,Riz_importe,2025-07-01,671.4
+Biltine,Wadi Fira,Riz_importe,2025-08-01,596.4
+Biltine,Wadi Fira,Riz_importe,2025-09-01,587.5
+Biltine,Wadi Fira,Riz_importe,2025-10-01,577.8
+Biltine,Wadi Fira,Riz_importe,2025-11-01,598.3
+Biltine,Wadi Fira,Riz_importe,2025-12-01,643.2
+Biltine,Wadi Fira,Riz_importe,2026-01-01,725.5
+Biltine,Wadi Fira,Riz_importe,2026-02-01,772.3
+Biltine,Wadi Fira,Riz_importe,2026-03-01,813.1
+Biltine,Wadi Fira,Riz_importe,2026-04-01,710.0
+Biltine,Wadi Fira,Riz_importe,2026-05-01,696.2
+Biltine,Wadi Fira,Riz_importe,2026-06-01,656.0
+Biltine,Wadi Fira,Riz_importe,2026-07-01,706.3
+N'Djamena,N'Djamena,Mil,2024-08-01,271.6
+N'Djamena,N'Djamena,Mil,2024-09-01,285.1
+N'Djamena,N'Djamena,Mil,2024-10-01,260.2
+N'Djamena,N'Djamena,Mil,2024-11-01,300.8
+N'Djamena,N'Djamena,Mil,2024-12-01,287.2
+N'Djamena,N'Djamena,Mil,2025-01-01,290.8
+N'Djamena,N'Djamena,Mil,2025-02-01,294.9
+N'Djamena,N'Djamena,Mil,2025-03-01,289.9
+N'Djamena,N'Djamena,Mil,2025-04-01,309.0
+N'Djamena,N'Djamena,Mil,2025-05-01,420.9
+N'Djamena,N'Djamena,Mil,2025-06-01,416.7
+N'Djamena,N'Djamena,Mil,2025-07-01,377.5
+N'Djamena,N'Djamena,Mil,2025-08-01,396.3
+N'Djamena,N'Djamena,Mil,2025-09-01,373.5
+N'Djamena,N'Djamena,Mil,2025-10-01,367.6
+N'Djamena,N'Djamena,Mil,2025-11-01,393.9
+N'Djamena,N'Djamena,Mil,2025-12-01,392.7
+N'Djamena,N'Djamena,Mil,2026-01-01,413.1
+N'Djamena,N'Djamena,Mil,2026-02-01,460.4
+N'Djamena,N'Djamena,Mil,2026-03-01,427.5
+N'Djamena,N'Djamena,Mil,2026-04-01,420.6
+N'Djamena,N'Djamena,Mil,2026-05-01,424.6
+N'Djamena,N'Djamena,Mil,2026-06-01,396.9
+N'Djamena,N'Djamena,Mil,2026-07-01,388.4
+N'Djamena,N'Djamena,Sorgho,2024-08-01,266.0
+N'Djamena,N'Djamena,Sorgho,2024-09-01,237.8
+N'Djamena,N'Djamena,Sorgho,2024-10-01,274.4
+N'Djamena,N'Djamena,Sorgho,2024-11-01,259.9
+N'Djamena,N'Djamena,Sorgho,2024-12-01,275.3
+N'Djamena,N'Djamena,Sorgho,2025-01-01,270.3
+N'Djamena,N'Djamena,Sorgho,2025-02-01,308.2
+N'Djamena,N'Djamena,Sorgho,2025-03-01,280.7
+N'Djamena,N'Djamena,Sorgho,2025-04-01,282.9
+N'Djamena,N'Djamena,Sorgho,2025-05-01,427.0
+N'Djamena,N'Djamena,Sorgho,2025-06-01,349.8
+N'Djamena,N'Djamena,Sorgho,2025-07-01,389.3
+N'Djamena,N'Djamena,Sorgho,2025-08-01,338.8
+N'Djamena,N'Djamena,Sorgho,2025-09-01,305.4
+N'Djamena,N'Djamena,Sorgho,2025-10-01,305.2
+N'Djamena,N'Djamena,Sorgho,2025-11-01,336.0
+N'Djamena,N'Djamena,Sorgho,2025-12-01,353.1
+N'Djamena,N'Djamena,Sorgho,2026-01-01,384.7
+N'Djamena,N'Djamena,Sorgho,2026-02-01,397.0
+N'Djamena,N'Djamena,Sorgho,2026-03-01,380.7
+N'Djamena,N'Djamena,Sorgho,2026-04-01,376.8
+N'Djamena,N'Djamena,Sorgho,2026-05-01,348.0
+N'Djamena,N'Djamena,Sorgho,2026-06-01,369.0
+N'Djamena,N'Djamena,Sorgho,2026-07-01,366.6
+N'Djamena,N'Djamena,Mais,2024-08-01,209.4
+N'Djamena,N'Djamena,Mais,2024-09-01,227.3
+N'Djamena,N'Djamena,Mais,2024-10-01,219.3
+N'Djamena,N'Djamena,Mais,2024-11-01,232.2
+N'Djamena,N'Djamena,Mais,2024-12-01,238.9
+N'Djamena,N'Djamena,Mais,2025-01-01,276.9
+N'Djamena,N'Djamena,Mais,2025-02-01,268.1
+N'Djamena,N'Djamena,Mais,2025-03-01,269.0
+N'Djamena,N'Djamena,Mais,2025-04-01,258.7
+N'Djamena,N'Djamena,Mais,2025-05-01,335.3
+N'Djamena,N'Djamena,Mais,2025-06-01,296.0
+N'Djamena,N'Djamena,Mais,2025-07-01,312.3
+N'Djamena,N'Djamena,Mais,2025-08-01,306.3
+N'Djamena,N'Djamena,Mais,2025-09-01,315.7
+N'Djamena,N'Djamena,Mais,2025-10-01,301.9
+N'Djamena,N'Djamena,Mais,2025-11-01,355.5
+N'Djamena,N'Djamena,Mais,2025-12-01,344.9
+N'Djamena,N'Djamena,Mais,2026-01-01,395.6
+N'Djamena,N'Djamena,Mais,2026-02-01,321.3
+N'Djamena,N'Djamena,Mais,2026-03-01,359.4
+N'Djamena,N'Djamena,Mais,2026-04-01,384.0
+N'Djamena,N'Djamena,Mais,2026-05-01,355.9
+N'Djamena,N'Djamena,Mais,2026-06-01,310.6
+N'Djamena,N'Djamena,Mais,2026-07-01,336.3
+N'Djamena,N'Djamena,Riz_importe,2024-08-01,348.7
+N'Djamena,N'Djamena,Riz_importe,2024-09-01,360.1
+N'Djamena,N'Djamena,Riz_importe,2024-10-01,390.8
+N'Djamena,N'Djamena,Riz_importe,2024-11-01,437.4
+N'Djamena,N'Djamena,Riz_importe,2024-12-01,436.7
+N'Djamena,N'Djamena,Riz_importe,2025-01-01,467.0
+N'Djamena,N'Djamena,Riz_importe,2025-02-01,462.0
+N'Djamena,N'Djamena,Riz_importe,2025-03-01,470.8
+N'Djamena,N'Djamena,Riz_importe,2025-04-01,433.2
+N'Djamena,N'Djamena,Riz_importe,2025-05-01,630.0
+N'Djamena,N'Djamena,Riz_importe,2025-06-01,506.4
+N'Djamena,N'Djamena,Riz_importe,2025-07-01,567.8
+N'Djamena,N'Djamena,Riz_importe,2025-08-01,555.9
+N'Djamena,N'Djamena,Riz_importe,2025-09-01,543.2
+N'Djamena,N'Djamena,Riz_importe,2025-10-01,610.6
+N'Djamena,N'Djamena,Riz_importe,2025-11-01,535.7
+N'Djamena,N'Djamena,Riz_importe,2025-12-01,577.6
+N'Djamena,N'Djamena,Riz_importe,2026-01-01,554.0
+N'Djamena,N'Djamena,Riz_importe,2026-02-01,614.0
+N'Djamena,N'Djamena,Riz_importe,2026-03-01,647.4
+N'Djamena,N'Djamena,Riz_importe,2026-04-01,624.8
+N'Djamena,N'Djamena,Riz_importe,2026-05-01,594.5
+N'Djamena,N'Djamena,Riz_importe,2026-06-01,614.5
+N'Djamena,N'Djamena,Riz_importe,2026-07-01,541.8
+Moussoro,Barh El Gazel,Mil,2024-08-01,283.7
+Moussoro,Barh El Gazel,Mil,2024-09-01,262.2
+Moussoro,Barh El Gazel,Mil,2024-10-01,277.0
+Moussoro,Barh El Gazel,Mil,2024-11-01,264.9
+Moussoro,Barh El Gazel,Mil,2024-12-01,297.8
+Moussoro,Barh El Gazel,Mil,2025-01-01,298.4
+Moussoro,Barh El Gazel,Mil,2025-02-01,325.6
+Moussoro,Barh El Gazel,Mil,2025-03-01,334.8
+Moussoro,Barh El Gazel,Mil,2025-04-01,374.8
+Moussoro,Barh El Gazel,Mil,2025-05-01,430.1
+Moussoro,Barh El Gazel,Mil,2025-06-01,444.4
+Moussoro,Barh El Gazel,Mil,2025-07-01,427.0
+Moussoro,Barh El Gazel,Mil,2025-08-01,409.3
+Moussoro,Barh El Gazel,Mil,2025-09-01,423.1
+Moussoro,Barh El Gazel,Mil,2025-10-01,399.3
+Moussoro,Barh El Gazel,Mil,2025-11-01,425.9
+Moussoro,Barh El Gazel,Mil,2025-12-01,439.2
+Moussoro,Barh El Gazel,Mil,2026-01-01,530.7
+Moussoro,Barh El Gazel,Mil,2026-02-01,487.9
+Moussoro,Barh El Gazel,Mil,2026-03-01,513.1
+Moussoro,Barh El Gazel,Mil,2026-04-01,496.2
+Moussoro,Barh El Gazel,Mil,2026-05-01,511.0
+Moussoro,Barh El Gazel,Mil,2026-06-01,480.9
+Moussoro,Barh El Gazel,Mil,2026-07-01,505.3
+Moussoro,Barh El Gazel,Sorgho,2024-08-01,236.5
+Moussoro,Barh El Gazel,Sorgho,2024-09-01,262.7
+Moussoro,Barh El Gazel,Sorgho,2024-10-01,252.2
+Moussoro,Barh El Gazel,Sorgho,2024-11-01,252.4
+Moussoro,Barh El Gazel,Sorgho,2024-12-01,247.6
+Moussoro,Barh El Gazel,Sorgho,2025-01-01,305.2
+Moussoro,Barh El Gazel,Sorgho,2025-02-01,316.4
+Moussoro,Barh El Gazel,Sorgho,2025-03-01,306.2
+Moussoro,Barh El Gazel,Sorgho,2025-04-01,326.3
+Moussoro,Barh El Gazel,Sorgho,2025-05-01,443.9
+Moussoro,Barh El Gazel,Sorgho,2025-06-01,389.8
+Moussoro,Barh El Gazel,Sorgho,2025-07-01,388.0
+Moussoro,Barh El Gazel,Sorgho,2025-08-01,369.2
+Moussoro,Barh El Gazel,Sorgho,2025-09-01,377.8
+Moussoro,Barh El Gazel,Sorgho,2025-10-01,377.5
+Moussoro,Barh El Gazel,Sorgho,2025-11-01,381.4
+Moussoro,Barh El Gazel,Sorgho,2025-12-01,421.2
+Moussoro,Barh El Gazel,Sorgho,2026-01-01,459.5
+Moussoro,Barh El Gazel,Sorgho,2026-02-01,462.7
+Moussoro,Barh El Gazel,Sorgho,2026-03-01,458.5
+Moussoro,Barh El Gazel,Sorgho,2026-04-01,482.9
+Moussoro,Barh El Gazel,Sorgho,2026-05-01,405.4
+Moussoro,Barh El Gazel,Sorgho,2026-06-01,388.2
+Moussoro,Barh El Gazel,Sorgho,2026-07-01,457.8
+Moussoro,Barh El Gazel,Mais,2024-08-01,245.7
+Moussoro,Barh El Gazel,Mais,2024-09-01,230.1
+Moussoro,Barh El Gazel,Mais,2024-10-01,233.5
+Moussoro,Barh El Gazel,Mais,2024-11-01,238.8
+Moussoro,Barh El Gazel,Mais,2024-12-01,235.2
+Moussoro,Barh El Gazel,Mais,2025-01-01,277.3
+Moussoro,Barh El Gazel,Mais,2025-02-01,272.0
+Moussoro,Barh El Gazel,Mais,2025-03-01,282.5
+Moussoro,Barh El Gazel,Mais,2025-04-01,277.4
+Moussoro,Barh El Gazel,Mais,2025-05-01,369.3
+Moussoro,Barh El Gazel,Mais,2025-06-01,341.8
+Moussoro,Barh El Gazel,Mais,2025-07-01,336.2
+Moussoro,Barh El Gazel,Mais,2025-08-01,371.7
+Moussoro,Barh El Gazel,Mais,2025-09-01,311.6
+Moussoro,Barh El Gazel,Mais,2025-10-01,331.4
+Moussoro,Barh El Gazel,Mais,2025-11-01,351.2
+Moussoro,Barh El Gazel,Mais,2025-12-01,364.1
+Moussoro,Barh El Gazel,Mais,2026-01-01,414.4
+Moussoro,Barh El Gazel,Mais,2026-02-01,417.2
+Moussoro,Barh El Gazel,Mais,2026-03-01,400.2
+Moussoro,Barh El Gazel,Mais,2026-04-01,425.9
+Moussoro,Barh El Gazel,Mais,2026-05-01,403.2
+Moussoro,Barh El Gazel,Mais,2026-06-01,366.4
+Moussoro,Barh El Gazel,Mais,2026-07-01,388.5
+Moussoro,Barh El Gazel,Riz_importe,2024-08-01,429.3
+Moussoro,Barh El Gazel,Riz_importe,2024-09-01,410.7
+Moussoro,Barh El Gazel,Riz_importe,2024-10-01,424.0
+Moussoro,Barh El Gazel,Riz_importe,2024-11-01,427.0
+Moussoro,Barh El Gazel,Riz_importe,2024-12-01,391.6
+Moussoro,Barh El Gazel,Riz_importe,2025-01-01,487.6
+Moussoro,Barh El Gazel,Riz_importe,2025-02-01,515.0
+Moussoro,Barh El Gazel,Riz_importe,2025-03-01,509.1
+Moussoro,Barh El Gazel,Riz_importe,2025-04-01,483.8
+Moussoro,Barh El Gazel,Riz_importe,2025-05-01,674.3
+Moussoro,Barh El Gazel,Riz_importe,2025-06-01,615.8
+Moussoro,Barh El Gazel,Riz_importe,2025-07-01,594.1
+Moussoro,Barh El Gazel,Riz_importe,2025-08-01,560.0
+Moussoro,Barh El Gazel,Riz_importe,2025-09-01,625.5
+Moussoro,Barh El Gazel,Riz_importe,2025-10-01,589.2
+Moussoro,Barh El Gazel,Riz_importe,2025-11-01,589.1
+Moussoro,Barh El Gazel,Riz_importe,2025-12-01,620.9
+Moussoro,Barh El Gazel,Riz_importe,2026-01-01,807.2
+Moussoro,Barh El Gazel,Riz_importe,2026-02-01,727.0
+Moussoro,Barh El Gazel,Riz_importe,2026-03-01,775.2
+Moussoro,Barh El Gazel,Riz_importe,2026-04-01,765.0
+Moussoro,Barh El Gazel,Riz_importe,2026-05-01,711.5
+Moussoro,Barh El Gazel,Riz_importe,2026-06-01,707.2
+Moussoro,Barh El Gazel,Riz_importe,2026-07-01,712.2
